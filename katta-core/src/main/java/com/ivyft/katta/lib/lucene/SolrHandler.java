@@ -80,6 +80,10 @@ public class SolrHandler {
         this.shardName = shardName;
         this.collectionName = collectionName;
         solrCore = container.getCore(collectionName);
+
+        if(solrCore == null) {
+            throw new IllegalArgumentException(collectionName + "'s solr core is null.");
+        }
     }
 
 

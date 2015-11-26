@@ -23,7 +23,7 @@
         <hadoop.version>2.2.0</hadoop.version>
         <zookeeper.version>3.3.6</zookeeper.version>
         <lucene.version>4.6.1</lucene.version>
-        <solr.version>4.7.2</solr.version>
+        <solr.version>4.6.1</solr.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -195,10 +195,6 @@
                     <artifactId>commons-codec</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>commons-fileupload</groupId>
-                    <artifactId>commons-fileupload</artifactId>
-                </exclusion>
-                <exclusion>
                     <groupId>org.restlet.jee</groupId>
                     <artifactId>org.restlet</artifactId>
                 </exclusion>
@@ -222,14 +218,7 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-hdfs</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpclient</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpmime</artifactId>
-                </exclusion>
+
                 <exclusion>
                     <artifactId>lucene-expressions</artifactId>
                     <groupId>org.apache.lucene</groupId>
@@ -242,10 +231,7 @@
                     <artifactId>antlr-runtime</artifactId>
                     <groupId>org.antlr</groupId>
                 </exclusion>
-                <exclusion>
-                    <artifactId>httpcore</artifactId>
-                    <groupId>org.apache.httpcomponents</groupId>
-                </exclusion>
+
                 <exclusion>
                     <artifactId>jetty-continuation</artifactId>
                     <groupId>org.eclipse.jetty</groupId>

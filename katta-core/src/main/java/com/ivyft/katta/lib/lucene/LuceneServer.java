@@ -236,6 +236,10 @@ public class LuceneServer implements IContentServer, ILuceneServer {
      * @param timeoutPercentage
      */
     public LuceneServer(String name, ISeacherFactory seacherFactory, float timeoutPercentage) {
+        DEFAULT_QUERY.setStart(0);
+        DEFAULT_QUERY.setRows(10);
+        DEFAULT_QUERY.set(CommonParams.TIME_ALLOWED, 5 * 1000);
+
         Properties properties = new Properties();
         init(name, new NodeConfiguration(properties));
         this.seacherFactory = seacherFactory;
@@ -247,7 +251,6 @@ public class LuceneServer implements IContentServer, ILuceneServer {
     @Override
     public void init(String nodeName, NodeConfiguration nodeConfiguration) {
         this.nodeName = nodeName;
-        DEFAULT_QUERY.setRows(10);
 
         //利用反射实例化seacherFactory
         this.seacherFactory = (ISeacherFactory) ClassUtil.newInstance(

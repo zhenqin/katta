@@ -183,7 +183,7 @@ public class ShardManager {
         URI uri;
         try {
             uri = new URI(shardPath);
-            FileSystem fileSystem = FileSystem.get(uri, HadoopUtil.getHadoopConf());
+            FileSystem fileSystem = HadoopUtil.getFileSystem(uri);
             if (this.throttleSemaphore != null) {
                 fileSystem =
                         new ThrottledFileSystem(fileSystem, this.throttleSemaphore);

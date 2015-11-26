@@ -20,6 +20,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
+import java.net.URI;
 
 
 /**
@@ -50,6 +51,14 @@ public class HadoopUtil {
         synchronized (FileSystem.class) {
             // had once a ConcurrentModificationException
             return FileSystem.get(path.toUri(), hadoopConf);
+        }
+    }
+
+
+    public static FileSystem getFileSystem(URI uri) throws IOException {
+        synchronized (FileSystem.class) {
+            // had once a ConcurrentModificationException
+            return FileSystem.get(uri, hadoopConf);
         }
     }
 
