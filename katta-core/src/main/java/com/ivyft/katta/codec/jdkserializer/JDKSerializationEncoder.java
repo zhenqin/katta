@@ -1,6 +1,5 @@
 package com.ivyft.katta.codec.jdkserializer;
 
-import com.ivyft.katta.serializer.jdkserializer.JdkSerializer;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;

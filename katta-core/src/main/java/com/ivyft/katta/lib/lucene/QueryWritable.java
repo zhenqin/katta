@@ -15,7 +15,7 @@
  */
 package com.ivyft.katta.lib.lucene;
 
-import com.ivyft.katta.serializer.jdkserializer.JdkSerializer;
+import com.ivyft.katta.codec.jdkserializer.JdkSerializer;
 import org.apache.hadoop.io.Writable;
 import org.apache.solr.client.solrj.SolrQuery;
 
