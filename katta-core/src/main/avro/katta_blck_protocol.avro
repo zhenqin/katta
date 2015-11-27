@@ -1,0 +1,50 @@
+{
+    "namespace":"com.ivyft.katta.protocol",
+    "doc":"Katta Process Interface",
+    "protocol":"KattaClientProtocol",
+    "name":"KattaClient",
+
+    "types":[
+            {
+                 "name":"Message",
+                 "type":"record",
+                 "fields":[
+                     {
+                         "name":"id",
+                         "type":"string"
+                     },
+                     {
+                         "name":"payload",
+                         "type": "bytes"
+                     }
+                 ]
+            }],
+
+    "messages":{
+        "add" :{
+            "doc":"插入单条数据",
+            "request": [{"name" : "message", "type" : "Message"}],
+            "response": "int"
+        },
+        "addList" :{
+             "doc":"批次插入(List)",
+             "request": [{"name" : "messages", "type":{"type": "array", "items": "Message"}}],
+             "response": "int"
+        },
+        "commit" :{
+             "doc":"提交",
+             "request": [],
+             "response": "int"
+        },
+        "rollback" :{
+             "doc":"提交失败回滚",
+             "request": [],
+             "response": "int"
+        },
+        "close" :{
+             "doc":"关闭接口",
+             "request": [],
+             "response": "int"
+        }
+    }
+}
