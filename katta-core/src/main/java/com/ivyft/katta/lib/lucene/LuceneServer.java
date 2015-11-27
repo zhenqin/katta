@@ -59,6 +59,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -325,7 +326,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
      */
     @Override
     public void addShard(final String shardName,
-                         final File shardDir,
+                         final URI shardDir,
                          final String collectionName) throws IOException {
         LOG.info("LuceneServer " + this.nodeName + " got shard " + shardName);
         try {

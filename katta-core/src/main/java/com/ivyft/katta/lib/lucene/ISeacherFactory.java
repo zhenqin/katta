@@ -18,8 +18,8 @@ package com.ivyft.katta.lib.lucene;
 import com.ivyft.katta.util.NodeConfiguration;
 import org.apache.lucene.search.IndexSearcher;
 
-import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 
 /**
  *
@@ -46,5 +46,5 @@ public interface ISeacherFactory {
 
     void init(NodeConfiguration config);
 
-    IndexSearcher createSearcher(String shardName, File shardDir) throws IOException;
+    IndexSearcher createSearcher(String shardName, URI shardPath) throws IOException;
 }

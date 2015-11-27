@@ -20,6 +20,7 @@ import com.ivyft.katta.util.HadoopUtil;
 import com.ivyft.katta.util.KattaException;
 import com.ivyft.katta.util.ThrottledInputStream;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -52,6 +53,13 @@ import java.util.Date;
  * @author zhenqin
  */
 public class ShardManager {
+
+
+
+    public final static String HDFS = "hdfs";
+
+
+    public final static String FILE = "file";
 
 
     /**
@@ -106,17 +114,39 @@ public class ShardManager {
      * @return 返回本地索引文件的路径
      * @throws Exception
      */
-    public File installShard(String shardName,
+    public URI installShard(String shardName,
                              String shardPath) throws Exception {
-        File localShardFolder = getShardFolder(shardName);
-        try {
-            if (!localShardFolder.exists()) {
-                installShard(shardName, shardPath, localShardFolder);
+        URI path = new URI(shardPath);
+        String scheme = path.getScheme();
+        if(StringUtils.equals(ShardManager.HDFS, scheme)) {
+            //本地文件系统 copy 文件
+            File localShardFolder = getShardFolder(shardName);
+            try {
+                LOG.info("hdfs use local dir: " + localShardFolder.getAbsolutePath());
+                if (!localShardFolder.exists()) {
+                    if(!localShardFolder.mkdirs()) {
+                        throw new IOException("can't mkdir: " + localShardFolder);
+                    }
+
+                    LOG.info("mkdir: " + localShardFolder.getAbsolutePath());
+                }
+                return path;
+            } catch (Exception e) {
+                FileUtil.deleteFolder(localShardFolder);
+                throw e;
             }
-            return localShardFolder;
-        } catch (Exception e) {
-            FileUtil.deleteFolder(localShardFolder);
-            throw e;
+        } else {
+            //本地文件系统 copy 文件
+            File localShardFolder = getShardFolder(shardName);
+            try {
+                if (!localShardFolder.exists()) {
+                    installShard(shardName, shardPath, localShardFolder);
+                }
+                return localShardFolder.toURI();
+            } catch (Exception e) {
+                FileUtil.deleteFolder(localShardFolder);
+                throw e;
+            }
         }
     }
 
@@ -232,7 +262,7 @@ public class ShardManager {
         FileSystem fileSystem = null;
         try {
             uri = new URI(shardPath);
-            fileSystem = FileSystem.get(uri, HadoopUtil.getHadoopConf());
+            fileSystem = HadoopUtil.getFileSystem(uri);
             if (this.throttleSemaphore != null) {
                 fileSystem =
                         new ThrottledFileSystem(fileSystem, this.throttleSemaphore);

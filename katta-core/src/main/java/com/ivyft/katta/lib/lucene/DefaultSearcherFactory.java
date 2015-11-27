@@ -15,13 +15,22 @@
  */
 package com.ivyft.katta.lib.lucene;
 
+import com.ivyft.katta.node.ShardManager;
+import com.ivyft.katta.util.HadoopUtil;
 import com.ivyft.katta.util.NodeConfiguration;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.Path;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.solr.store.hdfs.HdfsDirectory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 
 
 /**
@@ -46,6 +55,8 @@ import java.io.IOException;
 public class DefaultSearcherFactory implements ISeacherFactory {
 
 
+    protected static Logger LOG = LoggerFactory.getLogger(DefaultSearcherFactory.class);
+
     /**
      * 该类通过反射实例化， 因此必须有无参数的构造方法
      */
@@ -59,9 +70,28 @@ public class DefaultSearcherFactory implements ISeacherFactory {
     }
 
     @Override
-    public IndexSearcher createSearcher(String shardName, File shardDir) throws IOException {
-        FSDirectory directory = FSDirectory.open(shardDir.getAbsoluteFile());
-        return new IndexSearcher(DirectoryReader.open(directory));
+    public IndexSearcher createSearcher(String shardName, URI shardPath) throws IOException {
+        String scheme = shardPath.getScheme();
+        if(StringUtils.equals(ShardManager.HDFS, scheme)) {
+            LOG.info("open hdfs index: " + shardPath.toString());
+            Directory directory = new HdfsDirectory(new Path(shardPath), HadoopUtil.getHadoopConf());
+            return new IndexSearcher(DirectoryReader.open(directory));
+        } else if(StringUtils.equals(ShardManager.FILE, scheme)) {
+            LOG.info("open file index: " + shardPath.toString());
+            FSDirectory directory = FSDirectory.open(new File(shardPath));
+            return new IndexSearcher(DirectoryReader.open(directory));
+        } else {
+            throw new IllegalStateException("unknow schema " + scheme + " and path: " + shardPath.toString());
+        }
+    }
+
+
+    public static void main(String[] args) {
+        Path path = new Path("hdfs:///user");
+        System.out.println(path.toUri().getScheme());
+
+        path = new Path("file:///user");
+        System.out.println(path.toUri().getScheme());
     }
 
 }

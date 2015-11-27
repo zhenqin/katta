@@ -18,7 +18,7 @@ package com.ivyft.katta.node;
 import com.ivyft.katta.util.NodeConfiguration;
 import org.apache.hadoop.ipc.VersionedProtocol;
 
-import java.io.File;
+import java.net.URI;
 import java.util.Collection;
 import java.util.Map;
 
@@ -87,7 +87,7 @@ public interface IContentServer extends VersionedProtocol {
      * @param shardDir  The directory where the shard data is.
      * @throws Exception
      */
-    public void addShard(String shardName, File shardDir, String collectionName) throws Exception;
+    public void addShard(String shardName, URI shardDir, String collectionName) throws Exception;
 
 
     /**

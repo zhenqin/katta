@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -78,6 +79,7 @@ public class MapFileServer implements IContentServer, IMapFileServer {
         _nodeName = nodeName;
     }
 
+
     /**
      * Adds an shard index search for given name to the list of shards
      * MultiSearcher search in.
@@ -85,8 +87,9 @@ public class MapFileServer implements IContentServer, IMapFileServer {
      * @param shardName
      * @throws IOException
      */
-    public void addShard(final String shardName, final File shardDir, final String collectionName) throws IOException {
+    public void addShard(final String shardName, final URI path, final String collectionName) throws IOException {
         LOG.debug("LuceneServer " + _nodeName + " got shard " + shardName);
+        File shardDir = new File(path);
         if (!shardDir.exists()) {
             throw new IOException("Shard " + shardName + " dir " + shardDir.getAbsolutePath() + " does not exist!");
         }

@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Map;
 
 
@@ -68,8 +69,9 @@ public class ShardDeployOperation extends AbstractShardOperation {
                            DeployResult deployResult) throws Exception {
 
         String shardPath = getShardPath(shardName);
-        File localShardFolder = context.getShardManager().installShard(shardName, shardPath);
-        log.info("copy shard " + shardName + " success. local: file://" + localShardFolder.getAbsolutePath());
+
+        URI localShardFolder = context.getShardManager().installShard(shardName, shardPath);
+        log.info("copy shard " + shardName + " success. local: " + localShardFolder);
 
         IContentServer contentServer = context.getContentServer();
 

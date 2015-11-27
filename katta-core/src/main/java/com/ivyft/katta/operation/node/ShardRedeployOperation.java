@@ -17,12 +17,14 @@ package com.ivyft.katta.operation.node;
 
 import com.ivyft.katta.node.IContentServer;
 import com.ivyft.katta.node.NodeContext;
+import com.ivyft.katta.node.ShardManager;
 import com.ivyft.katta.protocol.metadata.IndexMetaData;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URI;
 import java.util.Collection;
 import java.util.Map;
 
@@ -84,10 +86,8 @@ public class ShardRedeployOperation extends AbstractShardOperation {
 
     @Override
     protected void execute(NodeContext context, String shardName, DeployResult deployResult) throws Exception {
-        File localShardFolder;
-
         //不需要重新安裝，取得shard的本地目录
-        localShardFolder = context.getShardManager().getShardFolder(shardName);
+        File localShardFolder = context.getShardManager().getShardFolder(shardName);
 
         String index = shardName.substring(0, shardName.indexOf("#"));
 
@@ -105,19 +105,26 @@ public class ShardRedeployOperation extends AbstractShardOperation {
         log.info(getOperationName() + " local index, path: " + localShardFolder);
         addShard(shardName, shardPath, metaData.getCollectionName());
 
-        shardPath = getShardPath(shardName);
-        //检验是否需要重新安装
-        if(context.getShardManager().validChanges(shardName, shardPath)){
-            log.info(shardName + " 不是最新的，將會刪除本地索引並且重新安裝。");
-            //首先删除Shard占用的文件
-            context.getShardManager().uninstallShard(shardName);
-            log.info(shardName + " 重新安裝.");
-            //然后重新安装
-            localShardFolder = context.getShardManager().installShard(shardName, shardPath);
+        //shardPath = getShardPath(shardName);
+        URI shardFolder = new URI(shardPath);
+        String scheme = shardFolder.getScheme();
+        if(StringUtils.equals(ShardManager.HDFS, scheme)) {
+            //HDFS, 不需要安装, 这里尝试安装, 创建本地目录
+            shardFolder = context.getShardManager().installShard(shardName, shardPath);
         } else {
-            log.info(shardName + "  path: " + shardPath + " 索引是最新的。");
+            //如果是本地文件, 走本地文件系统
+            //检验是否需要重新安装
+            if(context.getShardManager().validChanges(shardName, shardPath)){
+                log.info(shardName + " 不是最新的，將會刪除本地索引並且重新安裝。");
+                //首先删除Shard占用的文件
+                context.getShardManager().uninstallShard(shardName);
+                log.info(shardName + " 重新安裝.");
+                //然后重新安装
+                shardFolder = context.getShardManager().installShard(shardName, shardPath);
+            } else {
+                log.info(shardName + "  path: " + shardPath + " 索引是最新的。");
+            }
         }
-
 
         IContentServer contentServer = context.getContentServer();
         if (!contentServer.getShards().contains(shardName)) {
@@ -131,7 +138,7 @@ public class ShardRedeployOperation extends AbstractShardOperation {
             log.info(getOperationName() + " " + shardName + " use by collectionName: " + collectionName);
 
             //加载和重新加载,Solr collectionName传入
-            contentServer.addShard(shardName, localShardFolder, collectionName);
+            contentServer.addShard(shardName, shardFolder, collectionName);
 
             Map<String, String> shardMetaData = context.getContentServer().getShardMetaData(shardName);
             if (shardMetaData == null) {
