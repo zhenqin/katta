@@ -33,7 +33,7 @@
 
 
         <tomcat.home>/home/zhenqin/software/apache-tomcat-6.0.35</tomcat.home>
-        <java.main.class>net.sf.katta.Katta</java.main.class>
+        <java.main.class>com.ivyft.katta.Katta</java.main.class>
     </properties>
 
     <modules>
