@@ -1,10 +1,10 @@
 package com.ivyft.katta.node;
 
-import com.ivyft.katta.client.DataLoaderProxy;
+import com.ivyft.katta.client.KattaClient;
 import com.ivyft.katta.client.KattaLoader;
 import org.junit.Test;
 
-import java.lang.reflect.Proxy;
+import java.util.Random;
 
 /**
  * <pre>
@@ -21,7 +21,6 @@ import java.lang.reflect.Proxy;
  */
 public class KattaLoaderTest {
 
-
     public KattaLoaderTest() {
 
     }
@@ -29,16 +28,10 @@ public class KattaLoaderTest {
 
     @Test
     public void testSend() throws Exception {
-        KattaLoader<Object> loader = get("localhost", 7690);
-        System.out.println(loader.addBean("java", "hello"));
-
-    }
-
-    public static <T> KattaLoader<T> get(String host, int port) {
-        return  (KattaLoader<T>) Proxy.newProxyInstance(
-                KattaLoader.class.getClassLoader(),
-                new Class[]{KattaLoader.class},
-                new DataLoaderProxy(host, port));
-
+        KattaLoader<String> loader = new KattaClient<String>("localhost", 7690);
+        for (int i = 0; i < 10; i++) {
+            System.out.println(loader.addBean("java" + i, "hello" + new Random().nextInt()));
+        }
+        loader.commit();
     }
 }

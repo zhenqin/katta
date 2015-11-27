@@ -1,6 +1,8 @@
 package com.ivyft.katta.client;
 
 
+import com.ivyft.katta.codec.Serializer;
+import com.ivyft.katta.codec.jdkserializer.JdkSerializer;
 import com.ivyft.katta.protocol.KattaClientProtocol;
 import com.ivyft.katta.protocol.Message;
 import org.apache.avro.AvroRemoteException;
@@ -12,6 +14,8 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -28,16 +32,22 @@ import java.util.List;
  *
  * @author zhenqin
  */
-public class KattaClient implements KattaClientProtocol {
+public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
 
 
     private String host = "localhost";
 
     private int port = 7690;
 
+
     private final KattaClientProtocol kattaClientProtocol;
 
+
     private final Transceiver t;
+
+
+    protected Serializer serializer = new JdkSerializer();
+
 
 
     /**
@@ -76,18 +86,64 @@ public class KattaClient implements KattaClientProtocol {
     }
 
     @Override
-    public int commit() throws AvroRemoteException {
-        return kattaClientProtocol.commit();
+    public int add(Pair<T> pair) {
+        return addBean(pair.getShardId(), pair.getBean());
     }
 
     @Override
-    public int rollback() throws AvroRemoteException {
-        return kattaClientProtocol.rollback();
+    public int addBean(String shardId, T message) {
+        try {
+            return add(new Message(shardId, ByteBuffer.wrap(serializer.serialize(message))));
+        } catch (AvroRemoteException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
-    public int close() throws AvroRemoteException {
-        return kattaClientProtocol.close();
+    public int addBeans(List<Pair<T>> list) {
+        List<Message> messages = new ArrayList<Message>(list.size());
+        for (Pair d : list) {
+            messages.add(new Message(d.getShardId(),
+                    ByteBuffer.wrap(serializer.serialize(d.getBean()))));
+        }
+        try {
+            return addList(messages);
+        } catch (AvroRemoteException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public void commit() {
+        try {
+            kattaClientProtocol.comm();
+        } catch (AvroRemoteException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public void rollback() {
+        try {
+            kattaClientProtocol.roll();
+        } catch (AvroRemoteException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public int comm() throws AvroRemoteException {
+        return kattaClientProtocol.comm();
+    }
+
+    @Override
+    public int roll() throws AvroRemoteException {
+        return kattaClientProtocol.roll();
+    }
+
+    @Override
+    public int cls() throws AvroRemoteException {
+        return kattaClientProtocol.cls();
     }
 
 

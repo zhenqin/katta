@@ -36,17 +36,18 @@ public class MasterStorageProtocol implements KattaClientProtocol {
     }
 
     @Override
-    public int commit() throws AvroRemoteException {
+    public int comm() throws AvroRemoteException {
+        System.out.println("=================out===================");
         return 0;
     }
 
     @Override
-    public int rollback() throws AvroRemoteException {
+    public int roll() throws AvroRemoteException {
         return 0;
     }
 
     @Override
-    public int close() throws AvroRemoteException {
+    public int cls() throws AvroRemoteException {
         return 0;
     }
 }

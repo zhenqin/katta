@@ -31,17 +31,17 @@
              "request": [{"name" : "messages", "type":{"type": "array", "items": "Message"}}],
              "response": "int"
         },
-        "commit" :{
+        "comm" :{
              "doc":"提交",
              "request": [],
              "response": "int"
         },
-        "rollback" :{
+        "roll" :{
              "doc":"提交失败回滚",
              "request": [],
              "response": "int"
         },
-        "close" :{
+        "cls" :{
              "doc":"关闭接口",
              "request": [],
              "response": "int"

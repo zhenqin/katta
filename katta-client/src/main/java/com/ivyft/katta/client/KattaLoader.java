@@ -24,12 +24,10 @@ public interface KattaLoader<T> {
     public int addBean(String shardId, T message);
 
 
-    public int addList(List<Pair<T>> list);
-
+    public int addBeans(List<Pair<T>> list);
 
 
     public void commit();
-
 
 
     public void rollback();
