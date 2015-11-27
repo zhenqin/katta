@@ -38,7 +38,9 @@ bin=`cd "$bin"; pwd`
 this="$bin/$script"
 
 # the root of the Katta installation
-export KATTA_HOME=`dirname "$this"`/..
+KATTA_HOME=`dirname "$this"`/..
+KATTA_HOME=`cd $KATTA_HOME; pwd`
+export KATTA_HOME
 
 # check to see if the conf dir is given as an optional argument
 if [ $# -gt 1 ]
