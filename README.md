@@ -71,10 +71,10 @@ Katta 是一个分布式搜索引擎解决方案. 他和 Solr/ElasticSearch 工�
     bin/katta addIndex testIndex  solrcollection  file:///data/luceneIndex
     bin/katta addIndex testIndex  solrcollection  hdfs:///data/luceneIndex
     
-1. testIndex: 索引名称
-2. solrcollection: <katta_home>/data/solr 下应该有该Solr 的配置文件. 搜索时, Query 方言用 Solr 解析.
-3. file:///data/luceneIndex: 本地模式, 一定要加 file://; HDFS 要加前缀 hdfs://
-4. 还可以有第4个参数, 该参数控制Katta 集群内该所有有几个复制(默认3个)
+- testIndex: 索引名称
+- solrcollection: <katta_home>/data/solr 下应该有该Solr 的配置文件. 搜索时, Query 方言用 Solr 解析.
+- file:///data/luceneIndex: 本地模式, 一定要加 file://; HDFS 要加前缀 hdfs://
+- 还可以有第4个参数, 该参数控制Katta 集群内该所有有几个复制(默认3个)
 
 
 验证分片:
