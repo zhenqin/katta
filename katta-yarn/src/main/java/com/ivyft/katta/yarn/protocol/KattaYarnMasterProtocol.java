@@ -1,5 +1,7 @@
 package com.ivyft.katta.yarn.protocol;
 
+import com.ivyft.katta.util.KattaConfiguration;
+import com.ivyft.katta.yarn.KattaAMRMClient;
 import org.apache.avro.AvroRemoteException;
 
 /**
@@ -18,8 +20,16 @@ import org.apache.avro.AvroRemoteException;
 public class KattaYarnMasterProtocol implements KattaYarnProtocol {
 
 
-    public KattaYarnMasterProtocol() {
+    protected KattaConfiguration conf;
 
+
+
+    protected KattaAMRMClient amrmClient;
+
+
+    public KattaYarnMasterProtocol(KattaConfiguration conf, KattaAMRMClient amrmClient) {
+        this.conf = conf;
+        this.amrmClient = amrmClient;
     }
 
     @Override
@@ -49,6 +59,11 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
 
     @Override
     public Void shutdown() throws AvroRemoteException {
+        return null;
+    }
+
+    @Override
+    public Void close() throws AvroRemoteException {
         return null;
     }
 }

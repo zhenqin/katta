@@ -39,6 +39,8 @@ public class KattaYarnAvroServer extends SpecificResponder {
     protected final KattaYarnProtocol kattaYarnProtocol;
 
 
+    private Server server = null;
+
 
     private static Logger LOG = LoggerFactory.getLogger(KattaYarnAvroServer.class);
 
@@ -54,31 +56,25 @@ public class KattaYarnAvroServer extends SpecificResponder {
     }
 
 
-    public void init() throws Exception {
-        Runnable avroRun = new Runnable() {
-            @Override
-            public void run() {
-                Server server = null;
-                try {
-                    server = new NettyServer(KattaYarnAvroServer.this, new InetSocketAddress(host, port));
-                    server.start();
-                    LOG.info("start avro nio socket at: " + host + ":" + port);
-                    server.join();
-                } catch (InterruptedException e) {
-                    if(server != null) {
-                        server.close();
-                    }
-                }
+    public void serve() {
+        try {
+            server = new NettyServer(KattaYarnAvroServer.this, new InetSocketAddress(host, port));
+            server.start();
+            LOG.info("start avro nio socket at: " + host + ":" + port);
+            server.join();
+        } catch (Exception e) {
+            LOG.warn("", e);
+        }
+    }
+
+
+    public void stop(){
+        if (server != null) {
+            try {
+                server.close();
+            } catch (Exception e) {
+                LOG.warn("", e);
             }
-        };
-
-        Thread avroThread = new Thread(avroRun);
-        avroThread.setDaemon(true);
-        avroThread.setName("katta-avro-server-thread");
-        avroThread.start();
-
-        if(daemon) {
-            avroThread.join();
         }
     }
 
@@ -112,10 +108,4 @@ public class KattaYarnAvroServer extends SpecificResponder {
         return kattaYarnProtocol;
     }
 
-    public static void main(String[] args) throws Exception {
-        KattaYarnAvroServer server = new KattaYarnAvroServer(KattaYarnProtocol.class,
-                new KattaYarnMasterProtocol());
-        server.setDaemon(true);
-        server.init();
-    }
 }

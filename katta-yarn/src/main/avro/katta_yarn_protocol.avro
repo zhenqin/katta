@@ -30,6 +30,11 @@
             "request": [],
             "response": "null"
         },
+        "close" :{
+             "doc":"关闭 Katta Client",
+             "request": [],
+             "response": "null"
+        },
         "shutdown" :{
              "doc":"停止 Katta 集群",
              "request": [],

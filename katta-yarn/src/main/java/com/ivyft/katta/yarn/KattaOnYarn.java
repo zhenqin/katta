@@ -54,6 +54,8 @@ public class KattaOnYarn {
     final public static String MASTER_HEARTBEAT_INTERVAL_MILLIS = "master.heartbeat.interval.millis";
     final public static String MASTER_HOST = "master.host";
     final public static String MASTER_AVRO_PORT = "master.avro.port";
+    final public static String MASTER_CONTAINER_PRIORITY = "master.container.priority";
+
 
     private YarnClient _yarn;
     private YarnConfiguration _hadoopConf;

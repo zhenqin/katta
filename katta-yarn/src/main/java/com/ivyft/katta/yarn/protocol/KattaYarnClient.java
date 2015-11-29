@@ -94,7 +94,15 @@ public class KattaYarnClient implements KattaYarnProtocol {
     }
 
 
-
+    @Override
+    public Void close() throws AvroRemoteException {
+        try {
+            this.t.close();
+            return null;
+        } catch (IOException e) {
+            throw  new AvroRemoteException(e);
+        }
+    }
 
 
     public String getHost() {

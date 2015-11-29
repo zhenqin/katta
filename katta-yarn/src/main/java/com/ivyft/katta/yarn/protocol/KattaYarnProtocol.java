@@ -9,7 +9,7 @@ package com.ivyft.katta.yarn.protocol;
 /** Katta Yarn Interface */
 @org.apache.avro.specific.AvroGenerated
 public interface KattaYarnProtocol {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"KattaYarnProtocol\",\"namespace\":\"com.ivyft.katta.yarn.protocol\",\"doc\":\"Katta Yarn Interface\",\"name\":\"KattaYarnClient\",\"types\":[],\"messages\":{\"startMaster\":{\"doc\":\"启动 Master, num默认为1, 2则启动备份 Master\",\"request\":[{\"name\":\"num\",\"type\":\"int\"}],\"response\":\"null\"},\"stopMaster\":{\"doc\":\"停止 Master\",\"request\":[],\"response\":\"null\"},\"startNode\":{\"doc\":\"启动 Node, 默认为1, 可以启动多个\",\"request\":[{\"name\":\"num\",\"type\":\"int\"}],\"response\":\"null\"},\"addNode\":{\"doc\":\"添加启动 Node, 默认为1, 可以启动多个\",\"request\":[{\"name\":\"num\",\"type\":\"int\"}],\"response\":\"null\"},\"stopAllNode\":{\"doc\":\"停止所有的 Node\",\"request\":[],\"response\":\"null\"},\"shutdown\":{\"doc\":\"停止 Katta 集群\",\"request\":[],\"response\":\"null\"}}}");
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"KattaYarnProtocol\",\"namespace\":\"com.ivyft.katta.yarn.protocol\",\"doc\":\"Katta Yarn Interface\",\"name\":\"KattaYarnClient\",\"types\":[],\"messages\":{\"startMaster\":{\"doc\":\"启动 Master, num默认为1, 2则启动备份 Master\",\"request\":[{\"name\":\"num\",\"type\":\"int\"}],\"response\":\"null\"},\"stopMaster\":{\"doc\":\"停止 Master\",\"request\":[],\"response\":\"null\"},\"startNode\":{\"doc\":\"启动 Node, 默认为1, 可以启动多个\",\"request\":[{\"name\":\"num\",\"type\":\"int\"}],\"response\":\"null\"},\"addNode\":{\"doc\":\"添加启动 Node, 默认为1, 可以启动多个\",\"request\":[{\"name\":\"num\",\"type\":\"int\"}],\"response\":\"null\"},\"stopAllNode\":{\"doc\":\"停止所有的 Node\",\"request\":[],\"response\":\"null\"},\"close\":{\"doc\":\"关闭 Katta Client\",\"request\":[],\"response\":\"null\"},\"shutdown\":{\"doc\":\"停止 Katta 集群\",\"request\":[],\"response\":\"null\"}}}");
   /** 启动 Master, num默认为1, 2则启动备份 Master */
   java.lang.Void startMaster(int num) throws org.apache.avro.AvroRemoteException;
   /** 停止 Master */
@@ -20,6 +20,8 @@ public interface KattaYarnProtocol {
   java.lang.Void addNode(int num) throws org.apache.avro.AvroRemoteException;
   /** 停止所有的 Node */
   java.lang.Void stopAllNode() throws org.apache.avro.AvroRemoteException;
+  /** 关闭 Katta Client */
+  java.lang.Void close() throws org.apache.avro.AvroRemoteException;
   /** 停止 Katta 集群 */
   java.lang.Void shutdown() throws org.apache.avro.AvroRemoteException;
 
@@ -37,6 +39,8 @@ public interface KattaYarnProtocol {
     void addNode(int num, org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
     /** 停止所有的 Node */
     void stopAllNode(org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
+    /** 关闭 Katta Client */
+    void close(org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
     /** 停止 Katta 集群 */
     void shutdown(org.apache.avro.ipc.Callback<java.lang.Void> callback) throws java.io.IOException;
   }

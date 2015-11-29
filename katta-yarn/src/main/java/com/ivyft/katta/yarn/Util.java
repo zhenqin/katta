@@ -41,6 +41,7 @@ import java.util.jar.JarEntry;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import com.ivyft.katta.util.KattaConfiguration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -99,7 +100,6 @@ class Util {
     return resource;
   }
 
-  @SuppressWarnings("rawtypes")
   static void rmNulls(Map map) {
     Set s = map.entrySet();
     Iterator it = s.iterator();
@@ -187,14 +187,15 @@ class Util {
   }
 
   @SuppressWarnings("rawtypes")
-  private static List<String> buildCommandPrefix(Map conf, String childOptsKey) 
+  private static List<String> buildCommandPrefix(KattaConfiguration conf, String childOptsKey)
           throws IOException {
       String kattaHomePath = getKattaHome();
       List<String> toRet = new ArrayList<String>();
-      if (System.getenv("JAVA_HOME") != null)
-        toRet.add(System.getenv("JAVA_HOME") + "/bin/java");
-      else
-        toRet.add("java");
+      if (System.getenv("JAVA_HOME") != null) {
+          toRet.add(System.getenv("JAVA_HOME") + "/bin/java");
+      } else {
+          toRet.add("java");
+      }
       toRet.add("-server");
       toRet.add("-Dkatta.home=" + kattaHomePath);
       //toRet.add("-Djava.library.path=" + conf.get(backtype.katta.Config.JAVA_LIBRARY_PATH));
@@ -202,17 +203,16 @@ class Util {
       toRet.add("-cp");
       toRet.add(buildClassPathArgument());
 
-      if (conf.containsKey(childOptsKey)
-              && conf.get(childOptsKey) != null) {
-          toRet.add((String) conf.get(childOptsKey));
+      if (conf.containsProperty(childOptsKey)
+              && conf.getProperty(childOptsKey) != null) {
+          toRet.add(conf.getProperty(childOptsKey));
       }
 
       return toRet;
   }
 
 
-  @SuppressWarnings("rawtypes")
-  static List<String> buildMasterCommands(Map conf) throws IOException {
+  static List<String> buildMasterCommands(KattaConfiguration conf) throws IOException {
       List<String> toRet =
               buildCommandPrefix(conf, "");
 
@@ -222,8 +222,7 @@ class Util {
       return toRet;
   }
 
-  @SuppressWarnings("rawtypes")
-  static List<String> buildSupervisorCommands(Map conf) throws IOException {
+  static List<String> buildSupervisorCommands(KattaConfiguration conf) throws IOException {
       List<String> toRet =
               buildCommandPrefix(conf, "");
 
