@@ -1,5 +1,8 @@
 package com.ivyft.katta.protocol;
 
+import com.ivyft.katta.util.MasterConfiguration;
+import com.ivyft.katta.util.ZkConfiguration;
+import org.I0Itec.zkclient.ZkClient;
 import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.specific.SpecificResponder;
@@ -114,7 +117,14 @@ public class KattaSocketServer extends SpecificResponder {
 
 
     public static void main(String[] args) throws Exception {
-        KattaSocketServer server = new KattaSocketServer(KattaClientProtocol.class, new MasterStorageProtocol());
+        ZkConfiguration zkConf = new ZkConfiguration();
+
+        ZkClient zkClient = new ZkClient(zkConf.getZKServers());
+
+
+        InteractionProtocol protocol = new InteractionProtocol(zkClient, zkConf);
+        KattaSocketServer server = new KattaSocketServer(KattaClientProtocol.class,
+                new MasterStorageProtocol(new MasterConfiguration(), protocol));
         server.setDaemon(true);
         server.init();
     }

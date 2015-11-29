@@ -1,7 +1,7 @@
 package com.ivyft.katta.protocol;
 
-import com.ivyft.katta.codec.Serializer;
-import com.ivyft.katta.codec.jdkserializer.JdkSerializer;
+import com.ivyft.katta.lib.writer.DataWriter;
+import com.ivyft.katta.util.MasterConfiguration;
 import org.apache.avro.AvroRemoteException;
 
 import java.util.List;
@@ -21,12 +21,30 @@ import java.util.Random;
  * @author zhenqin
  */
 public class MasterStorageProtocol implements KattaClientProtocol {
-    Serializer serializer = new JdkSerializer();
 
+    protected InteractionProtocol protocol;
+
+
+    protected MasterConfiguration conf;
+    protected DataWriter writer;
+
+
+    public MasterStorageProtocol(MasterConfiguration conf, InteractionProtocol protocol) {
+        this.conf = conf;
+        this.protocol = protocol;
+
+        try {
+            Class<? extends DataWriter> aClass = (Class<? extends DataWriter>) conf.getClass("master.data.writer");
+            this.writer = aClass.newInstance();
+            this.writer.init(conf, protocol);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
     @Override
     public int add(Message message) throws AvroRemoteException {
-        System.out.println(message.getId() + "    " + serializer.deserialize(message.getPayload().array()));
+        this.writer.write(message.getId().toString(), message.getPayload());
         return new Random().nextInt(10000);
     }
 
@@ -38,6 +56,11 @@ public class MasterStorageProtocol implements KattaClientProtocol {
     @Override
     public int comm() throws AvroRemoteException {
         System.out.println("=================out===================");
+        try {
+            writer.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return 0;
     }
 

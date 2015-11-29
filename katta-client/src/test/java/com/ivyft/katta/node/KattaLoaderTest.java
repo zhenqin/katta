@@ -29,7 +29,7 @@ public class KattaLoaderTest {
     @Test
     public void testSend() throws Exception {
         KattaLoader<String> loader = new KattaClient<String>("localhost", 7690);
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 10000; i++) {
             System.out.println(loader.addBean("java" + i, "hello" + new Random().nextInt()));
         }
         loader.commit();
