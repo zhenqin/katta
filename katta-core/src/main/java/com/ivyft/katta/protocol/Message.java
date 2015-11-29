@@ -7,9 +7,10 @@ package com.ivyft.katta.protocol;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class Message extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"Message\",\"namespace\":\"com.ivyft.katta.protocol\",\"fields\":[{\"name\":\"id\",\"type\":\"string\"},{\"name\":\"payload\",\"type\":\"bytes\"}]}");
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"Message\",\"namespace\":\"com.ivyft.katta.protocol\",\"fields\":[{\"name\":\"indexId\",\"type\":\"string\"},{\"name\":\"rowId\",\"type\":\"string\"},{\"name\":\"payload\",\"type\":\"bytes\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
-  @Deprecated public java.lang.CharSequence id;
+  @Deprecated public java.lang.CharSequence indexId;
+  @Deprecated public java.lang.CharSequence rowId;
   @Deprecated public java.nio.ByteBuffer payload;
 
   /**
@@ -22,8 +23,9 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
   /**
    * All-args constructor.
    */
-  public Message(java.lang.CharSequence id, java.nio.ByteBuffer payload) {
-    this.id = id;
+  public Message(java.lang.CharSequence indexId, java.lang.CharSequence rowId, java.nio.ByteBuffer payload) {
+    this.indexId = indexId;
+    this.rowId = rowId;
     this.payload = payload;
   }
 
@@ -31,8 +33,9 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
   // Used by DatumWriter.  Applications should not call. 
   public java.lang.Object get(int field$) {
     switch (field$) {
-    case 0: return id;
-    case 1: return payload;
+    case 0: return indexId;
+    case 1: return rowId;
+    case 2: return payload;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -40,25 +43,41 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
   @SuppressWarnings(value="unchecked")
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
-    case 0: id = (java.lang.CharSequence)value$; break;
-    case 1: payload = (java.nio.ByteBuffer)value$; break;
+    case 0: indexId = (java.lang.CharSequence)value$; break;
+    case 1: rowId = (java.lang.CharSequence)value$; break;
+    case 2: payload = (java.nio.ByteBuffer)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
 
   /**
-   * Gets the value of the 'id' field.
+   * Gets the value of the 'indexId' field.
    */
-  public java.lang.CharSequence getId() {
-    return id;
+  public java.lang.CharSequence getIndexId() {
+    return indexId;
   }
 
   /**
-   * Sets the value of the 'id' field.
+   * Sets the value of the 'indexId' field.
    * @param value the value to set.
    */
-  public void setId(java.lang.CharSequence value) {
-    this.id = value;
+  public void setIndexId(java.lang.CharSequence value) {
+    this.indexId = value;
+  }
+
+  /**
+   * Gets the value of the 'rowId' field.
+   */
+  public java.lang.CharSequence getRowId() {
+    return rowId;
+  }
+
+  /**
+   * Sets the value of the 'rowId' field.
+   * @param value the value to set.
+   */
+  public void setRowId(java.lang.CharSequence value) {
+    this.rowId = value;
   }
 
   /**
@@ -97,7 +116,8 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
   public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<Message>
     implements org.apache.avro.data.RecordBuilder<Message> {
 
-    private java.lang.CharSequence id;
+    private java.lang.CharSequence indexId;
+    private java.lang.CharSequence rowId;
     private java.nio.ByteBuffer payload;
 
     /** Creates a new Builder */
@@ -108,51 +128,84 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
     /** Creates a Builder by copying an existing Builder */
     private Builder(com.ivyft.katta.protocol.Message.Builder other) {
       super(other);
-      if (isValidValue(fields()[0], other.id)) {
-        this.id = data().deepCopy(fields()[0].schema(), other.id);
+      if (isValidValue(fields()[0], other.indexId)) {
+        this.indexId = data().deepCopy(fields()[0].schema(), other.indexId);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.payload)) {
-        this.payload = data().deepCopy(fields()[1].schema(), other.payload);
+      if (isValidValue(fields()[1], other.rowId)) {
+        this.rowId = data().deepCopy(fields()[1].schema(), other.rowId);
         fieldSetFlags()[1] = true;
+      }
+      if (isValidValue(fields()[2], other.payload)) {
+        this.payload = data().deepCopy(fields()[2].schema(), other.payload);
+        fieldSetFlags()[2] = true;
       }
     }
     
     /** Creates a Builder by copying an existing Message instance */
     private Builder(com.ivyft.katta.protocol.Message other) {
             super(com.ivyft.katta.protocol.Message.SCHEMA$);
-      if (isValidValue(fields()[0], other.id)) {
-        this.id = data().deepCopy(fields()[0].schema(), other.id);
+      if (isValidValue(fields()[0], other.indexId)) {
+        this.indexId = data().deepCopy(fields()[0].schema(), other.indexId);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.payload)) {
-        this.payload = data().deepCopy(fields()[1].schema(), other.payload);
+      if (isValidValue(fields()[1], other.rowId)) {
+        this.rowId = data().deepCopy(fields()[1].schema(), other.rowId);
         fieldSetFlags()[1] = true;
+      }
+      if (isValidValue(fields()[2], other.payload)) {
+        this.payload = data().deepCopy(fields()[2].schema(), other.payload);
+        fieldSetFlags()[2] = true;
       }
     }
 
-    /** Gets the value of the 'id' field */
-    public java.lang.CharSequence getId() {
-      return id;
+    /** Gets the value of the 'indexId' field */
+    public java.lang.CharSequence getIndexId() {
+      return indexId;
     }
     
-    /** Sets the value of the 'id' field */
-    public com.ivyft.katta.protocol.Message.Builder setId(java.lang.CharSequence value) {
+    /** Sets the value of the 'indexId' field */
+    public com.ivyft.katta.protocol.Message.Builder setIndexId(java.lang.CharSequence value) {
       validate(fields()[0], value);
-      this.id = value;
+      this.indexId = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
     
-    /** Checks whether the 'id' field has been set */
-    public boolean hasId() {
+    /** Checks whether the 'indexId' field has been set */
+    public boolean hasIndexId() {
       return fieldSetFlags()[0];
     }
     
-    /** Clears the value of the 'id' field */
-    public com.ivyft.katta.protocol.Message.Builder clearId() {
-      id = null;
+    /** Clears the value of the 'indexId' field */
+    public com.ivyft.katta.protocol.Message.Builder clearIndexId() {
+      indexId = null;
       fieldSetFlags()[0] = false;
+      return this;
+    }
+
+    /** Gets the value of the 'rowId' field */
+    public java.lang.CharSequence getRowId() {
+      return rowId;
+    }
+    
+    /** Sets the value of the 'rowId' field */
+    public com.ivyft.katta.protocol.Message.Builder setRowId(java.lang.CharSequence value) {
+      validate(fields()[1], value);
+      this.rowId = value;
+      fieldSetFlags()[1] = true;
+      return this; 
+    }
+    
+    /** Checks whether the 'rowId' field has been set */
+    public boolean hasRowId() {
+      return fieldSetFlags()[1];
+    }
+    
+    /** Clears the value of the 'rowId' field */
+    public com.ivyft.katta.protocol.Message.Builder clearRowId() {
+      rowId = null;
+      fieldSetFlags()[1] = false;
       return this;
     }
 
@@ -163,21 +216,21 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
     
     /** Sets the value of the 'payload' field */
     public com.ivyft.katta.protocol.Message.Builder setPayload(java.nio.ByteBuffer value) {
-      validate(fields()[1], value);
+      validate(fields()[2], value);
       this.payload = value;
-      fieldSetFlags()[1] = true;
+      fieldSetFlags()[2] = true;
       return this; 
     }
     
     /** Checks whether the 'payload' field has been set */
     public boolean hasPayload() {
-      return fieldSetFlags()[1];
+      return fieldSetFlags()[2];
     }
     
     /** Clears the value of the 'payload' field */
     public com.ivyft.katta.protocol.Message.Builder clearPayload() {
       payload = null;
-      fieldSetFlags()[1] = false;
+      fieldSetFlags()[2] = false;
       return this;
     }
 
@@ -185,8 +238,9 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
     public Message build() {
       try {
         Message record = new Message();
-        record.id = fieldSetFlags()[0] ? this.id : (java.lang.CharSequence) defaultValue(fields()[0]);
-        record.payload = fieldSetFlags()[1] ? this.payload : (java.nio.ByteBuffer) defaultValue(fields()[1]);
+        record.indexId = fieldSetFlags()[0] ? this.indexId : (java.lang.CharSequence) defaultValue(fields()[0]);
+        record.rowId = fieldSetFlags()[1] ? this.rowId : (java.lang.CharSequence) defaultValue(fields()[1]);
+        record.payload = fieldSetFlags()[2] ? this.payload : (java.nio.ByteBuffer) defaultValue(fields()[2]);
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);

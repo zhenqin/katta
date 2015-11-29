@@ -9,6 +9,7 @@ import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -49,6 +50,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     protected Serializer serializer = new JdkSerializer();
 
 
+    private final String indexName;
 
     /**
      * LOG
@@ -56,15 +58,18 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     private final static Log LOG = LogFactory.getLog(KattaClient.class);
 
 
-    public KattaClient() {
-        this("localhost", 7690);
+    public KattaClient(String indexName) {
+        this("localhost", 7690, indexName);
     }
 
 
-    public KattaClient(String host, int port) {
+    public KattaClient(String host, int port, String index) {
         this.host = host;
         this.port = port;
-
+        this.indexName = index;
+        if(StringUtils.isBlank(index)) {
+            throw new IllegalArgumentException("index must not be blank.");
+        }
         try {
             this.t = new NettyTransceiver(new InetSocketAddress(host, port));
             this.kattaClientProtocol = SpecificRequestor.getClient(KattaClientProtocol.class,
@@ -93,7 +98,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     @Override
     public int addBean(String shardId, T message) {
         try {
-            return add(new Message(shardId, ByteBuffer.wrap(serializer.serialize(message))));
+            return add(new Message(this.indexName, shardId, ByteBuffer.wrap(serializer.serialize(message))));
         } catch (AvroRemoteException e) {
             throw new IllegalStateException(e);
         }
@@ -103,7 +108,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     public int addBeans(List<Pair<T>> list) {
         List<Message> messages = new ArrayList<Message>(list.size());
         for (Pair d : list) {
-            messages.add(new Message(d.getShardId(),
+            messages.add(new Message(this.indexName, d.getShardId(),
                     ByteBuffer.wrap(serializer.serialize(d.getBean()))));
         }
         try {
@@ -132,17 +137,17 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     }
 
     @Override
-    public int comm() throws AvroRemoteException {
+    public Void comm() throws AvroRemoteException {
         return kattaClientProtocol.comm();
     }
 
     @Override
-    public int roll() throws AvroRemoteException {
+    public Void roll() throws AvroRemoteException {
         return kattaClientProtocol.roll();
     }
 
     @Override
-    public int cls() throws AvroRemoteException {
+    public Void cls() throws AvroRemoteException {
         return kattaClientProtocol.cls();
     }
 

@@ -44,33 +44,37 @@ public class MasterStorageProtocol implements KattaClientProtocol {
 
     @Override
     public int add(Message message) throws AvroRemoteException {
-        this.writer.write(message.getId().toString(), message.getPayload());
+        this.writer.write(message.getRowId().toString(), message.getPayload());
         return new Random().nextInt(10000);
     }
 
     @Override
     public int addList(List<Message> messages) throws AvroRemoteException {
-        return 0;
+        int count = 0;
+        for (Message message : messages) {
+            count += this.add(message);
+        }
+        return count;
     }
 
     @Override
-    public int comm() throws AvroRemoteException {
+    public Void comm() throws AvroRemoteException {
         System.out.println("=================out===================");
         try {
             writer.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return 0;
+        return null;
     }
 
     @Override
-    public int roll() throws AvroRemoteException {
-        return 0;
+    public Void roll() throws AvroRemoteException {
+        return null;
     }
 
     @Override
-    public int cls() throws AvroRemoteException {
-        return 0;
+    public Void cls() throws AvroRemoteException {
+        return null;
     }
 }

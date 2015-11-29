@@ -64,7 +64,7 @@ public class Client implements ConnectedComponent {
     /**
      * 启动时间
      */
-    private final long STARTUP_TIME;
+    private final long STARTUP_TIME = System.currentTimeMillis();
 
 
     /**
@@ -102,6 +102,8 @@ public class Client implements ConnectedComponent {
 
 
     private INodeProxyManager proxyManager;
+
+
 
 
     /**
@@ -193,10 +195,22 @@ public class Client implements ConnectedComponent {
 
         //把可搜索的shard加入到搜索列表
         addOrWatchNewIndexes(indexList);
-
-        //启动时间
-        STARTUP_TIME = System.currentTimeMillis();
     }
+
+
+
+    public <T> KattaLoader<T> getKattaLoader(String index) {
+        //TODO 取得 Loader 这一刻检查, 其它时候不检查
+        if(indexToShards.containsKey(index)) {
+            return new KattaClient<T>(
+                    this.clientConfiguration.getProperty("katta.loader.host", "localhost"),
+                    this.clientConfiguration.getInt("katta.loader.port", 4560),
+                    index);
+        }
+
+        throw new IllegalArgumentException("无效的索引名称: " + index);
+    }
+
 
     public INodeSelectionPolicy getSelectionPolicy() {
         return this.selectionPolicy;

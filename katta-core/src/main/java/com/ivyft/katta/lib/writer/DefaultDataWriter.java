@@ -16,7 +16,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * <pre>
@@ -47,6 +49,10 @@ public class DefaultDataWriter extends DataWriter {
 
     protected Map<Integer, IntLengthHeaderFile.Writer> writerMap = new HashMap<Integer, IntLengthHeaderFile.Writer>();
 
+
+    protected Set<String> indices = new HashSet<String>(3);
+
+
     public DefaultDataWriter() {
 
     }
@@ -56,6 +62,8 @@ public class DefaultDataWriter extends DataWriter {
         this.step = conf.getInt("master.data.shard.step", 5);
 
         this.numPartitions = shardNum * step;
+
+        indices.addAll(protocol.getIndices());
     }
 
 

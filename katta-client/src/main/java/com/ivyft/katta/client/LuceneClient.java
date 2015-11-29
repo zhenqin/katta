@@ -352,27 +352,9 @@ public class LuceneClient implements ISolrClient {
     public List<MapWritable> getDetails(List<Hit> hits, final String[] fields) throws KattaException,
             InterruptedException {
         List<MapWritable> results = new ArrayList<MapWritable>();
-        List<Future<MapWritable>> futures = new ArrayList<Future<MapWritable>>();
-
-        ExecutorService executorService = Executors.newFixedThreadPool(Math.min(10, hits.size() + 1));
         for (final Hit hit : hits) {
-            futures.add(executorService.submit(new Callable<MapWritable>() {
-                @Override
-                public MapWritable call() throws Exception {
-                    return getDetail(hit, fields);
-                }
-            }));
+            results.add(getDetail(hit, fields));
         }
-
-        for (Future<MapWritable> future : futures) {
-            try {
-                results.add(future.get());
-            } catch (ExecutionException e) {
-                throw new KattaException("Could not get hit details.", e.getCause());
-            }
-        }
-
-        executorService.shutdown();
         return results;
     }
 

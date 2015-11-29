@@ -10,7 +10,11 @@
                  "type":"record",
                  "fields":[
                      {
-                         "name":"id",
+                         "name":"indexId",
+                         "type":"string"
+                     },
+                     {
+                         "name":"rowId",
                          "type":"string"
                      },
                      {
@@ -34,17 +38,17 @@
         "comm" :{
              "doc":"提交",
              "request": [],
-             "response": "int"
+             "response": "null"
         },
         "roll" :{
              "doc":"提交失败回滚",
              "request": [],
-             "response": "int"
+             "response": "null"
         },
         "cls" :{
              "doc":"关闭接口",
              "request": [],
-             "response": "int"
+             "response": "null"
         }
     }
 }
