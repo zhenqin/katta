@@ -11,8 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ivyft.katta.util.UUIDCreator;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -23,6 +21,8 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -57,7 +57,7 @@ public class LuceneOutputWriter {
     private FileSystem fs;
 
 
-    private static Log LOG = LogFactory.getLog(LuceneOutputWriter.class);
+    private static Logger LOG = LoggerFactory.getLogger(LuceneOutputWriter.class);
 
 
     public LuceneOutputWriter() {
@@ -182,7 +182,7 @@ public class LuceneOutputWriter {
                                 // 索引优化和IndexWriter对象关闭
                                 indexWriter.commit();
                             } catch (Exception e) {
-                                LOG.warn(e);
+                                LOG.warn(e.getMessage(), e);
                             }
                             return new Object();
                         }
@@ -191,13 +191,13 @@ public class LuceneOutputWriter {
             try {
                 r.get(this.configuration.getInt("lucene.shutdown.commit.timeout", 60 * 5), TimeUnit.SECONDS);
             } catch (Exception e) {
-                LOG.warn(e);
+                LOG.warn(e.getMessage(), e);
             }
 
             try {
                 indexWriter.close();
             } catch (Exception e) {
-                LOG.warn(e);
+                LOG.warn(e.getMessage(), e);
             }
         }
 

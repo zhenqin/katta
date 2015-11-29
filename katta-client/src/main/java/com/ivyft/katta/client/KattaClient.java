@@ -10,8 +10,8 @@ import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.Transceiver;
 import org.apache.avro.ipc.specific.SpecificRequestor;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -55,7 +55,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     /**
      * LOG
      */
-    private final static Log LOG = LogFactory.getLog(KattaClient.class);
+    private final static Logger LOG = LoggerFactory.getLogger(KattaClient.class);
 
 
     public KattaClient(String indexName) {

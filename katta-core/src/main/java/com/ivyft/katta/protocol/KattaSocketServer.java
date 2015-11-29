@@ -6,8 +6,8 @@ import org.I0Itec.zkclient.ZkClient;
 import org.apache.avro.ipc.NettyServer;
 import org.apache.avro.ipc.Server;
 import org.apache.avro.ipc.specific.SpecificResponder;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
@@ -43,7 +43,7 @@ public class KattaSocketServer extends SpecificResponder {
 
 
 
-    private static Log LOG = LogFactory.getLog(KattaSocketServer.class);
+    private static Logger LOG = LoggerFactory.getLogger(KattaSocketServer.class);
 
 
     public KattaSocketServer(Class<? extends KattaClientProtocol> iface, Object impl) {
