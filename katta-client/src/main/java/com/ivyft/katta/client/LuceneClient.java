@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.*;
 
 /**
  *
@@ -184,7 +183,7 @@ public class LuceneClient implements ISolrClient {
     /**
      * 搜索的实例
      */
-    protected Client kattaClient;
+    protected Client client;
 
 
     /**
@@ -198,28 +197,28 @@ public class LuceneClient implements ISolrClient {
      * default constructor
      */
     public LuceneClient() {
-        this.kattaClient = new Client(getServerClass());
+        this.client = new Client(getServerClass());
     }
 
     public LuceneClient(final INodeSelectionPolicy nodeSelectionPolicy) {
-        this.kattaClient = new Client(getServerClass(), nodeSelectionPolicy);
+        this.client = new Client(getServerClass(), nodeSelectionPolicy);
     }
 
     public LuceneClient(InteractionProtocol protocol) {
-        this.kattaClient = new Client(getServerClass(), protocol);
+        this.client = new Client(getServerClass(), protocol);
     }
 
     public LuceneClient(final ZkConfiguration zkConfig) {
-        this.kattaClient = new Client(getServerClass(), zkConfig);
+        this.client = new Client(getServerClass(), zkConfig);
     }
 
     public LuceneClient(final INodeSelectionPolicy policy, final ZkConfiguration zkConfig) {
-        this.kattaClient = new Client(getServerClass(), policy, zkConfig);
+        this.client = new Client(getServerClass(), policy, zkConfig);
     }
 
     public LuceneClient(final INodeSelectionPolicy policy, final ZkConfiguration zkConfig,
                         ClientConfiguration clientConfiguration) {
-        this.kattaClient = new Client(getServerClass(), policy, zkConfig, clientConfiguration);
+        this.client = new Client(getServerClass(), policy, zkConfig, clientConfiguration);
     }
 
 
@@ -232,7 +231,7 @@ public class LuceneClient implements ISolrClient {
      */
     @Override
     public QueryResponse query(SolrQuery query, String[] shards) throws KattaException {
-        IResultReceiver<QueryResponse> results = this.kattaClient.broadcastToIndices(
+        IResultReceiver<QueryResponse> results = this.client.broadcastToIndices(
                 this.timeout,
                 true,
                 QUERY_METHOD,
@@ -256,7 +255,7 @@ public class LuceneClient implements ISolrClient {
             throws KattaException {
         IResultReceiver<Hits> results;
 
-        results = this.kattaClient.broadcastToIndices(
+        results = this.client.broadcastToIndices(
                 this.timeout,
                 true,
                 SEARCH_METHOD,
@@ -291,7 +290,7 @@ public class LuceneClient implements ISolrClient {
 
     @Override
     public int count(final SolrQuery query, final String[] indexNames) throws KattaException {
-        IResultReceiver<Integer> results = this.kattaClient.broadcastToIndices(
+        IResultReceiver<Integer> results = this.client.broadcastToIndices(
                 this.timeout,
                 true,
                 COUNT_METHOD,
@@ -330,7 +329,7 @@ public class LuceneClient implements ISolrClient {
             method = GET_DETAILS_FIELDS_METHOD;
             shardArgIdx = FIRST_ARG_SHARD_ARG_IDX;
         }
-        IResultReceiver<MapWritable> results = this.kattaClient.broadcastToShards(
+        IResultReceiver<MapWritable> results = this.client.broadcastToShards(
                 this.timeout,
                 true,
                 method,
@@ -369,7 +368,7 @@ public class LuceneClient implements ISolrClient {
      */
     @Override
     public <E> Set<E> group(final SolrQuery query, final String[] indexNames) throws KattaException {
-        IResultReceiver<Set<E>> results = this.kattaClient.broadcastToIndices(
+        IResultReceiver<Set<E>> results = this.client.broadcastToIndices(
                 this.timeout,
                 true,
                 GROUP_METHOD,
@@ -398,7 +397,7 @@ public class LuceneClient implements ISolrClient {
      */
     @Override
     public <E> Map<E, Integer> facet(final SolrQuery query, final String[] indexNames) throws KattaException {
-        IResultReceiver<Map<E, Integer>> results = this.kattaClient.broadcastToIndices(
+        IResultReceiver<Map<E, Integer>> results = this.client.broadcastToIndices(
                 this.timeout,
                 true,
                 FACET_METHOD,
@@ -427,7 +426,7 @@ public class LuceneClient implements ISolrClient {
      */
     @Override
     public <E> Map<E, Integer> facetRange(SolrQuery query, String[] indexNames) throws KattaException {
-        IResultReceiver<Map<E, Integer>> results = this.kattaClient.broadcastToIndices(
+        IResultReceiver<Map<E, Integer>> results = this.client.broadcastToIndices(
                 this.timeout,
                 true,
                 FACET_METHOD_RANGE,
@@ -449,19 +448,23 @@ public class LuceneClient implements ISolrClient {
 
     @Override
     public double getQueryPerMinute() {
-        return this.kattaClient.getQueryPerMinute();
+        return this.client.getQueryPerMinute();
     }
 
 
     @Override
     public void close() {
-        this.kattaClient.close();
+        this.client.close();
     }
 
     public Client getClient() {
-        return this.kattaClient;
+        return this.client;
     }
 
+
+    public <T> KattaLoader<T> getKattaLoader(String index) {
+        return client.getKattaLoader(index);
+    }
 
     public InteractionProtocol getProtocol() {
         return getClient().getProtocol();
@@ -476,10 +479,6 @@ public class LuceneClient implements ISolrClient {
     }
 
 
-    protected Client getKattaClient() {
-        return this.kattaClient;
-    }
-
     protected Class<? extends ILuceneServer> getServerClass() {
         return ILuceneServer.class;
     }
@@ -487,7 +486,7 @@ public class LuceneClient implements ISolrClient {
 
     private static Method getMethod(String name, Class<?>... parameterTypes) {
         try {
-            return ILuceneServer.class.getMethod("search", parameterTypes);
+            return ILuceneServer.class.getMethod(name, parameterTypes);
         } catch (NoSuchMethodException e) {
             throw new RuntimeException("Could not find method " + name + "(" + Arrays.asList(parameterTypes)
                     + ") in ILuceneSearch!");
