@@ -42,6 +42,7 @@
         <module>katta-client</module>
         <module>katta-core</module>
         <module>katta-hadoop</module>
+        <module>katta-yarn</module>
     </modules>
 
     <repositories>
