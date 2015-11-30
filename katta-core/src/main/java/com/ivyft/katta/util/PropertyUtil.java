@@ -15,6 +15,8 @@
  */
 package com.ivyft.katta.util;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -43,13 +45,18 @@ import java.util.Properties;
 public class PropertyUtil {
 
     public static Properties loadProperties(String path) {
-        InputStream inputStream = PropertyUtil.class.getResourceAsStream(path);
-        if (inputStream == null) {
-            throw new RuntimeException(path + " not in classpath");
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if(classLoader == null) {
+            classLoader = PropertyUtil.class.getClassLoader();
         }
+
+        URL resource =  classLoader.getResource(path);
+
         final Properties properties = new Properties();
         try {
+            InputStream inputStream = resource.openStream();
             properties.load(inputStream);
+            IOUtils.closeQuietly(inputStream);
             return properties;
         } catch (final IOException e) {
             throw new RuntimeException("unable to load kata.properties", e);
@@ -57,7 +64,12 @@ public class PropertyUtil {
     }
 
     public static String getPropertiesFilePath(final String path) {
-        URL resource = PropertyUtil.class.getResource(path);
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if(classLoader == null) {
+            classLoader = PropertyUtil.class.getClassLoader();
+        }
+
+        URL resource =  classLoader.getResource(path);
         if (resource == null) {
             throw new RuntimeException(path + " not in classpath");
         }

@@ -72,7 +72,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         this.appAttemptId = appAttemptId;
         this.conf = conf;
         this.hadoopConf = hadoopConf;
-        int pri = conf.getInt(KattaOnYarn.MASTER_CONTAINER_PRIORITY);
+        int pri = conf.getInt(KattaOnYarn.MASTER_CONTAINER_PRIORITY, 2);
         this.DEFAULT_PRIORITY.setPriority(pri);
 
         numSupervisors = new AtomicInteger(0);
@@ -160,32 +160,31 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
         // CLC: env
         Map<String, String> env = new HashMap<String, String>();
-        env.put("STORM_LOG_DIR", ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+        env.put("KATTA_LOG_DIR", ApplicationConstants.LOG_DIR_EXPANSION_VAR);
         launchContext.setEnvironment(env);
 
-        // CLC: local resources includes storm, conf
+        // CLC: local resources includes katta, conf
         Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-        String storm_zip_path = conf.getProperty("storm.zip.path");
-        Path zip = new Path(storm_zip_path);
+        String katta_zip_path = conf.getProperty("katta.zip.path");
+        Path zip = new Path(katta_zip_path);
         FileSystem fs = FileSystem.get(hadoopConf);
-        String vis = conf.getProperty("storm.zip.visibility");
+        String vis = conf.getProperty("katta.zip.visibility");
         if (vis.equals("PUBLIC"))
-            localResources.put("storm", Util.newYarnAppResource(fs, zip,
+            localResources.put("katta", Util.newYarnAppResource(fs, zip,
                     LocalResourceType.ARCHIVE, LocalResourceVisibility.PUBLIC));
         else if (vis.equals("PRIVATE"))
-            localResources.put("storm", Util.newYarnAppResource(fs, zip,
+            localResources.put("katta", Util.newYarnAppResource(fs, zip,
                     LocalResourceType.ARCHIVE, LocalResourceVisibility.PRIVATE));
         else if (vis.equals("APPLICATION"))
-            localResources.put("storm", Util.newYarnAppResource(fs, zip,
+            localResources.put("katta", Util.newYarnAppResource(fs, zip,
                     LocalResourceType.ARCHIVE, LocalResourceVisibility.APPLICATION));
 
         String appHome = Util.getApplicationHomeForId(appAttemptId.toString());
 
         String containerHome = appHome + Path.SEPARATOR + container.getId().getId();
 
-        Path confDst = Util.createConfigurationFileInFs(fs,
-                containerHome,
-                this.hadoopConf);
+        Path confDst = Util.copyClasspathConf(fs,
+                containerHome);
 
         localResources.put("conf", Util.newYarnAppResource(fs, confDst));
 

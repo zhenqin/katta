@@ -14,13 +14,9 @@
  * limitations under the License. See accompanying LICENSE file.
  */
 
-package com.ivyft.katta.yarn;
+package com.ivyft.katta.yarn.test;
 
-import com.ivyft.katta.protocol.metadata.Version;
-import com.ivyft.katta.util.KattaConfiguration;
-import com.ivyft.katta.yarn.protocol.KattaYarnClient;
-import org.apache.avro.AvroRemoteException;
-import org.apache.commons.lang.StringUtils;
+import com.ivyft.katta.yarn.Util;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -50,11 +46,11 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 
-public class KattaOnYarn {
-    private static final Logger LOG = LoggerFactory.getLogger(KattaOnYarn.class);
+public class TestAppOnYarn {
+    private static final Logger LOG = LoggerFactory.getLogger(TestAppOnYarn.class);
     final public static String YARN_REPORT_WAIT_MILLIS = "yarn.report.wait.millis";
     final public static String MASTER_HEARTBEAT_INTERVAL_MILLIS = "master.heartbeat.interval.millis";
-    final public static String KATTA_MASTER_HOST = "katta.master.host";
+    final public static String MASTER_HOST = "katta.master.host";
     final public static String MASTER_AVRO_PORT = "master.avro.port";
     final public static String DEFAULT_KATTA_NODE_NUM = "default.katta.node.num";
     final public static String MASTER_CONTAINER_PRIORITY = "master.container.priority";
@@ -63,15 +59,14 @@ public class KattaOnYarn {
     private YarnClient _yarn;
     private YarnConfiguration _hadoopConf;
     private ApplicationId _appId;
-    private KattaConfiguration conf;
-    private KattaYarnClient _client = null;
+    private Map<String, String> conf;
 
-    private KattaOnYarn(KattaConfiguration kattaConf) {
+    private TestAppOnYarn(Map<String, String> kattaConf) {
         this(null, kattaConf);
     }
 
-    private KattaOnYarn(ApplicationId appId, KattaConfiguration kattaConf) {
-        _hadoopConf = new YarnConfiguration();  
+    private TestAppOnYarn(ApplicationId appId, Map<String, String> kattaConf) {
+        _hadoopConf = new YarnConfiguration();
         _yarn = YarnClient.createYarnClient();
         this.conf = kattaConf;
         _appId = appId;
@@ -80,13 +75,6 @@ public class KattaOnYarn {
     }
 
     public void stop() {
-        if(_client != null) {
-            try {
-                _client.shutdown();
-            } catch (AvroRemoteException e) {
-                LOG.error(e.getMessage());
-            }
-        }
         _yarn.stop();
     }
 
@@ -94,41 +82,9 @@ public class KattaOnYarn {
         return _appId;
     }
 
-    public synchronized KattaYarnClient getClient() throws YarnException, IOException {
-        if (_client == null) {
-            String host = null;
-            int port = 0;
-            //wait for application to be ready
-            int max_wait_for_report = conf.getInt(YARN_REPORT_WAIT_MILLIS, 60000);
-            int waited=0; 
-            while (waited<max_wait_for_report) {
-                ApplicationReport report = _yarn.getApplicationReport(_appId);
-                host = report.getHost();
-                port = report.getRpcPort();
-                if (host == null || port==0) { 
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                    }
-                    waited += 1000;
-                } else {
-                    break;
-                }
-            }
-            if (host == null || port==0) {
-                LOG.info("No host/port returned for Application Master " + _appId);
-                return null;
-            }
-            
-            LOG.info("application report for "+_appId+" :"+host+":"+port);
-            LOG.info("Attaching to "+host+":"+port+" to talk to app master "+_appId);
-            _client = new KattaYarnClient(host, port);
-        }
-        return _client;
-    }
 
     private void launchApp(String appName, String queue, int amMB,
-                           String katta_zip_location, String solrHome) throws Exception {
+                           String katta_zip_location) throws Exception {
         LOG.debug("KattaOnYarn:launchApp() ...");
         YarnClientApplication client_app = _yarn.createApplication();
         GetNewApplicationResponse app = client_app.getNewApplicationResponse();
@@ -139,7 +95,7 @@ public class KattaOnYarn {
             //TODO need some sanity checks
             amMB = app.getMaximumResourceCapability().getMemory();
         }
-        ApplicationSubmissionContext appContext = 
+        ApplicationSubmissionContext appContext =
                 Records.newRecord(ApplicationSubmissionContext.class);
         appContext.setApplicationId(app.getApplicationId());
         appContext.setApplicationName(appName);
@@ -159,41 +115,17 @@ public class KattaOnYarn {
         LOG.info("Copy App Master jar from local filesystem and add to local environment");
         // Copy the application master jar to the filesystem
         // Create a local resource to point to the destination jar path
-        String appMasterJar = findContainingJar(KattaAppMaster.class);
+        String appMasterJar = findContainingJar(TestAppOnYarn.class);
         LOG.info("appMasterJar: " + appMasterJar);
 
         FileSystem fs = FileSystem.get(_hadoopConf);
         Path src = new Path(appMasterJar);
         String appHome =  Util.getApplicationHomeForId(_appId.toString());
-        Path dst = new Path(fs.getHomeDirectory(), 
+        Path dst = new Path(fs.getHomeDirectory(),
                 appHome + Path.SEPARATOR + "AppMaster.jar");
         fs.copyFromLocalFile(false, true, src, dst);
         LOG.info("copy jar from: " + src + " to: " + dst);
         localResources.put("AppMaster.jar", Util.newYarnAppResource(fs, dst));
-
-        Version kattaVersion = Version.readFromJar();
-        LOG.info(kattaVersion.getRevision());
-
-        Path zip;
-        if (StringUtils.isNotBlank(katta_zip_location)) {
-            //自己指定的
-            zip = new Path(katta_zip_location);
-            if(!fs.exists(zip) || !fs.isFile(zip)) {
-                throw new IllegalArgumentException("katta location not exists. " + katta_zip_location);
-            }
-
-        } else {
-            zip = new Path("/lib/katta/katta-" + kattaVersion.getRevision() + ".zip");
-        }
-
-        LocalResourceVisibility visibility = LocalResourceVisibility.PUBLIC;
-        conf.setProperty("katta.zip.path", zip.makeQualified(fs).toUri().getPath());
-        conf.setProperty("katta.zip.visibility", "PUBLIC");
-        if (!Util.isPublic(fs, zip)) {
-            visibility = LocalResourceVisibility.APPLICATION;
-            conf.setProperty("katta.zip.visibility", "APPLICATION");
-        }
-        localResources.put("katta", Util.newYarnAppResource(fs, zip, LocalResourceType.ARCHIVE, visibility));
 
 
         Path confDst = Util.copyClasspathConf(fs, appHome);
@@ -201,10 +133,9 @@ public class KattaOnYarn {
         localResources.put("conf", Util.newYarnAppResource(fs, confDst));
 
         // Setup security tokens
-        Path[] paths = new Path[3];
+        Path[] paths = new Path[2];
         paths[0] = dst;
-        paths[1] = zip;
-        paths[2] = confDst;
+        paths[1] = confDst;
         Credentials credentials = new Credentials();
         TokenCache.obtainTokensForNamenodes(credentials, paths, _hadoopConf);
         DataOutputBuffer dob = new DataOutputBuffer();
@@ -222,11 +153,11 @@ public class KattaOnYarn {
         LOG.info("Set the environment for the application master");
         Map<String, String> env = new HashMap<String, String>();
         // add the runtime classpath needed for tests to work
-        Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./conf");
+        //Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./conf");
         Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./AppMaster.jar");
 
         //Make sure that AppMaster has access to all YARN JARs
-        List<String> yarn_classpath_cmd = java.util.Arrays.asList("yarn", "classpath");
+        List<String> yarn_classpath_cmd = Arrays.asList("yarn", "classpath");
         ProcessBuilder pb = new ProcessBuilder(yarn_classpath_cmd);
         LOG.info("YARN CLASSPATH COMMAND = [" + yarn_classpath_cmd + "]");
         pb.environment().putAll(System.getenv());
@@ -234,36 +165,28 @@ public class KattaOnYarn {
         Util.redirectStreamAsync(proc.getErrorStream(), System.err);
         BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream(), "UTF-8"));
         String line = "";
-        String yarn_class_path = conf.getProperty("katta.yarn.yarn_classpath", "");
-        if (StringUtils.isNotBlank(yarn_class_path)){
+        String yarn_class_path = conf.get("katta.yarn.yarn_classpath");
+        if (yarn_class_path == null){
             StringBuilder yarn_class_path_builder = new StringBuilder();
-            while ((line = reader.readLine() ) != null){            
-                yarn_class_path_builder.append(line);             
+            while ((line = reader.readLine() ) != null){
+                yarn_class_path_builder.append(line);
             }
             yarn_class_path = yarn_class_path_builder.toString();
         }
         LOG.info("YARN CLASSPATH = [" + yarn_class_path + "]");
         proc.waitFor();
         reader.close();
-
         Apps.addToEnvironment(env, Environment.CLASSPATH.name(), yarn_class_path);
 
-
-        Util.getKattaHomeInZip(fs, zip, kattaVersion.getNumber());
-        Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./katta/" + "/*");
-        Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./katta/" + "/lib/*");
-
-        String java_home = conf.getProperty("katta.yarn.java_home", "");
-        if (StringUtils.isBlank(java_home)) {
-            java_home = System.getenv("JAVA_HOME");
-        }
-        
-        if (java_home != null && !java_home.isEmpty()) {
-            env.put("JAVA_HOME", java_home);
-        }
+//        String java_home = conf.get("katta.yarn.java_home");
+//        if (java_home == null)
+//            java_home = System.getenv("JAVA_HOME");
+//
+//        if (java_home != null && !java_home.isEmpty())
+//          env.put("JAVA_HOME", java_home);
 
         LOG.info("Using JAVA_HOME = [" + env.get("JAVA_HOME") + "]");
-        
+
         env.put("appJar", appMasterJar);
         env.put("appName", appName);
         env.put("appId", new Integer(_appId.getId()).toString());
@@ -275,14 +198,14 @@ public class KattaOnYarn {
         Vector<String> vargs = new Vector<String>();
         vargs.add("java");
 
-        //vargs.add("-Dkatta.home=./katta/" + kattaHomeInZip + "/");
-        vargs.add("-Dlogfile.name=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/katta-on-yarn.log");
+
+        vargs.add("-Dlogfile.name=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/master.log");
         //vargs.add("-verbose:class");
-        vargs.add(com.ivyft.katta.yarn.KattaAppMaster.class.getName());
+        vargs.add(TestAppMaster.class.getName());
         vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
         vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
         // Set java executable command
-        LOG.info("Setting up app master command:" + vargs);
+        LOG.info("Setting up app master command:"+vargs);
 
         amContainer.setCommands(vargs);
 
@@ -385,27 +308,27 @@ public class KattaOnYarn {
         //throw new IOException("Fail to locat a JAR for class: "+my_class.getName());
     }
 
-    public static KattaOnYarn launchApplication(String appName,
+    public static TestAppOnYarn launchApplication(String appName,
                                                 String queue,
                                                 int amMB,
-                                                KattaConfiguration kattaConf,
+                                                Map<String, String> kattaConf,
                                                 String katta_zip_location) throws Exception {
-        KattaOnYarn katta = new KattaOnYarn(kattaConf);
-        katta.launchApp(appName, queue, amMB, katta_zip_location, "");
+        TestAppOnYarn katta = new TestAppOnYarn(kattaConf);
+        katta.launchApp(appName, queue, amMB, katta_zip_location);
         katta.waitUntilLaunched();
         return katta;
     }
 
-    public static KattaOnYarn attachToApp(String appId, KattaConfiguration kattaConf) {
-        return new KattaOnYarn(ConverterUtils.toApplicationId(appId), kattaConf);
+    public static TestAppOnYarn attachToApp(String appId, Map<String, String> kattaConf) {
+        return new TestAppOnYarn(ConverterUtils.toApplicationId(appId), kattaConf);
     }
 
 
     public static void main(String[] args) throws Exception {
-        launchApplication("KattaOnYarn",
+        launchApplication("TestOnYarn",
                 "default",
                 256,
-                new KattaConfiguration("katta.node.properties"),
+                new HashMap<String, String>(),
                 null);
     }
 }

@@ -190,7 +190,7 @@ public class Version implements Serializable {
 
 
     public static Version readFromMy() {
-        return new Version("0.6.6", "0.6.6", "ZhenQin",
+        return new Version("1.1.0", "1.1.0", "ZhenQin",
                 FastDateFormat.getInstance("yyyy-MM-dd")
                         .format(System.currentTimeMillis()));
     }

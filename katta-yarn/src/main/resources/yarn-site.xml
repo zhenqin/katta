@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<!--
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License. See accompanying LICENSE file.
+-->
+<configuration>
+
+    <!-- Site specific YARN configuration properties -->
+    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+        <description>shuffle service that needs to be set for Map Reduce to run</description>
+    </property>
+
+    <property>
+        <name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>
+        <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+        <description>新框架中 NodeManager 与 RM 通信的接口class</description>
+    </property>
+
+    <property>
+        <name>yarn.resourcemanager.webapp.address</name>
+        <value>zhenqin-pro102:8088</value>
+        <description>新框架中各个 task 的资源调度及运行状况通过通过该 web 界面访问</description>
+    </property>
+
+    <property>
+        <name>yarn.resourcemanager.hostname</name>
+        <value>zhenqin-pro102</value>
+    </property>
+
+    <property>
+        <name>yarn.nodemanager.resource.memory-mb</name>
+        <value>4096</value>
+        <description>
+            Hadoop YARN可以使用的最大内存量，用来控制每个Node上能运行MapReduce的数量。默认8GB
+        </description>
+    </property>
+
+    <property>
+        <name>yarn.nodemanager.resource.cpu-vcores</name>
+        <value>4</value>
+        <description>
+            Hadoop 2.x以上提供内存和CPU两种资源技术方式，该参数控制Node上的CPU数量。默认是8
+        </description>
+    </property>
+
+    <!--
+        <property>
+            <name>yarn.resourcemanager.scheduler.address</name>
+            <value></value>
+            <description>同上，NodeManger 需要知道 RM 主机的 scheduler 调度服务接口地址</description>
+        </property>
+
+        <property>
+            <name>yarn.resourcemanager.resourcetracker.address</name>
+            <value></value>
+            <description>新框架中 NodeManager 需要向 RM 报告任务运行状态供 Resouce 跟踪，因此 NodeManager 节点主机需要知道 RM 主机的 tracker 接口地址</description>
+        </property>
+        -->
+
+</configuration>
