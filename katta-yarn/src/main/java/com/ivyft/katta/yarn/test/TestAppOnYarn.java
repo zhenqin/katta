@@ -16,7 +16,9 @@
 
 package com.ivyft.katta.yarn.test;
 
+import com.ivyft.katta.protocol.metadata.Version;
 import com.ivyft.katta.yarn.Util;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -101,6 +103,14 @@ public class TestAppOnYarn {
         appContext.setApplicationName(appName);
         appContext.setQueue(queue);
 
+        // Set up resource type requirements
+        // For now, only memory is supported so we set memory requirements
+        Resource capability = Records.newRecord(Resource.class);
+        capability.setMemory(amMB);
+        capability.setVirtualCores(3);
+
+        appContext.setResource(capability);
+
         // Set up the container launch context for the application master
         ContainerLaunchContext amContainer = Records
                 .newRecord(ContainerLaunchContext.class);
@@ -127,15 +137,41 @@ public class TestAppOnYarn {
         LOG.info("copy jar from: " + src + " to: " + dst);
         localResources.put("AppMaster.jar", Util.newYarnAppResource(fs, dst));
 
+        Version kattaVersion = Version.readFromJar();
+        LOG.info(kattaVersion.getRevision());
+
+        Path zip;
+        if (StringUtils.isNotBlank(katta_zip_location)) {
+            //自己指定的
+            zip = new Path(katta_zip_location);
+            if(!fs.exists(zip) || !fs.isFile(zip)) {
+                throw new IllegalArgumentException("katta location not exists. " + katta_zip_location);
+            }
+
+        } else {
+            zip = new Path("/lib/katta/katta-" + kattaVersion.getRevision() + ".zip");
+        }
+
+        LocalResourceVisibility visibility = LocalResourceVisibility.PUBLIC;
+        conf.put("katta.zip.path", zip.makeQualified(fs).toUri().getPath());
+        conf.put("katta.zip.visibility", "PUBLIC");
+        if (!Util.isPublic(fs, zip)) {
+            visibility = LocalResourceVisibility.APPLICATION;
+            conf.put("katta.zip.visibility", "APPLICATION");
+        }
+        localResources.put("katta", Util.newYarnAppResource(fs, zip, LocalResourceType.ARCHIVE, visibility));
+
 
         Path confDst = Util.copyClasspathConf(fs, appHome);
         // establish a symbolic link to conf directory
         localResources.put("conf", Util.newYarnAppResource(fs, confDst));
 
         // Setup security tokens
-        Path[] paths = new Path[2];
+        Path[] paths = new Path[3];
         paths[0] = dst;
         paths[1] = confDst;
+        paths[2] = zip;
+
         Credentials credentials = new Credentials();
         TokenCache.obtainTokensForNamenodes(credentials, paths, _hadoopConf);
         DataOutputBuffer dob = new DataOutputBuffer();
@@ -178,13 +214,16 @@ public class TestAppOnYarn {
         reader.close();
         Apps.addToEnvironment(env, Environment.CLASSPATH.name(), yarn_class_path);
 
-//        String java_home = conf.get("katta.yarn.java_home");
-//        if (java_home == null)
-//            java_home = System.getenv("JAVA_HOME");
-//
-//        if (java_home != null && !java_home.isEmpty())
-//          env.put("JAVA_HOME", java_home);
 
+
+        Util.getKattaHomeInZip(fs, zip, kattaVersion.getNumber());
+        Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./katta/" + "/*");
+        Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./katta/" + "/lib/*");
+
+        String java_home = conf.get("katta.yarn.java_home");
+        if (StringUtils.isNotBlank(java_home)) {
+            env.put("JAVA_HOME", java_home);
+        }
         LOG.info("Using JAVA_HOME = [" + env.get("JAVA_HOME") + "]");
 
         env.put("appJar", appMasterJar);
@@ -205,15 +244,10 @@ public class TestAppOnYarn {
         vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
         vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
         // Set java executable command
-        LOG.info("Setting up app master command:"+vargs);
+        LOG.info("Setting up app master command:" + vargs);
 
         amContainer.setCommands(vargs);
 
-        // Set up resource type requirements
-        // For now, only memory is supported so we set memory requirements
-        Resource capability = Records.newRecord(Resource.class);
-        capability.setMemory(amMB);
-        appContext.setResource(capability);
         appContext.setAMContainerSpec(amContainer);
         //appContext.setUnmanagedAM(true);
 
@@ -327,7 +361,7 @@ public class TestAppOnYarn {
     public static void main(String[] args) throws Exception {
         launchApplication("TestOnYarn",
                 "default",
-                256,
+                3000,
                 new HashMap<String, String>(),
                 null);
     }

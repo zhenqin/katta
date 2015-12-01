@@ -19,6 +19,7 @@ package com.ivyft.katta.yarn;
 import com.google.common.base.Joiner;
 import com.ivyft.katta.Katta;
 import com.ivyft.katta.util.KattaConfiguration;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.fs.FileSystem;
@@ -39,6 +40,20 @@ import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+
+/**
+ * <pre>
+ *
+ * Created by IntelliJ IDEA.
+ * User: zhenqin
+ * Date: 15/11/28
+ * Time: 19:51
+ * To change this template use File | Settings | File Templates.
+ *
+ * </pre>
+ *
+ * @author zhenqin
+ */
 public class Util {
     private static final String KATTA_CONF_PATH_STRING = "conf" + Path.SEPARATOR + "katta.yaml";
 
@@ -175,8 +190,9 @@ public class Util {
             throws IOException {
         //String kattaHomePath = getKattaHome();
         List<String> toRet = new ArrayList<String>();
-        if (System.getenv("JAVA_HOME") != null) {
-            toRet.add(System.getenv("JAVA_HOME") + "/bin/java");
+        String java_home = conf.getProperty("katta.yarn.java_home", "");
+        if (StringUtils.isNotBlank(java_home)) {
+            toRet.add("$JAVA_HOME=" + java_home);
         } else {
             toRet.add("java");
         }

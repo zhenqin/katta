@@ -16,8 +16,6 @@
 
 package com.ivyft.katta.yarn.test;
 
-import com.ivyft.katta.yarn.KattaAppMaster;
-import com.ivyft.katta.yarn.KattaOnYarn;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
@@ -29,26 +27,26 @@ import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.client.api.AMRMClient;
-import org.apache.hadoop.yarn.client.api.NMClient;
-import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.proto.ContainerManagementProtocol;
 import org.apache.hadoop.yarn.util.ConverterUtils;
-import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
-public class TestAppMaster implements Runnable {
-    private static final Logger LOG = LoggerFactory.getLogger(TestAppMaster.class);
+public class TestAppSlave implements Runnable {
+    private static final Logger LOG = LoggerFactory.getLogger(TestAppSlave.class);
+
+
+    private final BlockingQueue<Container> launcherQueue = new LinkedBlockingQueue<Container>();
 
 
     private final AMRMClientImpl<AMRMClient.ContainerRequest> client;
@@ -59,7 +57,7 @@ public class TestAppMaster implements Runnable {
 
     Thread thread = new Thread(this);
 
-    public TestAppMaster(Map<String, String> conf, AMRMClientImpl<AMRMClient.ContainerRequest> client) {
+    public TestAppSlave(Map<String, String> conf, AMRMClientImpl<AMRMClient.ContainerRequest> client) {
         this.client = client;
         this.conf = conf;
     }
@@ -76,7 +74,7 @@ public class TestAppMaster implements Runnable {
     @Override
     public void run() {
         try {
-            int heartBeatIntervalMs = 10000;
+            int heartBeatIntervalMs = 10;
 
             while (client.getServiceState() == Service.STATE.STARTED &&
                     !Thread.currentThread().isInterrupted()) {
@@ -93,14 +91,8 @@ public class TestAppMaster implements Runnable {
                     return;
                 }
 
-
                 //取得 Yarn 还剩余的Container资源, Container代表可运行的进程
                 List<Container> allocatedContainers = allocResponse.getAllocatedContainers();
-
-
-                LOG.info(allocatedContainers.toString());
-                LOG.info("HB: Received allocated containers (" + allocatedContainers.size() + ")");
-
                 if (allocatedContainers.size() > 0) {
                     //有资源? 等于0说明没资源了
                     // Add newly allocated containers to the client.
@@ -110,7 +102,7 @@ public class TestAppMaster implements Runnable {
                 List<ContainerStatus> completedContainers =
                         allocResponse.getCompletedContainersStatuses();
 
-                LOG.info("HB: Containers completed (" + completedContainers.size() + "), so releasing them.");
+                LOG.debug("HB: Containers completed (" + completedContainers.size() + "), so releasing them.");
             }
         } catch (Throwable t) {
             // Something happened we could not handle.  Make sure the AM goes
@@ -122,41 +114,32 @@ public class TestAppMaster implements Runnable {
     }
 
     private void initAndStartLauncher() {
-        NMClient nmClient = NMClient.createNMClient();
-        AMRMClient<AMRMClient.ContainerRequest> amrmClient = AMRMClient.createAMRMClient();
+        Thread thread = new Thread() {
+            Container container;
 
-
-        YarnConfiguration hadoopConf = new YarnConfiguration();
-        nmClient.init(hadoopConf);
-        nmClient.start();
-        amrmClient.init(hadoopConf);
-        amrmClient.start();
-
-        //amrmClient.unregisterApplicationMaster();
-
-        // Set up the container launch context for the application master
-        ContainerLaunchContext amContainer = Records
-                .newRecord(ContainerLaunchContext.class);
-
-
-        Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-
-        // set local resources for the application master
-        // local files or archives as needed
-        // In this scenario, the jar file for the application master is part of the
-        // local resources
-        LOG.info("Copy App Master jar from local filesystem and add to local environment");
-        // Copy the application master jar to the filesystem
-        // Create a local resource to point to the destination jar path
-        String appMasterJar = null;
-        try {
-            appMasterJar = KattaOnYarn.findContainingJar(KattaAppMaster.class);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        LOG.info("appMasterJar: " + appMasterJar);
-
-        //nmClient.startContainer(, amContainer);
+            @Override
+            public void run() {
+                while (client.getServiceState() == Service.STATE.STARTED &&
+                        !Thread.currentThread().isInterrupted()) {
+                    try {
+                        container = launcherQueue.take();
+                        LOG.info("LAUNCHER: Taking container with id (" + container.getId() + ") from the queue.");
+                    } catch (InterruptedException e) {
+                        if (client.getServiceState() == Service.STATE.STARTED) {
+                            LOG.error("Launcher thread interrupted : ", e);
+                            System.exit(1);
+                        }
+                        return;
+                    } catch (Exception e) {
+                        LOG.error("Launcher thread I/O exception : ", e);
+                        System.exit(1);
+                    }
+                }
+            }
+        };
+        thread.setDaemon(true);
+        thread.setName("katta-app-master-initQueue");
+        thread.start();
     }
 
 
@@ -204,7 +187,7 @@ public class TestAppMaster implements Runnable {
         rmClient.init(hadoopConf);
         rmClient.start();
 
-        TestAppMaster server = new TestAppMaster(conf, rmClient);
+        TestAppSlave server = new TestAppSlave(conf, rmClient);
         try {
             final int port = 9090;
             final String target = host + ":" + port;

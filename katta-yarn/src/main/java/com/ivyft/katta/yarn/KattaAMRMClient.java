@@ -10,9 +10,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import com.ivyft.katta.protocol.metadata.Version;
+import com.ivyft.katta.util.CollectionUtil;
 import com.ivyft.katta.util.KattaConfiguration;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.fs.FileSystem;
@@ -29,22 +36,30 @@ import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.Records;
 
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.NMClient;
-import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
-import org.apache.hadoop.yarn.client.api.impl.NMClientImpl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 /**
+ * <pre>
  *
+ * Created by IntelliJ IDEA.
+ * User: zhenqin
+ * Date: 15/11/28
+ * Time: 19:51
+ * To change this template use File | Settings | File Templates.
  *
+ * </pre>
  *
+ * @author zhenqin
  */
 public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
     private static final Logger LOG = LoggerFactory.getLogger(KattaAMRMClient.class);
@@ -55,17 +70,18 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
     private final Priority DEFAULT_PRIORITY = Records.newRecord(Priority.class);
 
-    private final Set<Container> containers = new TreeSet<Container>();
+    //private final Set<Container> containers = new TreeSet<Container>();
 
-    private volatile boolean supervisorsAreToRun = false;
+    private final BlockingQueue<Container> CONTAINER_QUEUE = new LinkedBlockingQueue<Container>(3);
 
-    private AtomicInteger numSupervisors;
 
-    private Resource maxResourceCapability;
+    private Container currentContainer;
+
+    private final ReentrantLock LOCK = new ReentrantLock();
 
     private ApplicationAttemptId appAttemptId;
 
-    private NMClientImpl nmClient;
+    private NMClient nmClient;
 
     public KattaAMRMClient(ApplicationAttemptId appAttemptId,
                            KattaConfiguration conf,
@@ -73,91 +89,114 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         this.appAttemptId = appAttemptId;
         this.conf = conf;
         this.hadoopConf = hadoopConf;
-        int pri = conf.getInt(KattaOnYarn.MASTER_CONTAINER_PRIORITY, 2);
+        int pri = conf.getInt(KattaOnYarn.MASTER_CONTAINER_PRIORITY, 0);
         this.DEFAULT_PRIORITY.setPriority(pri);
 
-        numSupervisors = new AtomicInteger(0);
 
         // start am nm client
-        nmClient = (NMClientImpl) NMClient.createNMClient();
+        nmClient = NMClient.createNMClient();
         nmClient.init(hadoopConf);
         nmClient.start();
+
+
+        this.init(hadoopConf);
+        this.start();
     }
 
-    public synchronized void startAllSupervisors() {
-        LOG.debug("Starting all supervisors, requesting containers...");
-        this.supervisorsAreToRun = true;
-        this.addSupervisorsRequest();
+
+
+    public synchronized void setUp() {
+        Resource resource = Resource.newInstance(1024, 1);
+        ContainerRequest req = new ContainerRequest(
+                resource,
+                null, // String[] nodes,
+                null, // String[] racks,
+                DEFAULT_PRIORITY);
+
+        LOG.info(req.toString());
+
+        this.addContainerRequest(req);
     }
 
-    public synchronized void stopAllSupervisors() {
-        LOG.debug("Stopping all supervisors, releasing all containers...");
-        this.supervisorsAreToRun = false;
-        releaseAllSupervisorsRequest();
-    }
 
-    private void addSupervisorsRequest() {
-        int num = numSupervisors.getAndSet(0);
-        for (int i = 0; i < num; i++) {
-            ContainerRequest req = new ContainerRequest(this.maxResourceCapability,
-                    null, // String[] nodes,
-                    null, // String[] racks,
-                    DEFAULT_PRIORITY);
-            super.addContainerRequest(req);
-        }
-    }
 
-    public synchronized boolean addAllocatedContainers(List<Container> containers) {
-        for (int i = 0; i < containers.size(); i++) {
-            ContainerRequest req = new ContainerRequest(this.maxResourceCapability,
+    public synchronized void addAllocatedContainers(List<Container> containers) {
+        LOG.info(containers.toString());
+
+        /*for (int i = 0; i < containers.size(); i++) {
+            Resource resource = Resource.newInstance(1024, 1);
+            ContainerRequest req = new ContainerRequest(
+                    resource,
                     null, // String[] nodes,
                     null, // String[] racks,
                     DEFAULT_PRIORITY);
             super.removeContainerRequest(req);
+        }*/
+
+        if(currentContainer != null) {
+            containers.remove(currentContainer);
         }
-        return this.containers.addAll(containers);
+        LOCK.lock();
+        try {
+            for (Container container : containers) {
+                if(CONTAINER_QUEUE.contains(container)) {
+                    continue;
+                }
+
+                this.CONTAINER_QUEUE.put(container);
+            }
+        } catch (InterruptedException e) {
+            LOG.info("", e);
+        } finally {
+            LOCK.unlock();
+        }
     }
 
-    private synchronized void releaseAllSupervisorsRequest() {
-        Iterator<Container> it = this.containers.iterator();
+
+    public void startMaster() {
+        try {
+            //申请 Container 内存
+            this.setUp();
+
+            currentContainer = CONTAINER_QUEUE.take();
+            LOCK.lock();
+            try {
+                launchKattaMasterOnContainer(currentContainer);
+            } finally {
+                currentContainer = null;
+                LOCK.unlock();
+            }
+        } catch (Exception e) {
+            LOG.error("", e);
+        }
+    }
+
+
+
+
+
+    private synchronized void releaseAllContainerRequest() {
+        /*Iterator<Container> it = this.containers.iterator();
         ContainerId id;
         while (it.hasNext()) {
             id = it.next().getId();
             LOG.debug("Releasing container (id:" + id + ")");
             releaseAssignedContainer(id);
             it.remove();
-        }
-    }
-
-    public synchronized boolean supervisorsAreToRun() {
-        return this.supervisorsAreToRun;
-    }
-
-    public synchronized void addSupervisors(int number) {
-        int num = numSupervisors.addAndGet(number);
-        if (this.supervisorsAreToRun) {
-            LOG.info("Added " + num + " supervisors, and requesting containers...");
-            addSupervisorsRequest();
-        } else {
-            LOG.info("Added " + num + " supervisors, but not requesting containers now.");
-        }
+        }*/
     }
 
 
 
-    public void startMaster() {
-
-    }
-
-    public void launchKattaNodeOnContainer(Container container)
+    public void launchKattaMasterOnContainer(Container container)
             throws IOException {
-        Path[] paths = null;
+        //Path[] paths = null;
         // create a container launch context
         ContainerLaunchContext launchContext = Records.newRecord(ContainerLaunchContext.class);
         UserGroupInformation user = UserGroupInformation.getCurrentUser();
         try {
             Credentials credentials = user.getCredentials();
-            TokenCache.obtainTokensForNamenodes(credentials, paths, hadoopConf);
+            //TokenCache.obtainTokensForNamenodes(credentials, paths, hadoopConf);
 
             DataOutputBuffer dob = new DataOutputBuffer();
             credentials.writeTokenStorageToStream(dob);
@@ -168,17 +207,31 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
                     + e.getMessage());
         }
 
-        // CLC: env
-        Map<String, String> env = new HashMap<String, String>();
-        env.put("KATTA_LOG_DIR", ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-        launchContext.setEnvironment(env);
-
         // CLC: local resources includes katta, conf
         Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-        String katta_zip_path = conf.getProperty("katta.zip.path");
-        Path zip = new Path(katta_zip_path);
-        FileSystem fs = FileSystem.get(hadoopConf);
-        String vis = conf.getProperty("katta.zip.visibility");
+        String katta_zip_path = conf.getProperty("katta.zip.path", "");
+
+        Version kattaVersion = Version.readFromJar();
+        LOG.info(kattaVersion.getRevision());
+
+        FileSystem fs = FileSystem.get(this.hadoopConf);
+
+        Path zip;
+        if (StringUtils.isNotBlank(katta_zip_path)) {
+            //自己指定的
+            zip = new Path(katta_zip_path);
+            if(!fs.exists(zip) || !fs.isFile(zip)) {
+                throw new IllegalArgumentException("katta location not exists. " + katta_zip_path);
+            }
+
+        } else {
+            zip = new Path("/lib/katta/katta-" + kattaVersion.getRevision() + ".zip");
+        }
+
+        LOG.info("katta.home=" + zip.toString());
+
+
+        String vis = conf.getProperty("katta.zip.visibility", "PUBLIC");
         if (vis.equals("PUBLIC"))
             localResources.put("katta", Util.newYarnAppResource(fs, zip,
                     LocalResourceType.ARCHIVE, LocalResourceVisibility.PUBLIC));
@@ -189,37 +242,45 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
             localResources.put("katta", Util.newYarnAppResource(fs, zip,
                     LocalResourceType.ARCHIVE, LocalResourceVisibility.APPLICATION));
 
-        String appHome = Util.getApplicationHomeForId(appAttemptId.toString());
+        // CLC: env
+        Map<String, String> env = new HashMap<String, String>();
+        env.put("KATTA_LOG_DIR", ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+        //env.put("appId", new Integer(_appId.getId()).toString());
 
+        Util.getKattaHomeInZip(fs, zip, kattaVersion.getNumber());
+        Apps.addToEnvironment(env, ApplicationConstants.Environment.CLASSPATH.name(), "./katta/" + "/*");
+        Apps.addToEnvironment(env, ApplicationConstants.Environment.CLASSPATH.name(), "./katta/" + "/lib/*");
+
+
+        String appHome = Util.getApplicationHomeForId(appAttemptId.toString());
         String containerHome = appHome + Path.SEPARATOR + container.getId().getId();
 
-        Path confDst = Util.copyClasspathConf(fs,
-                containerHome);
-
+        Path confDst = Util.copyClasspathConf(fs, containerHome);
         localResources.put("conf", Util.newYarnAppResource(fs, confDst));
 
+        launchContext.setEnvironment(env);
         launchContext.setLocalResources(localResources);
 
         // CLC: command
-        List<String> supervisorArgs = Util.buildSupervisorCommands(this.conf);
-        launchContext.setCommands(supervisorArgs);
+        List<String> masterArgs = Util.buildMasterCommands(this.conf);
+
+        LOG.info("master luanch: " + StringUtils.join(masterArgs, "  "));
+
+        launchContext.setCommands(masterArgs);
 
         try {
             LOG.info("Use NMClient to launch supervisors in container. ");
-            nmClient.startContainer(container, launchContext);
+            Map<String, ByteBuffer> result = nmClient.startContainer(container, launchContext);
+
+            LOG.info("luanch result: " + result);
 
             String userShortName = user.getShortUserName();
             if (userShortName != null)
-                LOG.info("Supervisor log: http://" + container.getNodeHttpAddress() + "/node/containerlogs/"
-                        + container.getId().toString() + "/" + userShortName + "/supervisor.log");
+                LOG.info("Master log: http://" + container.getNodeHttpAddress() + "/node/containerlogs/"
+                        + container.getId().toString() + "/" + userShortName + "/master.log");
         } catch (Exception e) {
             LOG.error("Caught an exception while trying to start a container", e);
-            System.exit(-1);
+            throw new IllegalArgumentException(e);
         }
-    }
-
-    public void setMaxResource(Resource maximumResourceCapability) {
-        this.maxResourceCapability = maximumResourceCapability;
-        LOG.info("Max Capability is now " + this.maxResourceCapability);
     }
 }

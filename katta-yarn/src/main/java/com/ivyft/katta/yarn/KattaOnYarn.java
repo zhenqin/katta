@@ -49,7 +49,19 @@ import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.util.*;
 
-
+/**
+ * <pre>
+ *
+ * Created by IntelliJ IDEA.
+ * User: zhenqin
+ * Date: 15/11/28
+ * Time: 19:51
+ * To change this template use File | Settings | File Templates.
+ *
+ * </pre>
+ *
+ * @author zhenqin
+ */
 public class KattaOnYarn {
     private static final Logger LOG = LoggerFactory.getLogger(KattaOnYarn.class);
     public final static String YARN_REPORT_WAIT_MILLIS = "yarn.report.wait.millis";
@@ -101,11 +113,12 @@ public class KattaOnYarn {
             int port = 0;
             //wait for application to be ready
             int max_wait_for_report = conf.getInt(YARN_REPORT_WAIT_MILLIS, 60000);
-            int waited=0; 
-            while (waited<max_wait_for_report) {
+            int waited = 0;
+            while (waited < max_wait_for_report) {
                 ApplicationReport report = _yarn.getApplicationReport(_appId);
                 host = report.getHost();
                 port = report.getRpcPort();
+                LOG.info("application master start at " + host + ":" + port);
                 if (host == null || port==0) { 
                     try {
                         Thread.sleep(1000);
@@ -129,7 +142,7 @@ public class KattaOnYarn {
     }
 
     private void launchApp(String appName, String queue, int amMB,
-                           String katta_zip_location, String solrHome) throws Exception {
+                           String katta_zip_location) throws Exception {
         LOG.debug("KattaOnYarn:launchApp() ...");
         YarnClientApplication client_app = _yarn.createApplication();
         GetNewApplicationResponse app = client_app.getNewApplicationResponse();
@@ -147,6 +160,11 @@ public class KattaOnYarn {
         appContext.setApplicationId(app.getApplicationId());
         appContext.setApplicationName(appName);
         appContext.setQueue(queue);
+        Resource capability = Records.newRecord(Resource.class);
+        capability.setMemory(amMB);
+        capability.setVirtualCores(1);
+
+        appContext.setResource(capability);
 
         // Set up the container launch context for the application master
         ContainerLaunchContext amContainer = Records
@@ -258,11 +276,7 @@ public class KattaOnYarn {
         Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./katta/" + "/lib/*");
 
         String java_home = conf.getProperty("katta.yarn.java_home", "");
-        if (StringUtils.isBlank(java_home)) {
-            java_home = System.getenv("JAVA_HOME");
-        }
-        
-        if (java_home != null && !java_home.isEmpty()) {
+        if (StringUtils.isNotBlank(java_home)) {
             env.put("JAVA_HOME", java_home);
         }
 
@@ -277,9 +291,8 @@ public class KattaOnYarn {
 
         // Set the necessary command to execute the application master
         Vector<String> vargs = new Vector<String>();
-        vargs.add("java");
+        vargs.add("$JAVA_HOME/bin/java");
 
-        vargs.add("-Dsolr.solr.home=" + solrHome + "/");
         vargs.add("-Dlogfile.name=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/katta-on-yarn.log");
         //vargs.add("-verbose:class");
         vargs.add(com.ivyft.katta.yarn.KattaAppMaster.class.getName());
@@ -292,11 +305,7 @@ public class KattaOnYarn {
 
         // Set up resource type requirements
         // For now, only memory is supported so we set memory requirements
-        Resource capability = Records.newRecord(Resource.class);
-        capability.setMemory(amMB);
-        capability.setVirtualCores(1);
 
-        appContext.setResource(capability);
         appContext.setAMContainerSpec(amContainer);
         //appContext.setUnmanagedAM(true);
 
@@ -396,7 +405,7 @@ public class KattaOnYarn {
                                                 KattaConfiguration kattaConf,
                                                 String katta_zip_location) throws Exception {
         KattaOnYarn katta = new KattaOnYarn(kattaConf);
-        katta.launchApp(appName, queue, amMB, katta_zip_location, "");
+        katta.launchApp(appName, queue, amMB, katta_zip_location);
         katta.waitUntilLaunched();
         return katta;
     }
@@ -407,9 +416,9 @@ public class KattaOnYarn {
 
 
     public static void main(String[] args) throws Exception {
-        launchApplication("KattaOnYarn",
+        KattaOnYarn.launchApplication("KattaOnYarn",
                 "default",
-                256,
+                1024,
                 new KattaConfiguration("katta.node.properties"),
                 null);
     }

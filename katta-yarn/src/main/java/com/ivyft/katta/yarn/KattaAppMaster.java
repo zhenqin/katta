@@ -16,7 +16,6 @@
 
 package com.ivyft.katta.yarn;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -44,7 +43,19 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+/**
+ * <pre>
+ *
+ * Created by IntelliJ IDEA.
+ * User: zhenqin
+ * Date: 15/11/28
+ * Time: 19:51
+ * To change this template use File | Settings | File Templates.
+ *
+ * </pre>
+ *
+ * @author zhenqin
+ */
 public class KattaAppMaster implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(KattaAppMaster.class);
 
@@ -74,7 +85,7 @@ public class KattaAppMaster implements Runnable {
         this.protocol = protocol;
 
         this.server = new KattaYarnAvroServer(KattaYarnProtocol.class, protocol);
-        final int port = conf.getInt(KattaOnYarn.MASTER_AVRO_PORT, 4560);
+        final int port = conf.getInt(KattaOnYarn.MASTER_AVRO_PORT, 4880);
         this.server.setPort(port);
 
         protocol.setAppMaster(this);
@@ -82,7 +93,7 @@ public class KattaAppMaster implements Runnable {
 
         try {
             LOG.info("launch katta master");
-            protocol.startMaster(1);
+            //protocol.startMaster(1);
 
             int numKattaNode =
                     conf.getInt(KattaOnYarn.DEFAULT_KATTA_NODE_NUM, 1);
@@ -119,7 +130,6 @@ public class KattaAppMaster implements Runnable {
         } catch (AvroRemoteException e) {
             e.printStackTrace();
         }
-
     }
 
 
@@ -131,6 +141,7 @@ public class KattaAppMaster implements Runnable {
     public void run() {
         try {
             int heartBeatIntervalMs = conf.getInt(KattaOnYarn.MASTER_HEARTBEAT_INTERVAL_MILLIS, 10000);
+            int count = 10;
 
             while (client.getServiceState() == Service.STATE.STARTED &&
                     !Thread.currentThread().isInterrupted()) {
@@ -153,15 +164,16 @@ public class KattaAppMaster implements Runnable {
                 if (allocatedContainers.size() > 0) {
                     //有资源? 等于0说明没资源了
                     client.addAllocatedContainers(allocatedContainers);
-
                 }
+                count++;
+                LOG.info("counter: " + count);
 
                 Thread.sleep(heartBeatIntervalMs);
 
                 List<ContainerStatus> completedContainers =
                         allocResponse.getCompletedContainersStatuses();
-
-
+                LOG.info(completedContainers.toString());
+                LOG.info("HB: Containers completed (" + completedContainers.size() + "), so releasing them.");
             }
         } catch (Throwable t) {
             // Something happened we could not handle.  Make sure the AM goes
@@ -188,13 +200,6 @@ public class KattaAppMaster implements Runnable {
                         } else if(take instanceof Container) {
                             Container container = (Container) take;
                             LOG.info("LAUNCHER: Taking container with id (" + container.getId() + ") from the queue.");
-                            if (client.supervisorsAreToRun()) {
-                                LOG.info("LAUNCHER: Supervisors are to run, so launching container id (" + container.getId() + ")");
-                                client.launchKattaNodeOnContainer(container);
-                            } else {
-                                // Do nothing
-                                LOG.info("LAUNCHER: Supervisors are not to run, so not launching container id (" + container.getId() + ")");
-                            }
                         }
                     } catch (InterruptedException e) {
                         if (client.getServiceState() == Service.STATE.STARTED) {
@@ -202,7 +207,7 @@ public class KattaAppMaster implements Runnable {
                             System.exit(1);
                         }
                         return;
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         LOG.error("Launcher thread I/O exception : ", e);
                         System.exit(1);
                     }
@@ -257,8 +262,6 @@ public class KattaAppMaster implements Runnable {
 
         KattaAMRMClient rmClient =
                 new KattaAMRMClient(appAttemptID, conf, hadoopConf);
-        rmClient.init(hadoopConf);
-        rmClient.start();
 
 
         KattaAppMaster server = new KattaAppMaster(conf, rmClient);
@@ -272,10 +275,6 @@ public class KattaAppMaster implements Runnable {
                     rmClient.registerApplicationMaster(addr.getHostName(), port, null);
             LOG.info("Got a registration response " + resp);
             LOG.info("Max Capability " + resp.getMaximumResourceCapability());
-
-            Resource resource = Resource.newInstance(1024, 1);
-            rmClient.setMaxResource(resource);
-            //rmClient.setMaxResource(resp.getMaximumResourceCapability());
 
             server.initAndStartHeartbeat();
 
@@ -291,11 +290,11 @@ public class KattaAppMaster implements Runnable {
         } catch (Exception e){
             LOG.warn(ExceptionUtils.getFullStackTrace(e));
         } finally {
-            LOG.info("Stop Master Avro Server");
             server.stop();
+            LOG.info("Stop Master Avro Server");
 
-            LOG.info("Stop RM client");
             rmClient.stop();
+            LOG.info("Stop RM client");
         }
         System.exit(0);
     }

@@ -38,34 +38,23 @@
         <value>zhenqin-pro102</value>
     </property>
 
+
     <property>
-        <name>yarn.nodemanager.resource.memory-mb</name>
-        <value>4096</value>
-        <description>
-            Hadoop YARN可以使用的最大内存量，用来控制每个Node上能运行MapReduce的数量。默认8GB
-        </description>
+        <name>yarn.scheduler.minimum-allocation-mb</name>
+        <value>256</value>
     </property>
 
     <property>
-        <name>yarn.nodemanager.resource.cpu-vcores</name>
+        <name>yarn.scheduler.minimum-allocation-vcores</name>
+        <value>1</value>
+    </property>
+
+    <property>
+        <description>The maximum allocation for every container request at the RM,
+            in terms of virtual CPU cores. Requests higher than this won't take effect,
+            and will get capped to this value.</description>
+        <name>yarn.scheduler.maximum-allocation-vcores</name>
         <value>4</value>
-        <description>
-            Hadoop 2.x以上提供内存和CPU两种资源技术方式，该参数控制Node上的CPU数量。默认是8
-        </description>
     </property>
-
-    <!--
-        <property>
-            <name>yarn.resourcemanager.scheduler.address</name>
-            <value></value>
-            <description>同上，NodeManger 需要知道 RM 主机的 scheduler 调度服务接口地址</description>
-        </property>
-
-        <property>
-            <name>yarn.resourcemanager.resourcetracker.address</name>
-            <value></value>
-            <description>新框架中 NodeManager 需要向 RM 报告任务运行状态供 Resouce 跟踪，因此 NodeManager 节点主机需要知道 RM 主机的 tracker 接口地址</description>
-        </property>
-        -->
 
 </configuration>
