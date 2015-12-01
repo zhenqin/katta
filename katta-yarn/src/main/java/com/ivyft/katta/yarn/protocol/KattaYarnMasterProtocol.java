@@ -2,6 +2,8 @@ package com.ivyft.katta.yarn.protocol;
 
 import com.ivyft.katta.util.KattaConfiguration;
 import com.ivyft.katta.yarn.KattaAMRMClient;
+import com.ivyft.katta.yarn.KattaAppMaster;
+import com.ivyft.katta.yarn.Shutdown;
 import org.apache.avro.AvroRemoteException;
 
 /**
@@ -27,6 +29,10 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
     protected KattaAMRMClient amrmClient;
 
 
+
+    protected KattaAppMaster appMaster;
+
+
     public KattaYarnMasterProtocol(KattaConfiguration conf, KattaAMRMClient amrmClient) {
         this.conf = conf;
         this.amrmClient = amrmClient;
@@ -34,6 +40,7 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
 
     @Override
     public Void startMaster(int num) throws AvroRemoteException {
+        amrmClient.startMaster();
         return null;
     }
 
@@ -59,11 +66,23 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
 
     @Override
     public Void shutdown() throws AvroRemoteException {
+        if(appMaster != null) {
+            appMaster.add(new Shutdown());
+        }
         return null;
     }
 
     @Override
     public Void close() throws AvroRemoteException {
         return null;
+    }
+
+
+    public KattaAppMaster getAppMaster() {
+        return appMaster;
+    }
+
+    public void setAppMaster(KattaAppMaster appMaster) {
+        this.appMaster = appMaster;
     }
 }

@@ -17,6 +17,7 @@
 package com.ivyft.katta.yarn;
 
 import com.google.common.base.Joiner;
+import com.ivyft.katta.Katta;
 import com.ivyft.katta.util.KattaConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
@@ -32,6 +33,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
 import java.io.*;
+import java.net.InterfaceAddress;
 import java.net.URL;
 import java.util.*;
 import java.util.zip.ZipEntry;
@@ -169,9 +171,9 @@ public class Util {
     }
 
 
-    private static List<String> buildCommandPrefix(KattaConfiguration conf, String childOptsKey)
+    private static List<String> buildCommandPrefix(KattaConfiguration conf)
             throws IOException {
-        String kattaHomePath = getKattaHome();
+        //String kattaHomePath = getKattaHome();
         List<String> toRet = new ArrayList<String>();
         if (System.getenv("JAVA_HOME") != null) {
             toRet.add(System.getenv("JAVA_HOME") + "/bin/java");
@@ -179,39 +181,32 @@ public class Util {
             toRet.add("java");
         }
         toRet.add("-server");
-        toRet.add("-Dkatta.home=" + kattaHomePath);
-        //toRet.add("-Djava.library.path=" + conf.get(backtype.katta.Config.JAVA_LIBRARY_PATH));
-        toRet.add("-Dkatta.conf.file=" + new File(KATTA_CONF_PATH_STRING).getName());
-        toRet.add("-cp");
-        toRet.add(buildClassPathArgument());
-
-        if (conf.containsProperty(childOptsKey)
-                && conf.getProperty(childOptsKey) != null) {
-            toRet.add(conf.getProperty(childOptsKey));
-        }
+        //toRet.add("-Dkatta.home=" + getKattaHome());
+        //toRet.add("-cp");
+        //toRet.add(buildClassPathArgument());
 
         return toRet;
     }
 
 
     public static List<String> buildMasterCommands(KattaConfiguration conf) throws IOException {
-        List<String> toRet =
-                buildCommandPrefix(conf, "");
+        List<String> toRet = buildCommandPrefix(conf);
+        toRet.add("-Dkatta.root.logger=INFO,DRFA");
 
-        toRet.add("-Dlogfile.name=" + System.getenv("KATTA_LOG_DIR") + "/nimbus.log");
-        toRet.add("backtype.katta.daemon.nimbus");
-
+        toRet.add("-Dkatta.log.dir=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+        toRet.add("-Dkatta.log.file=" + "katta-master-" + java.net.InetAddress.getLocalHost().getHostName() + ".log");
+        toRet.add(Katta.class.getName());
+        toRet.add("master");
         return toRet;
     }
 
     public static List<String> buildSupervisorCommands(KattaConfiguration conf) throws IOException {
-        List<String> toRet =
-                buildCommandPrefix(conf, "");
+        List<String> toRet = buildCommandPrefix(conf);
 
-        toRet.add("-Dworker.logdir=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-        toRet.add("-Dlogfile.name=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/supervisor.log");
-        toRet.add("backtype.katta.daemon.supervisor");
-
+        toRet.add("-Dkatta.log.dir=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+        toRet.add("-Dkatta.log.file=" + "katta-node-" + java.net.InetAddress.getLocalHost().getHostName() + ".log");
+        toRet.add(Katta.class.getName());
+        toRet.add("node");
         return toRet;
     }
 

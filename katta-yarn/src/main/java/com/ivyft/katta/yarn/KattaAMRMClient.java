@@ -13,6 +13,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ivyft.katta.util.KattaConfiguration;
+import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -142,13 +143,22 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         }
     }
 
+
+
+    public void startMaster() {
+
+    }
+
     public void launchKattaNodeOnContainer(Container container)
             throws IOException {
+        Path[] paths = null;
         // create a container launch context
         ContainerLaunchContext launchContext = Records.newRecord(ContainerLaunchContext.class);
         UserGroupInformation user = UserGroupInformation.getCurrentUser();
         try {
             Credentials credentials = user.getCredentials();
+            TokenCache.obtainTokensForNamenodes(credentials, paths, hadoopConf);
+
             DataOutputBuffer dob = new DataOutputBuffer();
             credentials.writeTokenStorageToStream(dob);
             ByteBuffer securityTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());

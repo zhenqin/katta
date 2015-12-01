@@ -16,48 +16,38 @@
 
 package com.ivyft.katta.yarn;
 
-import com.ivyft.katta.protocol.metadata.Version;
 import com.ivyft.katta.util.KattaConfiguration;
-import com.ivyft.katta.yarn.protocol.KattaYarnClient;
-import org.apache.avro.AvroRemoteException;
-import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
+import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.service.Service;
+import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.*;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
+import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 
-public class KattaOnYarn {
-    private static final Logger LOG = LoggerFactory.getLogger(KattaOnYarn.class);
-    public final static String YARN_REPORT_WAIT_MILLIS = "yarn.report.wait.millis";
-    public final static String MASTER_HEARTBEAT_INTERVAL_MILLIS = "master.heartbeat.interval.millis";
-    public final static String KATTA_MASTER_HOST = "yarn.katta.master.host";
-    public final static String MASTER_AVRO_PORT = "yarn.appmaster.avro.port";
-    public final static String DEFAULT_KATTA_NODE_NUM = "yarn.katta.node.default.num";
-    public final static String MASTER_CONTAINER_PRIORITY = "yarn.master.container.priority";
+public class MasterOnYarn implements Runnable {
+    private static final Logger LOG = LoggerFactory.getLogger(MasterOnYarn.class);
 
     public final static String DEFAULE_SOLR_HOME = "./katta/data/solr";
 
@@ -65,14 +55,14 @@ public class KattaOnYarn {
     private YarnConfiguration _hadoopConf;
     private ApplicationId _appId;
     private KattaConfiguration conf;
-    private KattaYarnClient _client = null;
 
-    private KattaOnYarn(KattaConfiguration kattaConf) {
+
+    private MasterOnYarn(KattaConfiguration kattaConf) {
         this(null, kattaConf);
     }
 
-    private KattaOnYarn(ApplicationId appId, KattaConfiguration kattaConf) {
-        _hadoopConf = new YarnConfiguration();  
+    private MasterOnYarn(ApplicationId appId, KattaConfiguration kattaConf) {
+        _hadoopConf = new YarnConfiguration();
         _yarn = YarnClient.createYarnClient();
         this.conf = kattaConf;
         _appId = appId;
@@ -81,13 +71,6 @@ public class KattaOnYarn {
     }
 
     public void stop() {
-        if(_client != null) {
-            try {
-                _client.shutdown();
-            } catch (AvroRemoteException e) {
-                LOG.error(e.getMessage());
-            }
-        }
         _yarn.stop();
     }
 
@@ -95,41 +78,57 @@ public class KattaOnYarn {
         return _appId;
     }
 
-    public synchronized KattaYarnClient getClient() throws YarnException, IOException {
-        if (_client == null) {
-            String host = null;
-            int port = 0;
-            //wait for application to be ready
-            int max_wait_for_report = conf.getInt(YARN_REPORT_WAIT_MILLIS, 60000);
-            int waited=0; 
-            while (waited<max_wait_for_report) {
-                ApplicationReport report = _yarn.getApplicationReport(_appId);
-                host = report.getHost();
-                port = report.getRpcPort();
-                if (host == null || port==0) { 
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                    }
-                    waited += 1000;
-                } else {
-                    break;
+
+
+    @Override
+    public void run() {
+        try {
+            int heartBeatIntervalMs = conf.getInt(KattaOnYarn.MASTER_HEARTBEAT_INTERVAL_MILLIS, 10000);
+
+            AMRMClientImpl<AMRMClient.ContainerRequest> client = new AMRMClientImpl<AMRMClient.ContainerRequest>();
+            client.init(_hadoopConf);
+            client.start();
+
+            while (client.getServiceState() == Service.STATE.STARTED &&
+                    !Thread.currentThread().isInterrupted()) {
+
+                // We always send 50% progress.
+                AllocateResponse allocResponse = client.allocate(0.5f);
+
+                AMCommand am_command = allocResponse.getAMCommand();
+                if (am_command != null &&
+                        (am_command == AMCommand.AM_SHUTDOWN || am_command == AMCommand.AM_RESYNC)) {
+                    LOG.info("Got AM_SHUTDOWN or AM_RESYNC from the RM");
+                    return;
                 }
+
+                //取得 Yarn 还剩余的Container资源, Container代表可运行的进程
+                List<Container> allocatedContainers = allocResponse.getAllocatedContainers();
+                // Add newly allocated containers to the client.
+                LOG.info("HB: Received allocated containers (" + allocatedContainers.size() + ")");
+
+                Thread.sleep(heartBeatIntervalMs);
+
+                List<ContainerStatus> completedContainers =
+                        allocResponse.getCompletedContainersStatuses();
+
+                // Add newly allocated containers to the client.
+                LOG.info("HB: Received allocated containers (" + completedContainers.size() + ")");
+                LOG.info(completedContainers.toString());
+
+
+
             }
-            if (host == null || port==0) {
-                LOG.info("No host/port returned for Application Master " + _appId);
-                return null;
-            }
-            
-            LOG.info("application report for "+_appId+" :"+host+":"+port);
-            LOG.info("Attaching to "+host+":"+port+" to talk to app master "+_appId);
-            _client = new KattaYarnClient(host, port);
+        } catch (Throwable t) {
+            // Something happened we could not handle.  Make sure the AM goes
+            // down so that we are not surprised later on that our heart
+            // stopped..
+            LOG.error("Unhandled error in AM: ", t);
         }
-        return _client;
     }
 
     private void launchApp(String appName, String queue, int amMB,
-                           String katta_zip_location, String solrHome) throws Exception {
+                           String katta_zip_location) throws Exception {
         LOG.debug("KattaOnYarn:launchApp() ...");
         YarnClientApplication client_app = _yarn.createApplication();
         GetNewApplicationResponse app = client_app.getNewApplicationResponse();
@@ -142,11 +141,39 @@ public class KattaOnYarn {
         }
 
 
-        ApplicationSubmissionContext appContext = 
+        ApplicationSubmissionContext appContext =
                 Records.newRecord(ApplicationSubmissionContext.class);
         appContext.setApplicationId(app.getApplicationId());
         appContext.setApplicationName(appName);
         appContext.setQueue(queue);
+        appContext.setResource(Resource.newInstance(256, 1));
+        appContext.setUnmanagedAM(true);
+
+
+        // create a container launch context
+        // Set up the container launch context for the application master
+        ContainerLaunchContext amContainer = Records
+                .newRecord(ContainerLaunchContext.class);
+
+        UserGroupInformation user = UserGroupInformation.getCurrentUser();
+        try {
+            Credentials credentials = user.getCredentials();
+            //TokenCache.obtainTokensForNamenodes(credentials, paths, hadoopConf);
+
+            DataOutputBuffer dob = new DataOutputBuffer();
+            credentials.writeTokenStorageToStream(dob);
+            ByteBuffer securityTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
+            amContainer.setTokens(securityTokens);
+
+        } catch (IOException e) {
+            LOG.warn("Getting current user info failed when trying to launch the container"
+                    + e.getMessage());
+        }
+
+
+        /*
+
+
 
         // Set up the container launch context for the application master
         ContainerLaunchContext amContainer = Records
@@ -162,13 +189,13 @@ public class KattaOnYarn {
         LOG.info("Copy App Master jar from local filesystem and add to local environment");
         // Copy the application master jar to the filesystem
         // Create a local resource to point to the destination jar path
-        String appMasterJar = findContainingJar(KattaAppMaster.class);
+        String appMasterJar = findContainingJar(TestApp.class);
         LOG.info("appMasterJar: " + appMasterJar);
 
         FileSystem fs = FileSystem.get(_hadoopConf);
         Path src = new Path(appMasterJar);
         String appHome =  Util.getApplicationHomeForId(_appId.toString());
-        Path dst = new Path(fs.getHomeDirectory(), 
+        Path dst = new Path(fs.getHomeDirectory(),
                 appHome + Path.SEPARATOR + "AppMaster.jar");
         fs.copyFromLocalFile(false, true, src, dst);
         LOG.info("copy jar from: " + src + " to: " + dst);
@@ -230,7 +257,7 @@ public class KattaOnYarn {
         Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./AppMaster.jar");
 
         //Make sure that AppMaster has access to all YARN JARs
-        List<String> yarn_classpath_cmd = java.util.Arrays.asList("yarn", "classpath");
+        List<String> yarn_classpath_cmd = Arrays.asList("yarn", "classpath");
         ProcessBuilder pb = new ProcessBuilder(yarn_classpath_cmd);
         LOG.info("YARN CLASSPATH COMMAND = [" + yarn_classpath_cmd + "]");
         pb.environment().putAll(System.getenv());
@@ -241,8 +268,8 @@ public class KattaOnYarn {
         String yarn_class_path = conf.getProperty("katta.yarn.yarn_classpath", "");
         if (StringUtils.isNotBlank(yarn_class_path)){
             StringBuilder yarn_class_path_builder = new StringBuilder();
-            while ((line = reader.readLine() ) != null){            
-                yarn_class_path_builder.append(line);             
+            while ((line = reader.readLine() ) != null){
+                yarn_class_path_builder.append(line);
             }
             yarn_class_path = yarn_class_path_builder.toString();
         }
@@ -261,13 +288,13 @@ public class KattaOnYarn {
         if (StringUtils.isBlank(java_home)) {
             java_home = System.getenv("JAVA_HOME");
         }
-        
+
         if (java_home != null && !java_home.isEmpty()) {
             env.put("JAVA_HOME", java_home);
         }
 
         LOG.info("Using JAVA_HOME = [" + env.get("JAVA_HOME") + "]");
-        
+
         env.put("appJar", appMasterJar);
         env.put("appName", appName);
         env.put("appId", new Integer(_appId.getId()).toString());
@@ -282,7 +309,7 @@ public class KattaOnYarn {
         vargs.add("-Dsolr.solr.home=" + solrHome + "/");
         vargs.add("-Dlogfile.name=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/katta-on-yarn.log");
         //vargs.add("-verbose:class");
-        vargs.add(com.ivyft.katta.yarn.KattaAppMaster.class.getName());
+        vargs.add(KattaAppMaster.class.getName());
         vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
         vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
         // Set java executable command
@@ -294,63 +321,13 @@ public class KattaOnYarn {
         // For now, only memory is supported so we set memory requirements
         Resource capability = Records.newRecord(Resource.class);
         capability.setMemory(amMB);
-        capability.setVirtualCores(1);
-
         appContext.setResource(capability);
         appContext.setAMContainerSpec(amContainer);
-        //appContext.setUnmanagedAM(true);
 
         _yarn.submitApplication(appContext);
+        */
     }
 
-
-    /**
-     * Wait until the application is successfully launched
-     * @throws YarnException
-     */
-    public boolean waitUntilLaunched() throws YarnException, IOException {
-        while (true) {
-            // Get application report for the appId we are interested in
-            ApplicationReport report = _yarn.getApplicationReport(_appId);
-
-            LOG.info(report.toString());
-
-
-            YarnApplicationState state = report.getYarnApplicationState();
-            FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
-            if (YarnApplicationState.FINISHED == state) {
-                if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
-                    LOG.info("Application has completed successfully. Breaking monitoring loop");
-                    return true;        
-                }
-                else {
-                    LOG.info("Application did finished unsuccessfully."
-                            + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
-                            + ". Breaking monitoring loop");
-                    return false;
-                }             
-            } else if (YarnApplicationState.KILLED == state
-                    || YarnApplicationState.FAILED == state) {
-                LOG.info("Application did not finish."
-                        + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
-                        + ". Breaking monitoring loop");
-                return false;
-            }
-
-            // Check app status every 1 second.
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                LOG.debug("Thread sleep in monitoring loop interrupted");
-            }
-
-            //announce application master's host and port
-            if (state == YarnApplicationState.RUNNING) {
-                LOG.info(report.getApplicationId() + " luanched, status: " + state);
-                return true;
-            }
-        }    
-    }
 
 
     /** 
@@ -390,27 +367,54 @@ public class KattaOnYarn {
         //throw new IOException("Fail to locat a JAR for class: "+my_class.getName());
     }
 
-    public static KattaOnYarn launchApplication(String appName,
-                                                String queue,
-                                                int amMB,
-                                                KattaConfiguration kattaConf,
-                                                String katta_zip_location) throws Exception {
-        KattaOnYarn katta = new KattaOnYarn(kattaConf);
-        katta.launchApp(appName, queue, amMB, katta_zip_location, "");
-        katta.waitUntilLaunched();
+
+    public void start() throws IOException, YarnException {
+        try {
+            waitUntilLaunched();
+        } catch (Exception e) {
+            LOG.info("StormAMRMClient::unregisterApplicationMaster");
+        } finally {
+//            client.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED,
+//                    "AllDone", null);
+        }
+
+    }
+
+
+    public void waitUntilLaunched() throws InterruptedException {
+        Thread thread = new Thread(this);
+        thread.start();
+        thread.join();
+    }
+
+
+
+
+    public static MasterOnYarn launchApplication(String appName,
+                                                 String queue,
+                                                 int amMB,
+                                                 KattaConfiguration kattaConf,
+                                                 String katta_zip_location) throws Exception {
+        MasterOnYarn katta = new MasterOnYarn(kattaConf);
+        katta.launchApp(appName, queue, amMB, katta_zip_location);
+        try {
+            katta.start();
+        } catch (Exception e) {
+            LOG.info("StormAMRMClient::unregisterApplicationMaster");
+        }
         return katta;
     }
 
-    public static KattaOnYarn attachToApp(String appId, KattaConfiguration kattaConf) {
-        return new KattaOnYarn(ConverterUtils.toApplicationId(appId), kattaConf);
+    public static MasterOnYarn attachToApp(String appId, KattaConfiguration kattaConf) {
+        return new MasterOnYarn(ConverterUtils.toApplicationId(appId), kattaConf);
     }
 
 
     public static void main(String[] args) throws Exception {
-        launchApplication("KattaOnYarn",
+        launchApplication("KattaAppMasterOnYarn",
                 "default",
                 256,
-                new KattaConfiguration("katta.node.properties"),
+                new KattaConfiguration("katta.master.properties"),
                 null);
     }
 }

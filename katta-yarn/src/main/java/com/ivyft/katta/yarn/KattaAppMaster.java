@@ -38,12 +38,7 @@ import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
-import org.apache.hadoop.yarn.api.records.AMCommand;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
+import org.apache.hadoop.yarn.api.records.*;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.slf4j.Logger;
@@ -63,7 +58,7 @@ public class KattaAppMaster implements Runnable {
 
     private final KattaYarnMasterProtocol protocol;
 
-    private final BlockingQueue<Container> launcherQueue = new LinkedBlockingQueue<Container>();
+    private final BlockingQueue<Object> launcherQueue = new LinkedBlockingQueue<Object>();
 
 
     public KattaAppMaster(KattaConfiguration conf,
@@ -81,6 +76,8 @@ public class KattaAppMaster implements Runnable {
         this.server = new KattaYarnAvroServer(KattaYarnProtocol.class, protocol);
         final int port = conf.getInt(KattaOnYarn.MASTER_AVRO_PORT, 4560);
         this.server.setPort(port);
+
+        protocol.setAppMaster(this);
 
 
         try {
@@ -125,15 +122,18 @@ public class KattaAppMaster implements Runnable {
 
     }
 
+
+    public void add(Object o) {
+        launcherQueue.add(o);
+    }
+
     @Override
     public void run() {
         try {
-            int heartBeatIntervalMs = 10000;
+            int heartBeatIntervalMs = conf.getInt(KattaOnYarn.MASTER_HEARTBEAT_INTERVAL_MILLIS, 10000);
 
             while (client.getServiceState() == Service.STATE.STARTED &&
                     !Thread.currentThread().isInterrupted()) {
-
-                Thread.sleep(heartBeatIntervalMs);
 
                 // We always send 50% progress.
                 AllocateResponse allocResponse = client.allocate(0.5f);
@@ -142,35 +142,25 @@ public class KattaAppMaster implements Runnable {
                 if (am_command != null &&
                         (am_command == AMCommand.AM_SHUTDOWN || am_command == AMCommand.AM_RESYNC)) {
                     LOG.info("Got AM_SHUTDOWN or AM_RESYNC from the RM");
-                    server.stop();
-                    System.exit(0);
+                    return;
                 }
 
                 //取得 Yarn 还剩余的Container资源, Container代表可运行的进程
                 List<Container> allocatedContainers = allocResponse.getAllocatedContainers();
+                // Add newly allocated containers to the client.
+                LOG.info("HB: Received allocated containers (" + allocatedContainers.size() + ")");
+
                 if (allocatedContainers.size() > 0) {
                     //有资源? 等于0说明没资源了
-                    // Add newly allocated containers to the client.
-                    LOG.info("HB: Received allocated containers (" + allocatedContainers.size() + ")");
                     client.addAllocatedContainers(allocatedContainers);
 
-
-                    if (client.supervisorsAreToRun()) {
-                        LOG.info("HB: Supervisors are to run, so queueing (" + allocatedContainers.size() + ") containers...");
-                        launcherQueue.addAll(allocatedContainers);
-                    } else {
-                        LOG.info("HB: Supervisors are to stop, so releasing all containers...");
-                        client.stopAllSupervisors();
-                    }
                 }
+
+                Thread.sleep(heartBeatIntervalMs);
 
                 List<ContainerStatus> completedContainers =
                         allocResponse.getCompletedContainersStatuses();
 
-                if (completedContainers.size() > 0 && client.supervisorsAreToRun()) {
-                    LOG.debug("HB: Containers completed (" + completedContainers.size() + "), so releasing them.");
-                    client.startAllSupervisors();
-                }
 
             }
         } catch (Throwable t) {
@@ -185,21 +175,26 @@ public class KattaAppMaster implements Runnable {
 
     private void initAndStartLauncher() {
         Thread thread = new Thread() {
-            Container container;
-
             @Override
             public void run() {
                 while (client.getServiceState() == Service.STATE.STARTED &&
                         !Thread.currentThread().isInterrupted()) {
                     try {
-                        container = launcherQueue.take();
-                        LOG.info("LAUNCHER: Taking container with id (" + container.getId() + ") from the queue.");
-                        if (client.supervisorsAreToRun()) {
-                            LOG.info("LAUNCHER: Supervisors are to run, so launching container id (" + container.getId() + ")");
-                            client.launchKattaNodeOnContainer(container);
-                        } else {
-                            // Do nothing
-                            LOG.info("LAUNCHER: Supervisors are not to run, so not launching container id (" + container.getId() + ")");
+                        Object take = launcherQueue.take();
+                        if(take instanceof Shutdown) {
+                            Thread.sleep(3000);
+                            KattaAppMaster.this.stop();
+                            continue;
+                        } else if(take instanceof Container) {
+                            Container container = (Container) take;
+                            LOG.info("LAUNCHER: Taking container with id (" + container.getId() + ") from the queue.");
+                            if (client.supervisorsAreToRun()) {
+                                LOG.info("LAUNCHER: Supervisors are to run, so launching container id (" + container.getId() + ")");
+                                client.launchKattaNodeOnContainer(container);
+                            } else {
+                                // Do nothing
+                                LOG.info("LAUNCHER: Supervisors are not to run, so not launching container id (" + container.getId() + ")");
+                            }
                         }
                     } catch (InterruptedException e) {
                         if (client.getServiceState() == Service.STATE.STARTED) {
@@ -268,7 +263,7 @@ public class KattaAppMaster implements Runnable {
 
         KattaAppMaster server = new KattaAppMaster(conf, rmClient);
         try {
-            final int port = conf.getInt(KattaOnYarn.MASTER_AVRO_PORT, 4560);
+            final int port = conf.getInt(KattaOnYarn.MASTER_AVRO_PORT, 4880);
             final String target = host + ":" + port;
             InetSocketAddress addr = NetUtils.createSocketAddr(target);
 
@@ -277,7 +272,10 @@ public class KattaAppMaster implements Runnable {
                     rmClient.registerApplicationMaster(addr.getHostName(), port, null);
             LOG.info("Got a registration response " + resp);
             LOG.info("Max Capability " + resp.getMaximumResourceCapability());
-            rmClient.setMaxResource(resp.getMaximumResourceCapability());
+
+            Resource resource = Resource.newInstance(1024, 1);
+            rmClient.setMaxResource(resource);
+            //rmClient.setMaxResource(resp.getMaximumResourceCapability());
 
             server.initAndStartHeartbeat();
 

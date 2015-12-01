@@ -121,4 +121,11 @@ public class KattaYarnClient implements KattaYarnProtocol {
         this.port = port;
     }
 
+
+    public static void main(String[] args) throws AvroRemoteException {
+        KattaYarnClient client = new KattaYarnClient("localhost", 4880);
+        client.shutdown();
+        client.close();
+    }
+
 }
