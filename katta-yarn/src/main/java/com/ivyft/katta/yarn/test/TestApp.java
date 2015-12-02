@@ -24,7 +24,7 @@ public class TestApp implements Runnable {
     Thread thread = new Thread(this);
 
 
-    Logger LOG = LoggerFactory.getLogger(TestApp.class);
+    protected static Logger LOG = LoggerFactory.getLogger(TestApp.class);
 
     public TestApp() {
 
@@ -45,10 +45,12 @@ public class TestApp implements Runnable {
     }
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         TestApp app = new TestApp();
         app.thread.setName("test-thread");
         app.thread.start();
+        LOG.info("=====================");
+        app.thread.join();
     }
 
 }

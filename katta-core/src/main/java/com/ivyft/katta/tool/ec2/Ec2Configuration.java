@@ -43,7 +43,7 @@ public class Ec2Configuration extends KattaConfiguration {
     private static final String AIM = "aws.aim";
 
     public Ec2Configuration() {
-        super("/katta.ec2.properties");
+        super("katta.ec2.properties");
     }
 
     public String getAccountId() {

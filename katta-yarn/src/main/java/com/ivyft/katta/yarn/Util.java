@@ -192,9 +192,9 @@ public class Util {
         List<String> toRet = new ArrayList<String>();
         String java_home = conf.getProperty("katta.yarn.java_home", "");
         if (StringUtils.isNotBlank(java_home)) {
-            toRet.add("$JAVA_HOME=" + java_home);
+            toRet.add(java_home + "/bin/java");
         } else {
-            toRet.add("java");
+            toRet.add("$JAVA_HOME/bin/java");
         }
         toRet.add("-server");
         //toRet.add("-Dkatta.home=" + getKattaHome());
@@ -210,19 +210,23 @@ public class Util {
         toRet.add("-Dkatta.root.logger=INFO,DRFA");
 
         toRet.add("-Dkatta.log.dir=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-        toRet.add("-Dkatta.log.file=" + "katta-master-" + java.net.InetAddress.getLocalHost().getHostName() + ".log");
-        toRet.add(Katta.class.getName());
-        toRet.add("master");
+        toRet.add("-Dkatta.log.file=" + "katta-'$USER'-master-" + java.net.InetAddress.getLocalHost().getHostName() + ".log");
+        toRet.add(Katta.class.getName() + " master -s");
+        toRet.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
+        toRet.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
         return toRet;
     }
 
-    public static List<String> buildSupervisorCommands(KattaConfiguration conf) throws IOException {
+    public static List<String> buildNodeCommands(KattaConfiguration conf) throws IOException {
         List<String> toRet = buildCommandPrefix(conf);
-
+        toRet.add("-Dsolr.solr.home=" + conf.getProperty("solr.solr.home", "./katta/data/solr"));
+        toRet.add("-Dnode.solrhome.folder=" + conf.getProperty("node.solrhome.folder", "./katta/data/solr"));
         toRet.add("-Dkatta.log.dir=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
-        toRet.add("-Dkatta.log.file=" + "katta-node-" + java.net.InetAddress.getLocalHost().getHostName() + ".log");
+        toRet.add("-Dkatta.log.file=" + "katta-'$USER'-node-" + java.net.InetAddress.getLocalHost().getHostName() + ".log");
         toRet.add(Katta.class.getName());
-        toRet.add("node");
+        toRet.add("node -s");
+        toRet.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
+        toRet.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stderr");
         return toRet;
     }
 

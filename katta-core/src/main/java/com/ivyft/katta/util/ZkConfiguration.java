@@ -71,7 +71,7 @@ public class ZkConfiguration extends KattaConfiguration {
      * default constructor
      */
     public ZkConfiguration() {
-        super(System.getProperty(KATTA_PROPERTY_NAME, "/katta.zk.properties"));
+        super(System.getProperty(KATTA_PROPERTY_NAME, "katta.zk.properties"));
     }
 
     public ZkConfiguration(final String path) {

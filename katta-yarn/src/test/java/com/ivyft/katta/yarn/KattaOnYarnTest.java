@@ -20,6 +20,10 @@ import org.junit.Test;
 public class KattaOnYarnTest {
 
 
+    String appId = "application_1449022548197_0023";
+
+
+
     public KattaOnYarnTest() {
     }
 
@@ -27,16 +31,26 @@ public class KattaOnYarnTest {
 
     @Test
     public void testStartMaster() throws Exception {
-        KattaYarnClient client = KattaOnYarn.attachToApp("application_1448967468356_0006",
+        KattaYarnClient client = KattaOnYarn.attachToApp(appId,
                 new KattaConfiguration("katta.node.properties")).getClient();
         client.startMaster(1);
         client.close();
     }
 
 
+
+    @Test
+    public void testStartNode() throws Exception {
+        KattaYarnClient client = KattaOnYarn.attachToApp(appId,
+                new KattaConfiguration("katta.node.properties")).getClient();
+        client.addNode(1);
+        client.close();
+    }
+
+
     @Test
     public void testShutdown() throws Exception {
-        KattaYarnClient client = KattaOnYarn.attachToApp("application_1448967468356_0005",
+        KattaYarnClient client = KattaOnYarn.attachToApp(appId,
                 new KattaConfiguration("katta.node.properties")).getClient();
         client.shutdown();
         client.close();

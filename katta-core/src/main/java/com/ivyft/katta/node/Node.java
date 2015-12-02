@@ -158,8 +158,7 @@ public class Node implements ConnectedComponent {
             throw new IllegalStateException("Node cannot be started again after it was shutdown.");
         }
         LOG.info("starting rpc server with  server class = " + _contentServer.getClass().getCanonicalName());
-        String hostName = NetworkUtil.getLocalhostName();
-
+        String hostName = _nodeConf.getProperty("node.server.host.start", "0.0.0.0");
 
         //启动Hadoop 的RPC
         _rpcServer = startRPCServer(

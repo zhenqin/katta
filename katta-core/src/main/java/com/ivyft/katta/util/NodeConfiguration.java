@@ -45,7 +45,7 @@ public class NodeConfiguration extends KattaConfiguration {
     private static final String RPC_HANDLER_COUNT = "node.rpc.handler-count";
 
     public NodeConfiguration() {
-        super("/katta.node.properties");
+        super("katta.node.properties");
     }
 
     public NodeConfiguration(File file) {

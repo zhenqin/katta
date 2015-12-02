@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
 
@@ -51,6 +52,13 @@ public class PropertyUtil {
         }
 
         URL resource =  classLoader.getResource(path);
+        if(resource == null) {
+            try {
+                resource = new File(new File("./conf"), path).toURL();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+        }
 
         final Properties properties = new Properties();
         try {
@@ -58,10 +66,36 @@ public class PropertyUtil {
             properties.load(inputStream);
             IOUtils.closeQuietly(inputStream);
             return properties;
-        } catch (final IOException e) {
+        } catch (final Exception e) {
             throw new RuntimeException("unable to load kata.properties", e);
         }
     }
+
+
+
+    public static void printListFile(File dir, int floor) {
+        File[] files = dir.listFiles();
+        if(files == null) {
+            return;
+        }
+        for (File file : files) {
+            if(file.isFile()) {
+                System.out.println(getTree(floor) + file.getAbsolutePath());
+            } else {
+                printListFile(file, ++floor);
+            }
+        }
+    }
+
+
+    public static String getTree(int f) {
+        StringBuilder str = new StringBuilder("|");
+        for (int i = 0; i < f; i++) {
+            str.append("--");
+        }
+        return str.toString();
+    }
+
 
     public static String getPropertiesFilePath(final String path) {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -70,6 +104,14 @@ public class PropertyUtil {
         }
 
         URL resource =  classLoader.getResource(path);
+        if(resource == null) {
+            try {
+                resource = new File(new File("./conf"), path).toURL();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+        }
+
         if (resource == null) {
             throw new RuntimeException(path + " not in classpath");
         }

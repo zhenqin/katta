@@ -24,7 +24,7 @@ public class MasterConfiguration extends KattaConfiguration {
     public final static String SAFE_MODE_MAX_TIME = "safemode.maxTime";
 
     public MasterConfiguration() {
-        super("/katta.master.properties");
+        super("katta.master.properties");
     }
 
     public MasterConfiguration(File file) {

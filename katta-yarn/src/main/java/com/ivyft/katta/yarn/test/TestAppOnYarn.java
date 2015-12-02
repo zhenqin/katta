@@ -50,12 +50,6 @@ import java.util.*;
 
 public class TestAppOnYarn {
     private static final Logger LOG = LoggerFactory.getLogger(TestAppOnYarn.class);
-    final public static String YARN_REPORT_WAIT_MILLIS = "yarn.report.wait.millis";
-    final public static String MASTER_HEARTBEAT_INTERVAL_MILLIS = "master.heartbeat.interval.millis";
-    final public static String MASTER_HOST = "katta.master.host";
-    final public static String MASTER_AVRO_PORT = "master.avro.port";
-    final public static String DEFAULT_KATTA_NODE_NUM = "default.katta.node.num";
-    final public static String MASTER_CONTAINER_PRIORITY = "master.container.priority";
 
 
     private YarnClient _yarn;
@@ -107,16 +101,21 @@ public class TestAppOnYarn {
         // For now, only memory is supported so we set memory requirements
         Resource capability = Records.newRecord(Resource.class);
         capability.setMemory(amMB);
-        capability.setVirtualCores(3);
-
+        capability.setVirtualCores(1);
         appContext.setResource(capability);
 
         // Set up the container launch context for the application master
         ContainerLaunchContext amContainer = Records
                 .newRecord(ContainerLaunchContext.class);
 
+        // Setup security tokens
+        Credentials credentials = new Credentials();
+        DataOutputBuffer dob = new DataOutputBuffer();
+        credentials.writeTokenStorageToStream(dob);
+        ByteBuffer securityTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
 
-        Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+        //security tokens for HDFS distributed cache
+        amContainer.setTokens(securityTokens);
 
         // set local resources for the application master
         // local files or archives as needed
@@ -135,6 +134,8 @@ public class TestAppOnYarn {
                 appHome + Path.SEPARATOR + "AppMaster.jar");
         fs.copyFromLocalFile(false, true, src, dst);
         LOG.info("copy jar from: " + src + " to: " + dst);
+
+        Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
         localResources.put("AppMaster.jar", Util.newYarnAppResource(fs, dst));
 
         Version kattaVersion = Version.readFromJar();
@@ -147,7 +148,6 @@ public class TestAppOnYarn {
             if(!fs.exists(zip) || !fs.isFile(zip)) {
                 throw new IllegalArgumentException("katta location not exists. " + katta_zip_location);
             }
-
         } else {
             zip = new Path("/lib/katta/katta-" + kattaVersion.getRevision() + ".zip");
         }
@@ -162,24 +162,14 @@ public class TestAppOnYarn {
         localResources.put("katta", Util.newYarnAppResource(fs, zip, LocalResourceType.ARCHIVE, visibility));
 
 
-        Path confDst = Util.copyClasspathConf(fs, appHome);
         // establish a symbolic link to conf directory
+        Path confDst = Util.copyClasspathConf(fs, appHome);
         localResources.put("conf", Util.newYarnAppResource(fs, confDst));
 
-        // Setup security tokens
-        Path[] paths = new Path[3];
-        paths[0] = dst;
-        paths[1] = confDst;
-        paths[2] = zip;
-
-        Credentials credentials = new Credentials();
-        TokenCache.obtainTokensForNamenodes(credentials, paths, _hadoopConf);
-        DataOutputBuffer dob = new DataOutputBuffer();
-        credentials.writeTokenStorageToStream(dob);
-        ByteBuffer securityTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
-
-        //security tokens for HDFS distributed cache
-        amContainer.setTokens(securityTokens);
+//        Path[] paths = new Path[2];
+//        paths[0] = dst;
+//        paths[1] = confDst;
+//        TokenCache.obtainTokensForNamenodes(credentials, paths, _hadoopConf);
 
         // Set local resource info into app master container launch context
         amContainer.setLocalResources(localResources);
@@ -247,9 +237,7 @@ public class TestAppOnYarn {
         LOG.info("Setting up app master command:" + vargs);
 
         amContainer.setCommands(vargs);
-
         appContext.setAMContainerSpec(amContainer);
-        //appContext.setUnmanagedAM(true);
 
         _yarn.submitApplication(appContext);
     }
@@ -361,7 +349,7 @@ public class TestAppOnYarn {
     public static void main(String[] args) throws Exception {
         launchApplication("TestOnYarn",
                 "default",
-                3000,
+                1000,
                 new HashMap<String, String>(),
                 null);
     }

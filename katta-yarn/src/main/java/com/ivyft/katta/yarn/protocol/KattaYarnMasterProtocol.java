@@ -56,6 +56,7 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
 
     @Override
     public Void addNode(int num) throws AvroRemoteException {
+        amrmClient.startNode();
         return null;
     }
 

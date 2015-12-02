@@ -15,6 +15,7 @@
  */
 package com.ivyft.katta.util;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,7 +164,18 @@ public class KattaConfiguration implements Serializable {
     }
 
     public File getFile(String key) {
-        return new File(getProperty(key));
+        String property = System.getProperty(key);
+        if(StringUtils.isBlank(property)) {
+            property = getProperty(key);
+        }
+        File file = new File(property);
+        LOG.info(key + " dir: " + file.getAbsolutePath());
+        if(!file.exists()) {
+            if(!file.mkdirs()) {
+                throw new IllegalArgumentException("can not mkdir: " + file.getAbsolutePath());
+            }
+        }
+        return file;
     }
 
     public Class<?> getClass(String key) {
