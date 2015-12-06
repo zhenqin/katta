@@ -17,6 +17,7 @@ package com.ivyft.katta.protocol.metadata;
 
 
 import com.ivyft.katta.util.DefaultDateFormat;
+import org.joda.time.DateTime;
 
 import java.io.Serializable;
 
@@ -48,6 +49,12 @@ public class MasterMetaData implements Serializable {
 
 
     /**
+     * Master 导入数据的 Port
+     */
+    private int proxyBlckPort;
+
+
+    /**
      * 启动时间
      */
     private long startTime;
@@ -61,8 +68,15 @@ public class MasterMetaData implements Serializable {
         this.startTime = startTime;
     }
 
+
+    public MasterMetaData(String masterName, int proxyBlckPort, long startTime) {
+        this.masterName = masterName;
+        this.proxyBlckPort = proxyBlckPort;
+        this.startTime = startTime;
+    }
+
     public String getStartTimeAsString() {
-        return DefaultDateFormat.longToDateString(this.startTime);
+        return new DateTime(this.startTime).toString("yyyy/MM/dd HH:mm:ss");
     }
 
 
@@ -82,8 +96,17 @@ public class MasterMetaData implements Serializable {
         this.startTime = startTime;
     }
 
+
+    public int getProxyBlckPort() {
+        return proxyBlckPort;
+    }
+
+    public void setProxyBlckPort(int proxyBlckPort) {
+        this.proxyBlckPort = proxyBlckPort;
+    }
+
     @Override
     public String toString() {
-        return getMasterName() + ":" + getStartTime();
+        return getMasterName() + ":" + getProxyBlckPort() + " start at " + getStartTimeAsString();
     }
 }

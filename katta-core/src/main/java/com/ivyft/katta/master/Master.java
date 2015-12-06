@@ -16,19 +16,18 @@
 package com.ivyft.katta.master;
 
 import com.google.common.base.Preconditions;
+import com.ivyft.katta.lib.lucene.FreeSocketPortFactory;
 import com.ivyft.katta.operation.master.CheckIndicesOperation;
 import com.ivyft.katta.operation.master.RemoveObsoleteShardsOperation;
-import com.ivyft.katta.protocol.ConnectedComponent;
-import com.ivyft.katta.protocol.IAddRemoveListener;
-import com.ivyft.katta.protocol.InteractionProtocol;
-import com.ivyft.katta.protocol.MasterQueue;
+import com.ivyft.katta.protocol.*;
 import com.ivyft.katta.protocol.metadata.Version;
 import com.ivyft.katta.protocol.upgrade.UpgradeAction;
 import com.ivyft.katta.protocol.upgrade.UpgradeRegistry;
+import com.ivyft.katta.util.KattaConfiguration;
 import com.ivyft.katta.util.KattaException;
 import com.ivyft.katta.util.MasterConfiguration;
+import com.ivyft.katta.util.NetworkUtils;
 import com.ivyft.katta.util.ZkConfiguration.PathDef;
-import org.I0Itec.zkclient.NetworkUtil;
 import org.I0Itec.zkclient.ZkServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,10 +61,23 @@ public class Master implements ConnectedComponent {
 
 
     /**
+     * Master 配置信息
+     */
+    protected final MasterConfiguration masterConf;
+
+
+
+    /**
      *
      * Master的名称。机器名+port
      */
     private String masterName;
+
+
+    /**
+     * Master 导入数据的 Port
+     */
+    protected int proxyBlckPort;
 
 
     /**
@@ -138,8 +150,11 @@ public class Master implements ConnectedComponent {
     public Master(InteractionProtocol protocol, boolean shutdownClient, MasterConfiguration masterConfiguration)
             throws KattaException {
         this.protocol = protocol;
-        this.masterName = NetworkUtil.getLocalhostName() + "_" + UUID.randomUUID().toString();
+        this.masterConf = masterConfiguration;
+        this.masterName = NetworkUtils.getLocalhostName() + "_" + UUID.randomUUID().toString();
         this.shutdownClient = shutdownClient;
+
+        this.proxyBlckPort = masterConfiguration.getInt(MasterConfiguration.PROXY_BLCK_PORT, 8440);
 
         //向ZooKeeper注册服务器
         protocol.registerComponent(this);
@@ -164,6 +179,23 @@ public class Master implements ConnectedComponent {
     public synchronized void start() {
         Preconditions.checkState(!isShutdown(), "master was already shut-down");
 
+        //TODO 无论是不是 Master, 都可以有导入数据的接口
+        FreeSocketPortFactory socketPortFactory = new FreeSocketPortFactory();
+        int step = masterConf.getInt(MasterConfiguration.PROXY_BLCK_PORT + ".step", 1);
+        this.proxyBlckPort = socketPortFactory.getSocketPort(proxyBlckPort, step);
+        LOG.info("start proxy blck server at: " + this.masterName + ":" + this.proxyBlckPort);
+
+        KattaSocketServer server = new KattaSocketServer(KattaClientProtocol.class,
+                new MasterStorageProtocol(this.masterConf, protocol));
+        server.setHost(NetworkUtils.getLocalhostName());
+        server.setPort(this.proxyBlckPort);
+        server.setDaemon(false);
+        try {
+            server.init();
+            protocol.registerMasters(this);
+        } catch (Exception e) {
+            LOG.error("", e);
+        }
 
         //ZooKeeper选举
         becomePrimaryOrSecondaryMaster();
@@ -341,6 +373,8 @@ public class Master implements ConnectedComponent {
     public synchronized void shutdown() {
         LOG.info("stopping master...");
         if (this.protocol != null) {
+            LOG.info("stop proxy blck server at: " + this.masterName + ":" + this.proxyBlckPort);
+
             LOG.info("unregistering from zookeeper.");
             this.protocol.unregisterComponent(this);
             if (isMaster()) {
@@ -369,4 +403,8 @@ public class Master implements ConnectedComponent {
         LOG.info("stopped master.");
     }
 
+
+    public int getProxyBlckPort() {
+        return proxyBlckPort;
+    }
 }

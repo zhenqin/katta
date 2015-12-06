@@ -150,16 +150,17 @@ public class Client implements ConnectedComponent {
                   final INodeSelectionPolicy policy,
                   final InteractionProtocol protocol,
                   ClientConfiguration clientConfiguration) {
-        Set<String> keys = new HashSet<String>(clientConfiguration.getKeys());
+        Iterator keys = clientConfiguration.getKeys();
         Configuration hadoopConf = HadoopUtil.getHadoopConf();
-        synchronized (Configuration.class) {// fix for KATTA-146
-            for (String key : keys) {
+        synchronized (Configuration.class) {
+            // fix for KATTA-146
+            while (keys.hasNext()) {
                 // simply set all properties / adding non-hadoop properties shouldn't
                 // hurt
-                hadoopConf.set(key, clientConfiguration.getProperty(key));
+                String key = (String) keys.next();
+                hadoopConf.set(key, String.valueOf(clientConfiguration.getProperty(key)));
             }
         }
-
 
         this.proxyManager = new NodeProxyManager(serverClass, hadoopConf, policy);
         this.selectionPolicy = policy;
@@ -202,9 +203,19 @@ public class Client implements ConnectedComponent {
     public <T> KattaLoader<T> getKattaLoader(String index) {
         //TODO 取得 Loader 这一刻检查, 其它时候不检查
         if(indexToShards.containsKey(index)) {
+            List<String> masters = this.protocol.getMasters();
+
+            int i = new Random().nextInt(masters.size());
+            String s = masters.get(i);
+            String masterHost = s.substring(0, s.indexOf("_"));
+            int masterPort = Integer.parseInt(s.substring(s.indexOf(":") + 1));
+
+            log.info("master at: " + masterHost + ":" + masterPort);
+
+
             return new KattaClient<T>(
-                    this.clientConfiguration.getProperty("katta.loader.host", "localhost"),
-                    this.clientConfiguration.getInt("katta.loader.port", 4560),
+                    masterHost,
+                    masterPort,
                     index);
         }
 

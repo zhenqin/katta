@@ -47,27 +47,27 @@ public class Ec2Configuration extends KattaConfiguration {
     }
 
     public String getAccountId() {
-        return getProperty(ACCOUNT_ID);
+        return getString(ACCOUNT_ID);
     }
 
     public String getAccessKey() {
-        return getProperty(ACCESS_KEY);
+        return getString(ACCESS_KEY);
     }
 
     public String getSecretAccessKey() {
-        return getProperty(SECRET_ACCESS_KEY);
+        return getString(SECRET_ACCESS_KEY);
     }
 
     public String getKeyName() {
-        return getProperty(KEY_PAIR_NAME);
+        return getString(KEY_PAIR_NAME);
     }
 
     public String getKeyPath() {
-        return getProperty("aws.keyPath");
+        return getString("aws.keyPath");
     }
 
     public String getAim() {
-        return getProperty(AIM);
+        return getString(AIM);
     }
 
 }

@@ -1,5 +1,10 @@
 package com.ivyft.katta.lib.writer;
 
+
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
 /**
  * <pre>
  *
@@ -15,14 +20,23 @@ package com.ivyft.katta.lib.writer;
  */
 public class SerdeContext {
 
-    protected final String serdeName;
+    protected String serdeName;
 
 
-    protected final String serClass;
+    protected String serClass;
 
 
-    protected final long size;
+    protected long size;
 
+
+    public SerdeContext() {
+    }
+
+    public SerdeContext(String serdeName, String serClass) {
+        this.serdeName = serdeName;
+        this.serClass = serClass;
+        this.size = -1;
+    }
 
     public SerdeContext(String serdeName, String serClass, long size) {
         this.serdeName = serdeName;
@@ -44,6 +58,20 @@ public class SerdeContext {
     }
 
 
+
+    public void write(DataOutput out) throws IOException {
+        out.writeUTF(this.getSerdeName());
+        out.writeUTF(this.getSerClass());
+        out.writeLong(this.size);
+    }
+
+    public void readFields(DataInput in) throws IOException {
+        this.serdeName = in.readUTF();
+        this.serClass = in.readUTF();
+        this.size = in.readInt();
+    }
+
+
     @Override
     public String toString() {
         return "SerdeContext{" +
@@ -52,4 +80,5 @@ public class SerdeContext {
                 ", size=" + size +
                 '}';
     }
+
 }

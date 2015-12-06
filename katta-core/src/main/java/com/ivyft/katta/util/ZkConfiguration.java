@@ -15,7 +15,6 @@
  */
 package com.ivyft.katta.util;
 
-import java.io.File;
 import java.util.Properties;
 
 
@@ -34,7 +33,6 @@ import java.util.Properties;
  */
 public class ZkConfiguration extends KattaConfiguration {
 
-    private static final long serialVersionUID = 1L;
 
     public static final String KATTA_PROPERTY_NAME = "katta.zk.propertyName";
 
@@ -74,14 +72,6 @@ public class ZkConfiguration extends KattaConfiguration {
         super(System.getProperty(KATTA_PROPERTY_NAME, "katta.zk.properties"));
     }
 
-    public ZkConfiguration(final String path) {
-        super(path);
-    }
-
-    public ZkConfiguration(final File file) {
-        super(file);
-    }
-
     public ZkConfiguration(Properties properties, String filePath) {
         super(properties, filePath);
     }
@@ -99,9 +89,16 @@ public class ZkConfiguration extends KattaConfiguration {
     public enum PathDef {
 
         /**
-         * Master
+         * Master, Master 是临时节点 /katta/master
          */
         MASTER("current master ephemeral", true, "master"),
+
+
+        /**
+         * Masters, Masters 是固定节点, children 是 Master, OR secondary master
+         */
+        MASTERS("master OR back Master ephemeral", true, "masters"),
+
 
         /**
          * 存储Version信息
@@ -268,7 +265,7 @@ public class ZkConfiguration extends KattaConfiguration {
 
 
     public boolean isEmbedded() {
-        String property = getProperty(ZOOKEEPER_EMBEDDED);
+        String property = getString(ZOOKEEPER_EMBEDDED);
         if (property == null) {
             throw new IllegalArgumentException("Could not find property " + ZOOKEEPER_EMBEDDED);
         }
@@ -280,7 +277,7 @@ public class ZkConfiguration extends KattaConfiguration {
     }
 
     public String getZKServers() {
-        return getProperty(ZOOKEEPER_SERVERS);
+        return getString(ZOOKEEPER_SERVERS);
     }
 
     public void setZKServers(String servers) {
@@ -304,11 +301,11 @@ public class ZkConfiguration extends KattaConfiguration {
     }
 
     public String getZKDataDir() {
-        return getProperty(ZOOKEEPER_DATA_DIR);
+        return getString(ZOOKEEPER_DATA_DIR);
     }
 
     public String getZKDataLogDir() {
-        return getProperty(ZOOKEEPER_LOG_DATA_DIR);
+        return getString(ZOOKEEPER_LOG_DATA_DIR);
     }
 
     public int getMonitorInt() {

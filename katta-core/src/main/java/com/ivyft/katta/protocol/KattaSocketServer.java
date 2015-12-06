@@ -1,6 +1,7 @@
 package com.ivyft.katta.protocol;
 
 import com.ivyft.katta.util.MasterConfiguration;
+import com.ivyft.katta.util.NetworkUtils;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.I0Itec.zkclient.ZkClient;
 import org.apache.avro.ipc.NettyServer;
@@ -123,9 +124,14 @@ public class KattaSocketServer extends SpecificResponder {
 
 
         InteractionProtocol protocol = new InteractionProtocol(zkClient, zkConf);
+        MasterConfiguration masterConf = new MasterConfiguration();
+        int proxyBlckPort = masterConf.getInt(MasterConfiguration.PROXY_BLCK_PORT, 8440);
+
         KattaSocketServer server = new KattaSocketServer(KattaClientProtocol.class,
-                new MasterStorageProtocol(new MasterConfiguration(), protocol));
+                new MasterStorageProtocol(masterConf, protocol));
         server.setDaemon(true);
+        server.setHost(NetworkUtils.getLocalhostName());
+        server.setPort(proxyBlckPort);
         server.init();
     }
 }

@@ -1,6 +1,9 @@
 package com.ivyft.katta.node;
 
+import com.ivyft.katta.lib.lucene.DefaultSocketPortFactory;
+import com.ivyft.katta.lib.lucene.FreeSocketPortFactory;
 import com.ivyft.katta.lib.lucene.LuceneServer;
+import com.ivyft.katta.lib.lucene.SocketPortFactory;
 import com.ivyft.katta.util.NodeConfiguration;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -44,7 +47,13 @@ public class SerialSocketServer extends Thread  {
 
     public SerialSocketServer(LuceneServer luceneServer, NodeConfiguration nodeConfiguration) {
         this.luceneServer = luceneServer;
-        this.port = nodeConfiguration.getInt("katta.export.socket.port", 5880);
+        int port = nodeConfiguration.getInt("katta.export.socket.port", 5880);
+        SocketPortFactory factory = new FreeSocketPortFactory();
+        int step = nodeConfiguration.getInt("katta.export.socket.port.step", 1);
+
+        this.port = factory.getSocketPort(port, step);
+
+        nodeConfiguration.setProperty("katta.export.socket.port", this.port);
     }
 
     @Override

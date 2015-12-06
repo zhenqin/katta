@@ -1,7 +1,5 @@
 package com.ivyft.katta.lib.writer;
 
-import org.apache.lucene.document.Document;
-
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -10,22 +8,19 @@ import java.util.List;
  *
  * Created by IntelliJ IDEA.
  * User: zhenqin
- * Date: 15/11/28
- * Time: 12:09
+ * Date: 15/12/6
+ * Time: 14:11
  * To change this template use File | Settings | File Templates.
  *
  * </pre>
  *
  * @author zhenqin
  */
-public interface DocumentFactory<T> {
+public abstract class AbsDocumentFactory<T> implements DocumentFactory<T> {
 
 
-
-    public List<T> deserial(SerdeContext context, ByteBuffer buffer);
-
-
-
-
-    public List<Document> get(SerdeContext context, List<T> list);
+    @Override
+    public List<T> deserial(SerdeContext context, ByteBuffer buffer) {
+        return null;
+    }
 }

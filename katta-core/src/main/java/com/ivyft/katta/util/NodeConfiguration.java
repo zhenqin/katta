@@ -37,24 +37,17 @@ import java.util.Properties;
  */
 public class NodeConfiguration extends KattaConfiguration {
 
-    private final static String NODE_SERVER_PORT_START = "node.server.port.start";
-    private static final String SHARD_FOLDER = "node.shard.folder";
-    private static final String SHARD_DEPLOY_THROTTLE = "node.shard.deploy.throttle";
-    private static final String MONITOR_CLASS = "node.monitor.class";
-    private static final String SERVER_CLASS = "node.server.class";
-    private static final String RPC_HANDLER_COUNT = "node.rpc.handler-count";
+    public final static String NODE_SERVER_PORT_START = "node.server.port.start";
+    public static final String SHARD_FOLDER = "node.shard.folder";
+    public static final String SHARD_DEPLOY_THROTTLE = "node.shard.deploy.throttle";
+    public static final String MONITOR_CLASS = "node.monitor.class";
+    public static final String SERVER_CLASS = "node.server.class";
+    public static final String RPC_HANDLER_COUNT = "node.rpc.handler-count";
 
     public NodeConfiguration() {
         super("katta.node.properties");
     }
 
-    public NodeConfiguration(File file) {
-        super(file);
-    }
-
-    public NodeConfiguration(Properties properties) {
-        super(properties, "n/a");
-    }
 
     public int getStartPort() {
         return getInt(NODE_SERVER_PORT_START);
@@ -84,11 +77,11 @@ public class NodeConfiguration extends KattaConfiguration {
     }
 
     public String getMonitorClass() {
-        return getProperty(MONITOR_CLASS);
+        return getString(MONITOR_CLASS);
     }
 
     public String getServerClassName() {
-        return getProperty(SERVER_CLASS);
+        return getString(SERVER_CLASS);
     }
 
     public Class<?> getServerClass() {

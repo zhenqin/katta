@@ -15,14 +15,16 @@
  */
 package com.ivyft.katta.util;
 
+import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.Serializable;
+import java.net.URL;
+import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 /**
  *
@@ -40,24 +42,7 @@ import java.util.Set;
  *
  * @author zhenqin
  */
-public class KattaConfiguration implements Serializable {
-
-    /**
-     * 序列化
-     */
-    private static final long serialVersionUID = 1L;
-
-
-    /**
-     * 配置信息
-     */
-    protected Properties properties;
-
-
-    /**
-     * 源配置路径
-     */
-    private final String resourcePath;
+public class KattaConfiguration extends PropertiesConfiguration {
 
 
     /**
@@ -65,108 +50,73 @@ public class KattaConfiguration implements Serializable {
      */
     private final static Logger LOG = LoggerFactory.getLogger(KattaConfiguration.class);
 
-    public KattaConfiguration(String path) {
-        this.properties = PropertyUtil.loadProperties(path);
-        this.resourcePath = PropertyUtil.getPropertiesFilePath(path);
+
+
+    public KattaConfiguration() {
     }
 
+
     public KattaConfiguration(File file) {
-        this.properties = PropertyUtil.loadProperties(file);
-        this.resourcePath = file.getAbsolutePath();
+        this();
+
+        setFile(file);
+        try {
+            load(file);
+        } catch (ConfigurationException e) {
+            throw new RuntimeException("unable to load katta.properties", e);
+        }
+    }
+
+
+    public KattaConfiguration(String path) {
+        this();
+
+        URL resource = PropertyUtil.getClasspathResource(path);
+        setURL(resource);
+        try {
+            load(resource);
+        } catch (ConfigurationException e) {
+            throw new RuntimeException("unable to load katta.properties", e);
+        }
     }
 
     public KattaConfiguration(Properties properties, String filePath) {
-        this.properties = properties;
-        this.resourcePath = filePath;
+        this();
+
+        if(filePath != null) {
+            File file = new File(filePath);
+            setFile(file);
+            try {
+                load(file);
+            } catch (ConfigurationException e) {
+                throw new RuntimeException("unable to load katta.properties", e);
+            }
+        }
+
+        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+            setProperty(entry.getKey().toString(), entry.getValue().toString());
+        }
     }
 
-    public KattaConfiguration() {
-        this.properties = new Properties();
-        this.resourcePath = null;
-    }
-
-    public String getResourcePath() {
-        return this.resourcePath;
-    }
 
     public boolean containsProperty(String key) {
-        return this.properties.containsKey(key);
+        return this.containsKey(key);
     }
 
-    public String getProperty(String key) {
-        String value = this.properties.getProperty(key);
-        if (value == null) {
-            throw new IllegalStateException("no property with key '" + key + "' found");
-        }
-        return value;
-    }
 
     public String getProperty(String key, String defaultValue) {
-        String value = this.properties.getProperty(key);
+        Object value = getProperty(key);
         if (value == null) {
             value = defaultValue;
         }
-        return value;
+        return value.toString();
     }
 
-    public void setProperty(String key, String value) {
-        this.properties.setProperty(key, value);
-    }
-
-    protected void setProperty(String key, long value) {
-        this.properties.setProperty(key, Long.toString(value));
-    }
-
-    public boolean getBoolean(String key, boolean defaultValue) {
-        return Boolean.parseBoolean(getProperty(key, Boolean.toString(defaultValue)));
-    }
-
-    public int getInt(String key) {
-        return Integer.parseInt(getProperty(key));
-    }
-
-    public int getInt(String key, int defaultValue) {
-        try {
-            return Integer.parseInt(getProperty(key));
-        } catch (NumberFormatException e) {
-            LOG.warn("failed to parse value '" + getProperty(key) + "' for key '" + key + "' - returning default value '"
-                    + defaultValue + "'");
-            return defaultValue;
-        } catch (IllegalStateException e) {
-            return defaultValue;
-        }
-    }
-
-    public float getFloat(String key, float defaultValue) {
-        try {
-            return Float.parseFloat(getProperty(key));
-        } catch (NumberFormatException e) {
-            LOG.warn("failed to parse value '" + getProperty(key) + "' for key '" + key + "' - returning default value '"
-                    + defaultValue + "'");
-            return defaultValue;
-        } catch (IllegalStateException e) {
-            return defaultValue;
-        }
-    }
-
-
-
-    public double getDouble(String key, double defaultValue) {
-        try {
-            return Double.parseDouble(getProperty(key));
-        } catch (NumberFormatException e) {
-            LOG.warn("failed to parse value '" + getProperty(key) + "' for key '" + key + "' - returning default value '"
-                    + defaultValue + "'");
-            return defaultValue;
-        } catch (IllegalStateException e) {
-            return defaultValue;
-        }
-    }
 
     public File getFile(String key) {
         String property = System.getProperty(key);
         if(StringUtils.isBlank(property)) {
-            property = getProperty(key);
+            property = getString(key);
         }
         File file = new File(property);
         LOG.info(key + " dir: " + file.getAbsolutePath());
@@ -179,7 +129,7 @@ public class KattaConfiguration implements Serializable {
     }
 
     public Class<?> getClass(String key) {
-        String className = getProperty(key);
+        String className = getString(key);
         return ClassUtil.forName(className, Object.class);
     }
 
@@ -188,11 +138,4 @@ public class KattaConfiguration implements Serializable {
         return ClassUtil.forName(className, Object.class);
     }
 
-    public Set<String> getKeys() {
-        return this.properties.stringPropertyNames();
-    }
-
-    public Properties getPropertiesCopy() {
-        return new Properties(this.properties);
-    }
 }

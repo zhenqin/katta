@@ -2,6 +2,8 @@ package com.ivyft.katta.node;
 
 import com.ivyft.katta.client.KattaClient;
 import com.ivyft.katta.client.KattaLoader;
+import com.ivyft.katta.client.LuceneClient;
+import com.ivyft.katta.util.ZkConfiguration;
 import org.junit.Test;
 
 import java.util.Random;
@@ -26,9 +28,17 @@ public class KattaLoaderTest {
     }
 
 
+
+    @Test
+    public void testCreatedLoaderByMaster() throws Exception {
+        LuceneClient client = new LuceneClient(new ZkConfiguration());
+        KattaLoader<Object> test = client.getKattaLoader("test");
+    }
+
+
     @Test
     public void testSend() throws Exception {
-        KattaLoader<String> loader = new KattaClient<String>("localhost", 7690, "test");
+        KattaLoader<String> loader = new KattaClient<String>("zhenqin-pro102", 8440, "test");
         for (int i = 0; i < 10000; i++) {
             System.out.println(loader.addBean("java" + i, "hello" + new Random().nextInt()));
         }

@@ -130,11 +130,24 @@ public class PropertyUtil {
     }
 
 
-    public static String getClasspath() {
+    public static ClassLoader getClassLoader() {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         if(classLoader == null) {
             classLoader = PropertyUtil.class.getClassLoader();
         }
-        return classLoader.getResource("").getPath();
+        return classLoader;
     }
+
+
+
+    public static String getClasspath() {
+        return getClassLoader().getResource("").getPath();
+    }
+
+
+
+    public static URL getClasspathResource(String path) {
+        return getClassLoader().getResource(path);
+    }
+
 }

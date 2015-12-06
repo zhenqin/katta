@@ -101,7 +101,7 @@ public class NodeContext {
 
 
     public String getProperty(String key) {
-        return getZkConfiguration().getProperty(key);
+        return getZkConfiguration().getString(key);
     }
 
     public String getProperty(String key, String defaultValue) {

@@ -16,8 +16,10 @@
 package com.ivyft.katta.protocol;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 
+import com.google.common.collect.Sets;
 import com.ivyft.katta.master.Master;
 import com.ivyft.katta.node.Node;
 import com.ivyft.katta.node.monitor.MetricsRecord;
@@ -98,6 +100,8 @@ public class InteractionProtocol {
 
 
     /**
+     *
+     *
      */
     private SetMultimap<ConnectedComponent, String> _zkEphemeralPublishesByComponent = HashMultimap.create();
 
@@ -488,6 +492,40 @@ public class InteractionProtocol {
 
 
     /**
+     * 向 Zookeeper 的 /katta/masters/ 下写入 Master 的启动端口号信息
+     * @param master
+     */
+    public void registerMasters(final Master master) {
+        String masterName = master.getMasterName();
+        int proxyBlckPort = master.getProxyBlckPort();
+
+        String masters = this.zkConf.getZkPath(PathDef.MASTERS);
+        if(!_zkClient.exists(masters)){
+            _zkClient.createPersistent(masters);
+            LOG.info("create masters: " + masters);
+        }
+
+        String zkMasterPath = this.zkConf.getZkPath(PathDef.MASTERS, masterName + ":" + proxyBlckPort);
+
+        createEphemeral(master, zkMasterPath, masterName + ":" + proxyBlckPort);
+        LOG.info("create ephemeral path: " + zkMasterPath);
+
+    }
+
+
+    /**
+     * 获得 Master OR secondary Master 的 port
+     * @return
+     */
+    public List<String> getMasters() {
+        String zkMasterPath = this.zkConf.getZkPath(PathDef.MASTERS);
+        List<String> children = _zkClient.getChildren(zkMasterPath);
+        return Lists.newArrayList(children);
+    }
+
+
+
+    /**
      *
      * 注册当前Master到ZooKeeper.
      * @param master master
@@ -506,7 +544,11 @@ public class InteractionProtocol {
         try {
 
             //创建Master的节点. 当前是Master肯定能创建成功
-            createEphemeral(master, zkMasterPath, new MasterMetaData(masterName, System.currentTimeMillis()));
+            MasterMetaData masterMetaData = new MasterMetaData(masterName,
+                    master.getProxyBlckPort(),
+                    System.currentTimeMillis());
+
+            createEphemeral(master, zkMasterPath, masterMetaData);
 
             //走到这里说明这个Master成功的成为主节点
             isMaster = true;
@@ -730,6 +772,7 @@ public class InteractionProtocol {
 
         //放入_zkEphemeralPublishesByComponent
         _zkEphemeralPublishesByComponent.put(component, path);
+        //LOG.info(_zkEphemeralPublishesByComponent.toString());
     }
 
 

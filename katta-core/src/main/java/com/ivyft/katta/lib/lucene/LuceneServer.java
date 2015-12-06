@@ -56,7 +56,6 @@ import org.apache.solr.util.SolrPluginUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
@@ -241,8 +240,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         DEFAULT_QUERY.setRows(10);
         DEFAULT_QUERY.set(CommonParams.TIME_ALLOWED, 5 * 1000);
 
-        Properties properties = new Properties();
-        init(name, new NodeConfiguration(properties));
+        init(name, new NodeConfiguration());
         this.seacherFactory = seacherFactory;
         this.timeoutPercentage = timeoutPercentage;
     }

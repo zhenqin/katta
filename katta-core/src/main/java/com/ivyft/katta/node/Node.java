@@ -15,7 +15,9 @@
  */
 package com.ivyft.katta.node;
 
+import com.ivyft.katta.lib.lucene.FreeSocketPortFactory;
 import com.ivyft.katta.lib.lucene.ILuceneServer;
+import com.ivyft.katta.lib.lucene.SocketPortFactory;
 import com.ivyft.katta.node.monitor.IMonitor;
 import com.ivyft.katta.operation.node.NodeOperationProcessor;
 import com.ivyft.katta.operation.node.ShardRedeployOperation;
@@ -24,10 +26,10 @@ import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.NodeQueue;
 import com.ivyft.katta.protocol.metadata.NodeMetaData;
 import com.ivyft.katta.util.HadoopUtil;
+import com.ivyft.katta.util.NetworkUtils;
 import com.ivyft.katta.util.NodeConfiguration;
 import com.ivyft.katta.util.ThrottledInputStream;
 import org.I0Itec.zkclient.ExceptionUtil;
-import org.I0Itec.zkclient.NetworkUtil;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.RPC.Server;
@@ -158,14 +160,23 @@ public class Node implements ConnectedComponent {
             throw new IllegalStateException("Node cannot be started again after it was shutdown.");
         }
         LOG.info("starting rpc server with  server class = " + _contentServer.getClass().getCanonicalName());
-        String hostName = _nodeConf.getProperty("node.server.host.start", "0.0.0.0");
+        String hostName = NetworkUtils.getLocalhostName();
+        hostName = _nodeConf.getProperty("node.server.host.start", hostName);
+
+        int port = _nodeConf.getInt(NodeConfiguration.NODE_SERVER_PORT_START, _nodeConf.getStartPort());
+        SocketPortFactory factory = new FreeSocketPortFactory();
+        int step = _nodeConf.getInt(NodeConfiguration.NODE_SERVER_PORT_START + ".step", 1);
+        port = factory.getSocketPort(port, step);
 
         //启动Hadoop 的RPC
         _rpcServer = startRPCServer(
                 hostName,
-                _nodeConf.getStartPort(),
+                port,
                 _contentServer,
                 _nodeConf.getRpcHandlerCount());
+
+        //把新端口号写到 NODE
+        _nodeConf.setProperty(NodeConfiguration.NODE_SERVER_PORT_START, port);
 
         _nodeName = hostName + ":" + _rpcServer.getListenerAddress().getPort();
 

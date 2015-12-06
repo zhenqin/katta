@@ -1,5 +1,6 @@
 package com.ivyft.katta.node;
 
+import com.ivyft.katta.Katta;
 import org.junit.Test;
 
 /**
@@ -19,7 +20,7 @@ public class KattaSearchTest {
 
     @Test
     public void testSearch() throws Exception {
-
+        Katta.main(new String[]{"search","-s", "test", "*:*"});
 
     }
 }

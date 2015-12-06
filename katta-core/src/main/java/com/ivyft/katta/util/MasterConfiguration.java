@@ -22,17 +22,10 @@ public class MasterConfiguration extends KattaConfiguration {
 
     public final static String DEPLOY_POLICY = "master.deploy.policy";
     public final static String SAFE_MODE_MAX_TIME = "safemode.maxTime";
+    public final static String PROXY_BLCK_PORT = "katta.proxy.blck.port";
 
     public MasterConfiguration() {
         super("katta.master.properties");
-    }
-
-    public MasterConfiguration(File file) {
-        super(file);
-    }
-
-    public MasterConfiguration(Properties properties) {
-        super(properties, null);
     }
 
     public String getDeployPolicy() {
