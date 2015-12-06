@@ -77,8 +77,8 @@ public class DefaultDataWriter extends DataWriter {
         String indexShardPartition = "katta.index." + indexId + ".numPartitions";
 
 
-        //String dataStoragePath = conf.getString("katta.blck.data.storage.path");
-        String dataStoragePath = "/user/katta/data/";
+        String dataStoragePath = conf.getString("katta.blck.data.storage.path");
+        //String dataStoragePath = "/user/katta/data";
 
         FileSystem fileSystem = null;
         try {
