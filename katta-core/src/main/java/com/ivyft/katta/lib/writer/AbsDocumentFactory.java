@@ -1,7 +1,12 @@
 package com.ivyft.katta.lib.writer;
 
+import com.ivyft.katta.codec.Serializer;
+
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <pre>
@@ -19,8 +24,26 @@ import java.util.List;
 public abstract class AbsDocumentFactory<T> implements DocumentFactory<T> {
 
 
+    protected Map<String, Serializer> serializerMap = new HashMap<String, Serializer>(3);
+
+
     @Override
     public List<T> deserial(SerdeContext context, ByteBuffer buffer) {
-        return null;
+        Serializer<T> serializer = serializerMap.get(context.getSerClass());
+        if(serializer == null){
+            try {
+                Class<? extends Serialization> serializationClass =
+                        (Class<? extends Serialization>) Class.forName(context.getSerClass());
+
+                serializer = serializationClass.newInstance().serialize();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        T obj = serializer.deserialize(buffer.array());
+        if(obj instanceof List) {
+            return (List)obj;
+        }
+        return Arrays.asList(obj);
     }
 }
