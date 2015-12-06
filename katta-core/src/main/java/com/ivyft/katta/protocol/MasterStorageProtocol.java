@@ -4,8 +4,8 @@ import com.ivyft.katta.lib.writer.DataWriter;
 import com.ivyft.katta.util.MasterConfiguration;
 import org.apache.avro.AvroRemoteException;
 
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * <pre>
@@ -22,29 +22,58 @@ import java.util.Random;
  */
 public class MasterStorageProtocol implements KattaClientProtocol {
 
-    protected InteractionProtocol protocol;
+    protected final InteractionProtocol protocol;
 
 
-    protected MasterConfiguration conf;
-    protected DataWriter writer;
+    protected final MasterConfiguration conf;
+
+
+    protected final Map<String, DataWriter> CACHED_INDEX_DATAWRITER_MAP = new ConcurrentHashMap<String, DataWriter>(3);
+
+
+    protected final Class<? extends DataWriter> aClass;
+
+
+
+    protected final Set<String> indices = new HashSet<String>(3);
+
 
 
     public MasterStorageProtocol(MasterConfiguration conf, InteractionProtocol protocol) {
         this.conf = conf;
         this.protocol = protocol;
 
-        try {
-            Class<? extends DataWriter> aClass = (Class<? extends DataWriter>) conf.getClass("master.data.writer");
-            this.writer = aClass.newInstance();
-            this.writer.init(conf, protocol);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
+        this.aClass = (Class<? extends DataWriter>) conf.getClass("master.data.writer");
+
+        indices.addAll(protocol.getIndices());
+
     }
+
+
+
+    private DataWriter getDataWriter(String index) {
+        DataWriter dataWriter = CACHED_INDEX_DATAWRITER_MAP.get(index);
+        if(dataWriter == null) {
+            if(!indices.contains(index)) {
+                throw new IllegalArgumentException("没有索引集: " + index);
+            }
+            try {
+                dataWriter = aClass.newInstance();
+                dataWriter.init(conf, protocol, index);
+                CACHED_INDEX_DATAWRITER_MAP.put(index, dataWriter);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
+
+        return dataWriter;
+    }
+
+
 
     @Override
     public int add(Message message) throws AvroRemoteException {
-        this.writer.write(message.getRowId().toString(), message.getPayload());
+        getDataWriter(message.getIndexId().toString()).write(message.getRowId().toString(), message.getPayload());
         return new Random().nextInt(10000);
     }
 
@@ -58,10 +87,10 @@ public class MasterStorageProtocol implements KattaClientProtocol {
     }
 
     @Override
-    public Void comm() throws AvroRemoteException {
+    public Void comm(java.lang.CharSequence indexId) throws AvroRemoteException {
         System.out.println("=================out===================");
         try {
-            writer.close();
+            getDataWriter(indexId.toString()).close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -69,7 +98,7 @@ public class MasterStorageProtocol implements KattaClientProtocol {
     }
 
     @Override
-    public Void roll() throws AvroRemoteException {
+    public Void roll(java.lang.CharSequence indexId) throws AvroRemoteException {
         return null;
     }
 

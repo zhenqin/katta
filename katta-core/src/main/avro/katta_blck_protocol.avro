@@ -37,12 +37,18 @@
         },
         "comm" :{
              "doc":"提交",
-             "request": [],
+             "request": [{
+                 "name":"indexId",
+                 "type":"string"
+             }],
              "response": "null"
         },
         "roll" :{
              "doc":"提交失败回滚",
-             "request": [],
+             "request": [{
+                 "name":"indexId",
+                 "type":"string"
+             }],
              "response": "null"
         },
         "cls" :{

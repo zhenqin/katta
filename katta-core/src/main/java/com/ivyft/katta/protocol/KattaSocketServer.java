@@ -36,6 +36,10 @@ public class KattaSocketServer extends SpecificResponder {
     protected int port = 7690;
 
 
+    Server server = null;
+
+
+
     protected boolean daemon = false;
 
 
@@ -59,32 +63,27 @@ public class KattaSocketServer extends SpecificResponder {
 
 
     public void init() throws Exception {
-        Runnable avroRun = new Runnable() {
-            @Override
-            public void run() {
-                Server server = null;
-                try {
-                    server = new NettyServer(KattaSocketServer.this, new InetSocketAddress(host, port));
-                    server.start();
-                    LOG.info("start avro nio socket at: " + host + ":" + port);
-                    server.join();
-                } catch (InterruptedException e) {
-                    if(server != null) {
-                        server.close();
-                    }
-                }
+        try {
+            server = new NettyServer(KattaSocketServer.this, new InetSocketAddress(host, port));
+            server.start();
+            LOG.info("start avro nio socket at: " + host + ":" + port);
+
+            if(daemon) {
+                server.join();
             }
-        };
-
-        Thread avroThread = new Thread(avroRun);
-        avroThread.setDaemon(true);
-        avroThread.setName("katta-avro-server-thread");
-        avroThread.start();
-
-        if(daemon) {
-            avroThread.join();
+        } catch (Exception e) {
+            shutdown();
         }
     }
+
+
+
+    public void shutdown() {
+        if(server != null) {
+            server.close();
+        }
+    }
+
 
 
     public String getHost() {
@@ -125,6 +124,7 @@ public class KattaSocketServer extends SpecificResponder {
 
         InteractionProtocol protocol = new InteractionProtocol(zkClient, zkConf);
         MasterConfiguration masterConf = new MasterConfiguration();
+        masterConf.setProperty("katta.master.code", "bggtf09-ojih65f");
         int proxyBlckPort = masterConf.getInt(MasterConfiguration.PROXY_BLCK_PORT, 8440);
 
         KattaSocketServer server = new KattaSocketServer(KattaClientProtocol.class,

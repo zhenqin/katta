@@ -121,7 +121,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     @Override
     public void commit() {
         try {
-            kattaClientProtocol.comm();
+            kattaClientProtocol.comm(indexName);
         } catch (AvroRemoteException e) {
             throw new IllegalStateException(e);
         }
@@ -130,20 +130,20 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     @Override
     public void rollback() {
         try {
-            kattaClientProtocol.roll();
+            kattaClientProtocol.roll(indexName);
         } catch (AvroRemoteException e) {
             throw new IllegalStateException(e);
         }
     }
 
     @Override
-    public Void comm() throws AvroRemoteException {
-        return kattaClientProtocol.comm();
+    public Void comm(java.lang.CharSequence indexId) throws AvroRemoteException {
+        return kattaClientProtocol.comm(indexId);
     }
 
     @Override
-    public Void roll() throws AvroRemoteException {
-        return kattaClientProtocol.roll();
+    public Void roll(java.lang.CharSequence indexId) throws AvroRemoteException {
+        return kattaClientProtocol.roll(indexId);
     }
 
     @Override

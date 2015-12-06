@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
 public abstract class DataWriter {
 
 
-    public abstract void init(MasterConfiguration conf, InteractionProtocol protocol);
+    public abstract void init(MasterConfiguration conf, InteractionProtocol protocol, String indexName);
 
 
     public abstract void write(String shardId, ByteBuffer objByte);

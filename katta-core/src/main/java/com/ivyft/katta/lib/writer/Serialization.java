@@ -15,6 +15,8 @@ import java.io.IOException;
  *
  * </pre>
  *
+ * com.ivyft.katta.lib.writer.Serialization
+ *
  * @author zhenqin
  */
 public interface Serialization {

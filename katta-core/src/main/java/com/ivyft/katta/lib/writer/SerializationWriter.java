@@ -27,10 +27,10 @@ import java.util.ServiceLoader;
 public class SerializationWriter {
 
 
-    private IntLengthHeaderFile.Writer writer;
+    private final IntLengthHeaderFile.Writer writer;
 
 
-    private boolean writeSerdeContext = false;
+    private boolean notWriteSerdeContext = true;
 
 
     protected final static Logger LOG = LoggerFactory.getLogger(SerializationWriter.class);
@@ -42,13 +42,14 @@ public class SerializationWriter {
 
 
     protected void writeSerdeContext() throws IOException {
-        if(!writeSerdeContext) {
+        if(notWriteSerdeContext) {
             Iterator iterator = ServiceLoader.load(Serialization.class).iterator();
             Serialization serialization = (Serialization)iterator.next();
 
             LOG.info("Serialization class: " + serialization.getClass().getName());
 
-            SerdeContext context = new SerdeContext(serialization.getContentType(), serialization.getClass().getName());
+            SerdeContext context = new SerdeContext(serialization.getContentType(),
+                    serialization.getClass().getName());
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(outputStream);
@@ -57,12 +58,14 @@ public class SerializationWriter {
 
             writer.write(outputStream.toByteArray());
             writer.flush();
+
+            notWriteSerdeContext = false;
         }
     }
 
 
     public void write(ByteBuffer message) throws IOException {
-        if(!writeSerdeContext) {
+        if(notWriteSerdeContext) {
             writeSerdeContext();
         }
         writer.write(message);
@@ -74,5 +77,15 @@ public class SerializationWriter {
 
     public void close() throws IOException {
         writer.close();
+    }
+
+
+    public static void main(String[] args) {
+        Iterator iterator = ServiceLoader.load(Serialization.class).iterator();
+        Serialization serialization = (Serialization)iterator.next();
+
+        LOG.info("Serialization class: " + serialization.getClass().getName());
+        System.out.println(serialization.getContentType());
+
     }
 }

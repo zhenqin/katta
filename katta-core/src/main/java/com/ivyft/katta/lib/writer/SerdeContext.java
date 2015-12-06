@@ -45,6 +45,18 @@ public class SerdeContext {
     }
 
 
+    public void setSerdeName(String serdeName) {
+        this.serdeName = serdeName;
+    }
+
+    public void setSerClass(String serClass) {
+        this.serClass = serClass;
+    }
+
+    public void setSize(long size) {
+        this.size = size;
+    }
+
     public String getSerdeName() {
         return serdeName;
     }
