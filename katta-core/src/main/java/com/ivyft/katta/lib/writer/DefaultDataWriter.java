@@ -136,6 +136,9 @@ public class DefaultDataWriter extends DataWriter {
 
                     range.setStart(Integer.parseInt(shardProp.getProperty("start")));
                     range.setEnd(Integer.parseInt(shardProp.getProperty("end")));
+
+                    LOG.info(indexId + " shard " + range.getStart() + "->" + range.getEnd() + " path: " + range.getShardPath());
+
                     SHARD_RANGE_MAP.put(range, new Tuple<ShardRange, SerializationWriter>(range, null));
                 }
             }
@@ -149,13 +152,12 @@ public class DefaultDataWriter extends DataWriter {
         int hashCode = StringHash.murmurhash3_x86_32(shardId, 0, shardId.length(), 0);
         int microShard = Math.abs(hashCode % shardPartitions);
 
-        int start = (microShard / shardStep * 9) + microShard / 10;
+        int start = (microShard / shardStep * (shardStep - 1)) + microShard / shardStep;
         int end = start + shardStep;
 
 
         ShardRange shardRange = new ShardRange(start, end);
         Tuple<ShardRange, SerializationWriter> tuple = SHARD_RANGE_MAP.get(shardRange);
-
         shardRange = tuple.getKey();
         SerializationWriter writer = tuple.getValue();
 
@@ -259,7 +261,7 @@ public class DefaultDataWriter extends DataWriter {
         masterConf.setProperty("katta.master.code", "bggtf09-ojih65f");
 
         DefaultDataWriter writer = new DefaultDataWriter();
-        writer.init(masterConf, protocol, "ts");
+        writer.init(masterConf, protocol, "hello");
         writer.write("hello", ByteBuffer.wrap("javafdjasflkajsdlkfa".getBytes()));
     }
 }

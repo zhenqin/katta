@@ -156,6 +156,12 @@ public class Master implements ConnectedComponent {
 
         this.proxyBlckPort = masterConfiguration.getInt(MasterConfiguration.PROXY_BLCK_PORT, 8440);
 
+
+        String kattaMasterCode = masterName.substring(masterName.lastIndexOf("-") + 1);
+        masterConfiguration.setProperty("katta.master.code", kattaMasterCode);
+
+        LOG.info("katta.master.code: " + kattaMasterCode);
+
         //向ZooKeeper注册服务器
         protocol.registerComponent(this);
 

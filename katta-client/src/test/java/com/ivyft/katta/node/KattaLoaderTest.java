@@ -32,7 +32,12 @@ public class KattaLoaderTest {
     @Test
     public void testCreatedLoaderByMaster() throws Exception {
         LuceneClient client = new LuceneClient(new ZkConfiguration());
-        KattaLoader<Object> test = client.getKattaLoader("test");
+        KattaLoader<Object> test = client.getKattaLoader("hello");
+
+        for (int i = 0; i < 10000; i++) {
+            System.out.println(test.addBean("java" + i, "hello" + new Random().nextInt()));
+        }
+        //test.commit();
     }
 
 
