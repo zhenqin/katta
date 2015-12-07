@@ -47,13 +47,12 @@ public class SerialSocketServer extends Thread  {
 
     public SerialSocketServer(LuceneServer luceneServer, NodeConfiguration nodeConfiguration) {
         this.luceneServer = luceneServer;
-        int port = nodeConfiguration.getInt("katta.export.socket.port", 5880);
+        int port = nodeConfiguration.getInt(NodeConfiguration.EXPORT_SOCKET_PORT, 5880);
         SocketPortFactory factory = new FreeSocketPortFactory();
-        int step = nodeConfiguration.getInt("katta.export.socket.port.step", 1);
+        int step = nodeConfiguration.getInt(NodeConfiguration.EXPORT_SOCKET_PORT + ".step", 1);
 
         this.port = factory.getSocketPort(port, step);
-
-        nodeConfiguration.setProperty("katta.export.socket.port", this.port);
+        nodeConfiguration.setProperty(NodeConfiguration.EXPORT_SOCKET_PORT, this.port);
     }
 
     @Override
@@ -72,12 +71,9 @@ public class SerialSocketServer extends Thread  {
             try {
                 Socket socket = serverSocket.accept();
                 //传入Solr IndexSearcher
-                Thread thread = new Thread(new SocketExportHandler(socket,
+                luceneServer.submit(new SocketExportHandler(socket,
                         luceneServer.getShardBySolrPath(),
                         luceneServer.getSearcherHandlesByShard()));
-                thread.setDaemon(true);
-                thread.setName("socket-thread");
-                thread.start();
             } catch (Exception e) {
                 log.error(ExceptionUtils.getFullStackTrace(e));
             }

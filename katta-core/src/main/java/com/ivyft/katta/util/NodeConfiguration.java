@@ -42,6 +42,7 @@ public class NodeConfiguration extends KattaConfiguration {
     public static final String SHARD_DEPLOY_THROTTLE = "node.shard.deploy.throttle";
     public static final String MONITOR_CLASS = "node.monitor.class";
     public static final String SERVER_CLASS = "node.server.class";
+    public static final String EXPORT_SOCKET_PORT = "katta.export.socket.port";
     public static final String RPC_HANDLER_COUNT = "node.rpc.handler-count";
 
     public NodeConfiguration() {

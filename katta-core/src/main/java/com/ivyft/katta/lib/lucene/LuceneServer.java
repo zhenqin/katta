@@ -373,6 +373,12 @@ public class LuceneServer implements IContentServer, ILuceneServer {
     }
 
 
+    public Future<?> submit(Runnable runnable) {
+        return threadPool.submit(runnable);
+    }
+
+
+
     /**
      * Returns the number of documents a shard has.
      *
