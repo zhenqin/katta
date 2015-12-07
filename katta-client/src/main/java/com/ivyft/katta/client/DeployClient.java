@@ -21,6 +21,7 @@ import com.ivyft.katta.operation.master.IndexUndeployOperation;
 import com.ivyft.katta.operation.master.ShardDeployOperation;
 import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.metadata.IndexMetaData;
+import com.ivyft.katta.protocol.metadata.NewIndexMetaData;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.I0Itec.zkclient.ZkClient;
 
@@ -59,8 +60,34 @@ public class DeployClient implements IDeployClient {
         this(new InteractionProtocol(zkClient, configuration));
     }
 
+
+
     public DeployClient(InteractionProtocol interactionProtocol) {
         this.protocol = interactionProtocol;
+    }
+
+
+
+
+    /**
+     * 创建一个索引集
+     * @param indexName 索引集名称
+     * @param indexPath 索引集路径
+     * @return 返回创建索引句柄
+     *
+     */
+    @Override
+    public IIndexDeployFuture createIndex(String indexName,
+                                          String indexPath,
+                                          int shardNum,
+                                          int shardStep) {
+        //验证索引, 及名称String indexName, String path
+        //validateIndexData(indexName, collectionName, replicationLevel);
+
+        NewIndexMetaData newIndexMetaData = new NewIndexMetaData(indexName, indexPath, shardNum, shardStep);
+
+        //部署结果如何?
+        return new CreatedIndexDeployFuture(protocol, newIndexMetaData);
     }
 
 

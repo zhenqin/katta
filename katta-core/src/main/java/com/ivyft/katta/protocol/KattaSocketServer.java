@@ -30,10 +30,10 @@ public class KattaSocketServer extends SpecificResponder {
 
 
 
-    protected String host = "0.0.0.0";
+    protected String host = NetworkUtils.getLocalhostName();
 
 
-    protected int port = 7690;
+    protected int port = 8440;
 
 
     Server server = null;

@@ -100,6 +100,13 @@ public class ZkConfiguration extends KattaConfiguration {
         MASTERS("master OR back Master ephemeral", true, "masters"),
 
 
+
+        /**
+         * 新创建的 Index, New Index
+         */
+        NEW_INDICES("new index, created index path", true, "new-indices"),
+
+
         /**
          * 存储Version信息
          */

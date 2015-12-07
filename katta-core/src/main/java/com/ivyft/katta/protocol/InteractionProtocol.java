@@ -638,6 +638,61 @@ public class InteractionProtocol {
     }
 
 
+
+    public void createIndex(NewIndexMetaData newIndexMetaData) {
+        String newIndex = this.zkConf.getZkPath(PathDef.NEW_INDICES);
+        if(!_zkClient.exists(newIndex)){
+            _zkClient.createPersistent(newIndex);
+            LOG.info("create new indices path: " + newIndex);
+        }
+
+        String newIndexPath = this.zkConf.getZkPath(PathDef.NEW_INDICES, newIndexMetaData.getName());
+
+        //(master, zkMasterPath, masterName + ":" + proxyBlckPort);
+        _zkClient.createPersistent(newIndexPath, newIndexMetaData);
+        LOG.info("create path: " + newIndexPath);
+    }
+
+
+
+
+    public List<String> getNewIndexs() {
+        String newIndex = this.zkConf.getZkPath(PathDef.NEW_INDICES);
+        if(!_zkClient.exists(newIndex)){
+            _zkClient.createPersistent(newIndex);
+            LOG.info("create new indices path: " + newIndex);
+
+            return new ArrayList<String>(0);
+        }
+
+        List<String> children = _zkClient.getChildren(newIndex);
+        if(children == null) {
+            return new ArrayList<String>(0);
+        }
+        return children;
+    }
+
+
+
+    public NewIndexMetaData getNewIndex(String newIndexName) {
+        String newIndex = this.zkConf.getZkPath(PathDef.NEW_INDICES);
+        if(!_zkClient.exists(newIndex)){
+            _zkClient.createPersistent(newIndex);
+            LOG.info("create new indices path: " + newIndex);
+
+            return null;
+        }
+
+        String newIndexPath = this.zkConf.getZkPath(PathDef.NEW_INDICES, newIndexName);
+
+        if(!_zkClient.exists(newIndexPath)){
+            return null;
+        }
+        NewIndexMetaData newIndexMetaData = _zkClient.readData(newIndexPath);
+        return newIndexMetaData;
+    }
+
+
     /**
      * 部署Index， 把IndexName写入INDICES
      * @param indexMD 索引信息

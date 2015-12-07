@@ -79,6 +79,13 @@ public class Client implements ConnectedComponent {
     protected final Map<String, List<String>> indexToShards = new ConcurrentHashMap<String, List<String>>();
 
 
+
+    /**
+     * 新创建的索引集
+     */
+    protected final Set<String> newIndexBlck = new HashSet<String>();
+
+
     /**
      * 访问计数
      */
@@ -196,13 +203,31 @@ public class Client implements ConnectedComponent {
 
         //把可搜索的shard加入到搜索列表
         addOrWatchNewIndexes(indexList);
+
+
+        /*
+         * 新创建的索引
+         */
+        newIndexBlck.addAll(protocol.getNewIndexs());
+
+        protocol.registerChildListener(this, PathDef.NEW_INDICES, new IAddRemoveListener() {
+            @Override
+            public void added(String name) {
+                newIndexBlck.add(name);
+            }
+
+            @Override
+            public void removed(String name) {
+                newIndexBlck.remove(name);
+            }
+        });
     }
 
 
 
     public <T> KattaLoader<T> getKattaLoader(String index) {
         //TODO 取得 Loader 这一刻检查, 其它时候不检查
-        if(indexToShards.containsKey(index)) {
+        if(newIndexBlck.contains(index) || indexToShards.containsKey(index)) {
             List<String> masters = this.protocol.getMasters();
 
             int i = new Random().nextInt(masters.size());

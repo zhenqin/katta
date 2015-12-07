@@ -28,10 +28,7 @@ import com.ivyft.katta.node.monitor.MetricLogger;
 import com.ivyft.katta.node.monitor.MetricLogger.OutputType;
 import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.ReplicationReport;
-import com.ivyft.katta.protocol.metadata.IndexDeployError;
-import com.ivyft.katta.protocol.metadata.IndexMetaData;
-import com.ivyft.katta.protocol.metadata.NodeMetaData;
-import com.ivyft.katta.protocol.metadata.Shard;
+import com.ivyft.katta.protocol.metadata.*;
 import com.ivyft.katta.tool.SampleIndexGenerator;
 import com.ivyft.katta.util.*;
 import org.I0Itec.zkclient.ZkClient;
@@ -161,6 +158,64 @@ public class Katta {
             }
         }
         return optionMap;
+    }
+
+
+
+    /**
+     * 手动的添加一份shard
+     * @param protocol zk包装的协议
+     * @param name shardName
+     * @param path shardIndex索引地址
+     */
+    protected static void createIndex(InteractionProtocol protocol,
+                                      String name,
+                                      String path,
+                                      int shardNum,
+                                      int shardStep) {
+        if (name.trim().equals("*")) {
+            throw new IllegalArgumentException("Index with name " + name + " isn't allowed.");
+        }
+
+        //用于判断当前是否已经部署过这个shardName的shard
+        IDeployClient deployClient = new DeployClient(protocol);
+        if (deployClient.existsIndex(name)) {
+            throw new IllegalArgumentException("Index with name " + name + " already exists.");
+        }
+
+        NewIndexMetaData newIndex = protocol.getNewIndex(name);
+        if(newIndex != null) {
+            throw new IllegalArgumentException("Index: " + name + " was exists zookeeper.");
+        }
+
+        try {
+            FileSystem fs = HadoopUtil.getFileSystem();
+            Path f = new Path(path, name);
+            if(fs.exists(f)) {
+                throw new IllegalArgumentException("Index: " + name + " was exists FileSystem. path: " + f);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+
+        try {
+            long startTime = System.currentTimeMillis();
+            IIndexDeployFuture deployFuture = deployClient.createIndex(name, path, shardNum, shardStep);
+            while (true) {
+                long duration = System.currentTimeMillis() - startTime;
+                if (deployFuture.getState() == IndexState.DEPLOYED) {
+                    System.out.println("\ncreated index '" + name + "' in " + duration + " ms");
+                    break;
+                } else if (deployFuture.getState() == IndexState.ERROR) {
+                    System.err.println("\nfailed to created index '" + name + "' in " + duration + " ms");
+                    break;
+                }
+                System.out.print(".");
+                deployFuture.joinDeployment(1000);
+            }
+        } catch (final InterruptedException e) {
+            printError("interrupted wait on index deployment");
+        }
     }
 
 
@@ -744,6 +799,37 @@ public class Katta {
         }
     };
 
+    protected static Command CREATE_INDEX_COMMAND = new ProtocolCommand("createIndex",
+            "<index name> <shardNum> <shardStep> [<path to index>]", "created a index to Katta") {
+
+        private String name;
+        private String path;
+        private int shardNum;
+        private int shardStep;
+
+        @Override
+        protected void parseArguments(ZkConfiguration zkConf, String[] args, Map<String, String> optionMap) {
+            validateMinArguments(args, 4);
+            this.name = args[1];
+            this.shardNum = Integer.parseInt(args[2]);
+            this.shardStep = Integer.parseInt(args[3]);
+            if (args.length >= 5) {
+                this.path = args[4];
+            } else {
+                MasterConfiguration masterConf = new MasterConfiguration();
+                this.path = masterConf.getString("katta.data.storage.path");
+            }
+        }
+
+        @Override
+        public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) throws Exception {
+            createIndex(protocol, name, path, shardNum, shardStep);
+        }
+
+    };
+
+
+
     protected static Command ADD_INDEX_COMMAND = new ProtocolCommand("addIndex",
             "<index name> <collection name> <path to index> [<replication level>]", "Add a index to Katta") {
 
@@ -769,7 +855,6 @@ public class Katta {
         }
 
     };
-
 
 
     protected static Command ADD_SHARD_COMMAND = new ProtocolCommand("addShard",
@@ -1078,6 +1163,7 @@ public class Katta {
         COMMANDS.add(LIST_INDICES_COMMAND);
         COMMANDS.add(LIST_NODES_COMMAND);
         COMMANDS.add(LIST_ERRORS_COMMAND);
+        COMMANDS.add(CREATE_INDEX_COMMAND);
         COMMANDS.add(ADD_INDEX_COMMAND);
         COMMANDS.add(REMOVE_INDEX_COMMAND);
         COMMANDS.add(REDEPLOY_INDEX_COMMAND);

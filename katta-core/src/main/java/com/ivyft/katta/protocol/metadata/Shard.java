@@ -65,6 +65,11 @@ public class Shard  implements Serializable {
         return this.metaDataMap;
     }
 
+
+    public void put(String key, String value) {
+        this.metaDataMap.put(key, value);
+    }
+
     @Override
     public String toString() {
         return "name: " + getName() + ", path: " + getPath();

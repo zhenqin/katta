@@ -2,6 +2,7 @@ package com.ivyft.katta.protocol;
 
 import com.ivyft.katta.lib.writer.DataWriter;
 import com.ivyft.katta.util.MasterConfiguration;
+import com.ivyft.katta.util.ZkConfiguration;
 import org.apache.avro.AvroRemoteException;
 
 import java.util.*;
@@ -20,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author zhenqin
  */
-public class MasterStorageProtocol implements KattaClientProtocol {
+public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComponent {
 
     protected final InteractionProtocol protocol;
 
@@ -46,9 +47,45 @@ public class MasterStorageProtocol implements KattaClientProtocol {
         this.aClass = (Class<? extends DataWriter>) conf.getClass("master.data.writer");
 
         indices.addAll(protocol.getIndices());
+        indices.addAll(protocol.getNewIndexs());
 
+        reconnect();
     }
 
+
+
+    @Override
+    public void reconnect() {
+        protocol.registerChildListener(this, ZkConfiguration.PathDef.NEW_INDICES, new IAddRemoveListener() {
+            @Override
+            public void added(String name) {
+                indices.add(name);
+            }
+
+            @Override
+            public void removed(String name) {
+                indices.remove(name);
+            }
+        });
+
+
+        protocol.registerChildListener(this, ZkConfiguration.PathDef.INDICES_METADATA, new IAddRemoveListener() {
+            @Override
+            public void added(String name) {
+                indices.add(name);
+            }
+
+            @Override
+            public void removed(String name) {
+                indices.remove(name);
+            }
+        });
+    }
+
+    @Override
+    public void disconnect() {
+        protocol.unregisterComponent(this);
+    }
 
 
     private DataWriter getDataWriter(String index) {
@@ -104,6 +141,8 @@ public class MasterStorageProtocol implements KattaClientProtocol {
 
     @Override
     public Void cls() throws AvroRemoteException {
+        disconnect();
         return null;
     }
+
 }

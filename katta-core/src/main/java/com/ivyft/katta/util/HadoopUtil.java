@@ -47,11 +47,16 @@ public class HadoopUtil {
 
 
 
-    public static FileSystem getFileSystem(Path path) throws IOException {
+    public static FileSystem getFileSystem() throws IOException {
         synchronized (FileSystem.class) {
             // had once a ConcurrentModificationException
-            return FileSystem.get(path.toUri(), hadoopConf);
+            return FileSystem.get(hadoopConf);
         }
+    }
+
+
+    public static FileSystem getFileSystem(Path path) throws IOException {
+        return getFileSystem(path.toUri());
     }
 
 

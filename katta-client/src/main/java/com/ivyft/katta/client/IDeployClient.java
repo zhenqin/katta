@@ -39,6 +39,21 @@ import java.util.List;
  */
 public interface IDeployClient {
 
+
+    /**
+     * 创建一个索引集
+     * @param indexName 索引集名称
+     * @param indexPath 索引集路径
+     * @return 返回创建索引句柄
+     *
+     */
+    public IIndexDeployFuture createIndex(String indexName,
+                                          String indexPath,
+                                          int shardNum,
+                                          int shardStep);
+
+
+
     /**
      * 部署一份索引.
      * @param name 索引名称

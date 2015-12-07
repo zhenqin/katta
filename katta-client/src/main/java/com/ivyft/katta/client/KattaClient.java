@@ -38,7 +38,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
 
     private String host = "localhost";
 
-    private int port = 7690;
+    private int port = 8440;
 
 
     private final KattaClientProtocol kattaClientProtocol;
@@ -59,7 +59,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
 
 
     public KattaClient(String indexName) {
-        this("localhost", 7690, indexName);
+        this("localhost", 8440, indexName);
     }
 
 

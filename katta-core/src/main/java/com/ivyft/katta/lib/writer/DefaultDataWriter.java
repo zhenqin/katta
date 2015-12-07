@@ -1,22 +1,15 @@
 package com.ivyft.katta.lib.writer;
 
-import com.ivyft.katta.protocol.IntLengthHeaderFile;
-import com.ivyft.katta.protocol.InteractionProtocol;
-import com.ivyft.katta.util.HadoopUtil;
-import com.ivyft.katta.util.MasterConfiguration;
-import com.ivyft.katta.util.StringHash;
-import org.apache.commons.io.IOUtils;
+import com.ivyft.katta.protocol.*;
+import com.ivyft.katta.util.*;
+import org.I0Itec.zkclient.ZkClient;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.*;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +31,7 @@ import java.util.Properties;
 public class DefaultDataWriter extends DataWriter {
 
 
-    private int shardNum = 3;
+    private int shardNum;
 
 
     private int shardStep;
@@ -58,7 +51,8 @@ public class DefaultDataWriter extends DataWriter {
 
 
 
-    protected Map<Integer, SerializationWriter> writerMap = new HashMap<Integer, SerializationWriter>();
+    protected Map<ShardRange, Tuple<ShardRange, SerializationWriter>>
+            SHARD_RANGE_MAP = new HashMap<ShardRange, Tuple<ShardRange, SerializationWriter>>();
 
 
     protected static Logger LOG = LoggerFactory.getLogger(DefaultDataWriter.class);
@@ -77,10 +71,10 @@ public class DefaultDataWriter extends DataWriter {
         String indexShardPartition = "katta.index." + indexId + ".numPartitions";
 
 
-        String dataStoragePath = conf.getString("katta.blck.data.storage.path");
+        String dataStoragePath = conf.getString("katta.data.storage.path");
         //String dataStoragePath = "/user/katta/data";
 
-        FileSystem fileSystem = null;
+        final FileSystem fileSystem;
         try {
             this.indexDataStoragePath = new Path(dataStoragePath + "/" + indexId);
             //fileSystem = HadoopUtil.getFileSystem(new URI("file:///Users"));
@@ -88,40 +82,61 @@ public class DefaultDataWriter extends DataWriter {
             fileSystem.mkdirs(indexDataStoragePath);
             LOG.info(indexId + " index data storage path: " + indexDataStoragePath);
 
-
             Path indexMetaPath = new Path(this.indexDataStoragePath, indexId + ".meta.properties");
-            if (fileSystem.exists(indexMetaPath) && fileSystem.isFile(indexMetaPath)) {
-                //旧索引
-                Properties metaProp = new Properties();
-                FSDataInputStream inputStream = fileSystem.open(indexMetaPath);
-                try {
-                    metaProp.load(inputStream);
-                } finally {
-                    inputStream.close();
+
+            //旧索引
+            Properties metaProp = new Properties();
+            FSDataInputStream inputStream = fileSystem.open(indexMetaPath);
+            try {
+                metaProp.load(inputStream);
+            } finally {
+                inputStream.close();
+            }
+
+            this.shardNum = Integer.parseInt(metaProp.getProperty(indexShardNum));
+            this.shardStep = Integer.parseInt(metaProp.getProperty(indexShardStep));
+
+            this.shardPartitions = Integer.parseInt(metaProp.getProperty(indexShardPartition));
+
+            if(shardNum < 2) {
+                throw new IllegalArgumentException("shardNum 必须大于1. ");
+            }
+
+            if(shardStep < 1) {
+                throw new IllegalArgumentException("shardStep 必须大于或等于1. ");
+            }
+
+            FileStatus[] fileStatuses = fileSystem.listStatus(indexMetaPath.getParent(), new PathFilter() {
+                @Override
+                public boolean accept(Path path) {
+                    try {
+                        return fileSystem.isDirectory(path);
+                    } catch (IOException e) {
+                        return false;
+                    }
                 }
+            });
 
-                this.shardNum = Integer.parseInt(metaProp.getProperty(indexShardNum));
-                this.shardStep = Integer.parseInt(metaProp.getProperty(indexShardStep));
+            if(fileStatuses != null) {
+                for (FileStatus statuse : fileStatuses) {
+                    ShardRange range = new ShardRange(statuse.getPath().getName(), statuse.getPath().toString());
+                    //读取 meta 信息
 
-                this.shardPartitions = Integer.parseInt(metaProp.getProperty(indexShardPartition));
-            } else {
-                //新创建的索引
-                this.shardNum = conf.getInt(indexShardNum, 3);
-                this.shardStep = conf.getInt(indexShardStep, 5);
+                    Properties shardProp = new Properties();
 
-                this.shardPartitions = shardNum * shardStep;
+                    String shardMetaFileName = indexId + ".shard." + statuse.getPath().getName() + ".meta.properties";
+                    Path shardPropPath = new Path(statuse.getPath(), "data/" + shardMetaFileName);
 
-                Properties metaProp = new Properties();
-                metaProp.setProperty(indexShardStep, String.valueOf(this.shardStep));
-                metaProp.setProperty(indexShardNum, String.valueOf(this.shardNum));
-                metaProp.setProperty(indexShardPartition, String.valueOf(this.shardPartitions));
+                    FSDataInputStream open = fileSystem.open(shardPropPath);
+                    try {
+                        shardProp.load(open);
+                    } finally {
+                        open.close();
+                    }
 
-                FSDataOutputStream outputStream = fileSystem.create(indexMetaPath, true);
-                try {
-                    metaProp.store(outputStream, "UTF-8");
-                    outputStream.flush();
-                } finally {
-                    outputStream.close();
+                    range.setStart(Integer.parseInt(shardProp.getProperty("start")));
+                    range.setEnd(Integer.parseInt(shardProp.getProperty("end")));
+                    SHARD_RANGE_MAP.put(range, new Tuple<ShardRange, SerializationWriter>(range, null));
                 }
             }
         } catch (Exception e) {
@@ -132,15 +147,24 @@ public class DefaultDataWriter extends DataWriter {
 
     public SerializationWriter get(String shardId) {
         int hashCode = StringHash.murmurhash3_x86_32(shardId, 0, shardId.length(), 0);
-        int microShard = Math.abs(hashCode % shardNum);
-        SerializationWriter writer = writerMap.get(microShard);
-        //IntLengthHeaderFile.Writer writer = writerMap.get(microShard);
+        int microShard = Math.abs(hashCode % shardPartitions);
+
+        int start = (microShard / shardStep * 9) + microShard / 10;
+        int end = start + shardStep;
+
+
+        ShardRange shardRange = new ShardRange(start, end);
+        Tuple<ShardRange, SerializationWriter> tuple = SHARD_RANGE_MAP.get(shardRange);
+
+        shardRange = tuple.getKey();
+        SerializationWriter writer = tuple.getValue();
+
+
         if(writer == null) {
             try {
-                Path parent = new Path(this.indexDataStoragePath, String.valueOf(microShard));
+                Path shardDataPath = new Path(shardRange.getShardPath(), "data");
                 //FileSystem fileSystem = HadoopUtil.getFileSystem(new URI("file:///Users"));
-                FileSystem fileSystem = HadoopUtil.getFileSystem(parent);
-                fileSystem.mkdirs(parent);
+                FileSystem fileSystem = HadoopUtil.getFileSystem(shardDataPath);
 
                 String fileName;
                 DateTime now = DateTime.now();
@@ -150,22 +174,24 @@ public class DefaultDataWriter extends DataWriter {
                     fileName = "unknown-" + now.toString("yyMMddHHmmss") + "-data.dat";
                 }
 
+                Path path = new Path(shardDataPath, fileName);
                 IntLengthHeaderFile.Writer fileWriter = new IntLengthHeaderFile.Writer(
-                        fileSystem, new Path(parent, fileName));
+                        fileSystem, path);
 
-                String info = "start=" + (microShard * shardStep) + "\n" +
-                        "end=" + (microShard * shardStep + shardStep);
-
-                String shardMetaFileName = indexName + ".shard." + microShard + ".meta.properties";
-                FSDataOutputStream out = fileSystem.create(new Path(parent, shardMetaFileName), true);
+                /*
+                String shardMetaFileName = indexName + ".shard." + shardRange.getShardName() + ".meta.properties";
+                FSDataOutputStream out = fileSystem.create(new Path(shardDataPath, shardMetaFileName), true);
                 IOUtils.write(info, out);
                 IOUtils.closeQuietly(out);
-
+                */
                 writer = new SerializationWriter(fileWriter);
-                writerMap.put(microShard, writer);
+
+                LOG.info("new file: " + path);
+                tuple.setValue(writer);
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
         }
         return writer;
     }
@@ -174,20 +200,22 @@ public class DefaultDataWriter extends DataWriter {
 
     @Override
     public void write(String shardId, ByteBuffer objByte) {
-        //Object deserialize = serializer.deserialize(objByte.array());
-        System.out.println(shardId);
         try {
-            get(shardId).write(objByte);
-        } catch (IOException e) {
-            e.printStackTrace();
+            SerializationWriter writer = get(shardId);
+            writer.write(objByte);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
         }
     }
 
     @Override
     public void close() {
-        for (SerializationWriter writer : writerMap.values()) {
+        for (Map.Entry<ShardRange, Tuple<ShardRange, SerializationWriter>> entry : SHARD_RANGE_MAP.entrySet()) {
             try {
-                writer.close();
+                SerializationWriter value = entry.getValue().getValue();
+                if(value != null) {
+                    value.close();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -217,5 +245,21 @@ public class DefaultDataWriter extends DataWriter {
 
     public String getFilePrefix() {
         return filePrefix;
+    }
+
+
+    public static void main(String[] args) throws Exception {
+        ZkConfiguration zkConf = new ZkConfiguration();
+
+        ZkClient zkClient = new ZkClient(zkConf.getZKServers());
+
+
+        InteractionProtocol protocol = new InteractionProtocol(zkClient, zkConf);
+        MasterConfiguration masterConf = new MasterConfiguration();
+        masterConf.setProperty("katta.master.code", "bggtf09-ojih65f");
+
+        DefaultDataWriter writer = new DefaultDataWriter();
+        writer.init(masterConf, protocol, "ts");
+        writer.write("hello", ByteBuffer.wrap("javafdjasflkajsdlkfa".getBytes()));
     }
 }

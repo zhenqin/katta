@@ -38,7 +38,7 @@ public class KattaLoaderTest {
 
     @Test
     public void testSend() throws Exception {
-        KattaLoader<String> loader = new KattaClient<String>("zhenqin-pro102", 8440, "test");
+        KattaLoader<String> loader = new KattaClient<String>("zhenqin-pro102", 8440, "ts");
         for (int i = 0; i < 10000; i++) {
             System.out.println(loader.addBean("java" + i, "hello" + new Random().nextInt()));
         }
