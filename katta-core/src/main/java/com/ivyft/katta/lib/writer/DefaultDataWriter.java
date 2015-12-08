@@ -152,7 +152,12 @@ public class DefaultDataWriter extends DataWriter {
         int hashCode = StringHash.murmurhash3_x86_32(shardId, 0, shardId.length(), 0);
         int microShard = Math.abs(hashCode % shardPartitions);
 
-        int start = (microShard / shardStep * (shardStep - 1)) + microShard / shardStep;
+        //int start = (microShard / shardStep * (shardStep - 1)) + microShard / shardStep;
+        /*
+         * 对于任意的 microShard, 该算法计算数据能落入到哪个区间
+         */
+        int start = microShard - microShard % shardStep;
+
         int end = start + shardStep;
 
 
