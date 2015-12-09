@@ -33,6 +33,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -760,6 +761,10 @@ public class Katta {
                 this.path = masterConf.getString("katta.data.storage.path");
             }
 
+            if(StringUtils.isBlank(name) || shardNum < 2 || shardStep < 1) {
+                throw new IllegalArgumentException("(-i or --index) and (-n or --shardNum) and (-t or --shardStep) must not be null.");
+            }
+
             execute(new ZkConfiguration());
         }
 
@@ -801,6 +806,11 @@ public class Katta {
                 this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
             }
 
+
+            if(StringUtils.isBlank(name) || StringUtils.isBlank(path) || StringUtils.isBlank(collectionName)) {
+                throw new IllegalArgumentException("(-i or --index) and (-p or --path) and (-c or --core) must not be null.");
+            }
+
             execute(new ZkConfiguration());
         }
     };
@@ -832,6 +842,9 @@ public class Katta {
             this.indexName = cl.getOptionValue("i");
             this.path = cl.getOptionValue("p");
 
+            if(StringUtils.isBlank(indexName) || StringUtils.isBlank(path)) {
+                throw new IllegalArgumentException("(-i or --index) and (-p or --path) must not be null.");
+            }
             execute(new ZkConfiguration());
         }
     };
@@ -860,6 +873,9 @@ public class Katta {
         public void process(CommandLine cl) throws Exception {
             indexName = cl.getOptionValue("i");
 
+            if(StringUtils.isBlank(indexName)) {
+                throw new IllegalArgumentException("-i or --index must not be null.");
+            }
             execute(new ZkConfiguration());
         }
     };
@@ -894,6 +910,9 @@ public class Katta {
         public void process(CommandLine cl) throws Exception {
             indexName = cl.getOptionValue("i");
 
+            if(StringUtils.isBlank(indexName)) {
+                throw new IllegalArgumentException("-i or --index must not be null.");
+            }
             execute(new ZkConfiguration());
         }
     };
@@ -942,7 +961,11 @@ public class Katta {
 
         @Override
         public void process(CommandLine cl) throws Exception {
-            indexName = cl.getOptionValue("n");
+            indexName = cl.getOptionValue("i");
+
+            if(StringUtils.isBlank(indexName)) {
+                throw new IllegalArgumentException("-i or --index must not be null.");
+            }
 
             execute(new ZkConfiguration());
         }
@@ -1015,6 +1038,10 @@ public class Katta {
             query = cl.getOptionValue("q");
             if (cl.hasOption("c")) {
                 count = Integer.parseInt(cl.getOptionValue("c"));
+            }
+
+            if(indexNames == null || indexNames.length == 0 || StringUtils.isBlank(query)) {
+                throw new IllegalArgumentException("-i or --index and q or query must not be null.");
             }
 
             execute(new ZkConfiguration());
