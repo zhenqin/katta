@@ -6,6 +6,7 @@ import org.apache.avro.ipc.specific.SpecificResponder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 /**
@@ -58,9 +59,10 @@ public class KattaYarnAvroServer extends SpecificResponder {
 
     public void serve() {
         try {
-            server = new NettyServer(KattaYarnAvroServer.this, new InetSocketAddress(host, port));
+            InetAddress inetAddress = InetAddress.getByName(host);
+            server = new NettyServer(KattaYarnAvroServer.this, new InetSocketAddress(inetAddress, port));
             server.start();
-            LOG.info("start avro nio socket at: " + host + ":" + port);
+            LOG.info("start avro nio socket at: " + inetAddress + ":" + port);
             server.join();
         } catch (Exception e) {
             LOG.warn("", e);

@@ -20,7 +20,7 @@ import org.junit.Test;
 public class KattaOnYarnTest {
 
 
-    String appId = "application_1449022548197_0023";
+    String appId = "application_1449641118529_0001";
 
 
 

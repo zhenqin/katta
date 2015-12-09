@@ -136,7 +136,7 @@ public class KattaOnYarn {
             
             LOG.info("application report for "+_appId+" :"+host+":"+port);
             LOG.info("Attaching to "+host+":"+port+" to talk to app master "+_appId);
-            _client = new KattaYarnClient(host, port);
+            _client = new KattaYarnClient("localhost", port);
         }
         return _client;
     }
@@ -247,30 +247,6 @@ public class KattaOnYarn {
         Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./conf");
         Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./AppMaster.jar");
 
-        //Make sure that AppMaster has access to all YARN JARs
-        List<String> yarn_classpath_cmd = java.util.Arrays.asList("yarn", "classpath");
-        ProcessBuilder pb = new ProcessBuilder(yarn_classpath_cmd);
-        LOG.info("YARN CLASSPATH COMMAND = [" + yarn_classpath_cmd + "]");
-        pb.environment().putAll(System.getenv());
-        Process proc = pb.start();
-        Util.redirectStreamAsync(proc.getErrorStream(), System.err);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream(), "UTF-8"));
-        String line = "";
-        String yarn_class_path = conf.getProperty("katta.yarn.yarn_classpath", "");
-        if (StringUtils.isNotBlank(yarn_class_path)){
-            StringBuilder yarn_class_path_builder = new StringBuilder();
-            while ((line = reader.readLine() ) != null){            
-                yarn_class_path_builder.append(line);             
-            }
-            yarn_class_path = yarn_class_path_builder.toString();
-        }
-        LOG.info("YARN CLASSPATH = [" + yarn_class_path + "]");
-        proc.waitFor();
-        reader.close();
-
-        Apps.addToEnvironment(env, Environment.CLASSPATH.name(), yarn_class_path);
-
-
         Util.getKattaHomeInZip(fs, zip, kattaVersion.getNumber());
         Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./katta/" + "/*");
         Apps.addToEnvironment(env, Environment.CLASSPATH.name(), "./katta/" + "/lib/*");
@@ -291,9 +267,11 @@ public class KattaOnYarn {
 
         // Set the necessary command to execute the application master
         Vector<String> vargs = new Vector<String>();
-        vargs.add("$JAVA_HOME/bin/java");
-
-        vargs.add("-Dlogfile.name=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/katta-on-yarn.log");
+        vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
+        //vargs.add("-Dkatta.node.hostname.overwritten=$hostname");
+        vargs.add("-Dkatta.root.logger=INFO,DRFA");
+        vargs.add("-Dkatta.log.dir=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
+        vargs.add("-Dkatta.log.file=katta-on-yarn.log");
         //vargs.add("-verbose:class");
         vargs.add(com.ivyft.katta.yarn.KattaAppMaster.class.getName());
         vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/stdout");
@@ -418,7 +396,7 @@ public class KattaOnYarn {
     public static void main(String[] args) throws Exception {
         KattaOnYarn.launchApplication("KattaOnYarn",
                 "default",
-                1024,
+                512,
                 new KattaConfiguration("katta.node.properties"),
                 null);
     }

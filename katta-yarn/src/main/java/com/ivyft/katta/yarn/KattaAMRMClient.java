@@ -106,7 +106,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
 
     public synchronized void setUp() {
-        Resource resource = Resource.newInstance(1024, 1);
+        Resource resource = Resource.newInstance(512, 1);
         ContainerRequest req = new ContainerRequest(
                 resource,
                 null, // String[] nodes,

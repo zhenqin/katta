@@ -161,7 +161,6 @@ public class Node implements ConnectedComponent {
         }
         LOG.info("starting rpc server with  server class = " + _contentServer.getClass().getCanonicalName());
         String hostName = NetworkUtils.getLocalhostName();
-        hostName = _nodeConf.getProperty("node.server.host.start", hostName);
 
         int port = _nodeConf.getInt(NodeConfiguration.NODE_SERVER_PORT_START, _nodeConf.getStartPort());
         SocketPortFactory factory = new FreeSocketPortFactory();

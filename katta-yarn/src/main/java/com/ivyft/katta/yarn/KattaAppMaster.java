@@ -23,7 +23,10 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import com.ivyft.katta.lib.lucene.FreeSocketPortFactory;
+import com.ivyft.katta.lib.lucene.SocketPortFactory;
 import com.ivyft.katta.util.KattaConfiguration;
+import com.ivyft.katta.util.NetworkUtils;
 import com.ivyft.katta.yarn.protocol.KattaYarnAvroServer;
 import com.ivyft.katta.yarn.protocol.KattaYarnMasterProtocol;
 import com.ivyft.katta.yarn.protocol.KattaYarnProtocol;
@@ -33,7 +36,6 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.service.Service;
-import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
@@ -85,12 +87,20 @@ public class KattaAppMaster implements Runnable {
         this.protocol = protocol;
 
         this.server = new KattaYarnAvroServer(KattaYarnProtocol.class, protocol);
-        final int port = conf.getInt(KattaOnYarn.MASTER_AVRO_PORT, 4880);
+        int port = conf.getInt(KattaOnYarn.MASTER_AVRO_PORT, 4880);
+
+        SocketPortFactory portFactory = new FreeSocketPortFactory();
+        port = portFactory.getSocketPort(port, conf.getInt(KattaOnYarn.MASTER_AVRO_PORT + ".step", 1));
+        this.server.setHost(NetworkUtils.getLocalhostName());
+        //this.server.setHost("zhenqin-pro102");
         this.server.setPort(port);
 
+        LOG.info("katta application master start at: " + getAvroServerHost() + ":" + getAvroServerPort());
+
+        //把使用的端口重新设置, 这样是防止在同一个 Node 上运行多个 AppMaster
+        conf.setProperty(KattaOnYarn.MASTER_AVRO_PORT, port);
+
         protocol.setAppMaster(this);
-
-
         try {
             LOG.info("launch katta master");
             //protocol.startMaster(1);
@@ -228,6 +238,17 @@ public class KattaAppMaster implements Runnable {
         return thread;
     }
 
+
+    public String getAvroServerHost() {
+        return this.server.getHost();
+    }
+
+    public int getAvroServerPort() {
+        return this.server.getPort();
+    }
+
+
+
     public static void main(String[] args) throws Exception {
         LOG.info("Starting the AM!!!!");
 
@@ -252,13 +273,9 @@ public class KattaAppMaster implements Runnable {
             throw new Exception("appAttemptID is not specified for storm master");
         }
 
-        KattaConfiguration conf = new KattaConfiguration("katta.node.properties");//Config.readStormConfig(null);
-        //Util.rmNulls(storm_conf);
+        KattaConfiguration conf = new KattaConfiguration("katta.node.properties");
 
         YarnConfiguration hadoopConf = new YarnConfiguration();
-
-        final String host = InetAddress.getLocalHost().getHostName();
-        //storm_conf.put("nimbus.host", host);
 
         KattaAMRMClient rmClient =
                 new KattaAMRMClient(appAttemptID, conf, hadoopConf);
@@ -266,13 +283,14 @@ public class KattaAppMaster implements Runnable {
 
         KattaAppMaster server = new KattaAppMaster(conf, rmClient);
         try {
-            final int port = conf.getInt(KattaOnYarn.MASTER_AVRO_PORT, 4880);
-            final String target = host + ":" + port;
-            InetSocketAddress addr = NetUtils.createSocketAddr(target);
+            final String host = server.getAvroServerHost();
+            final int port = server.getAvroServerPort();
+            InetAddress inetAddress = InetAddress.getByName(host);
 
+            LOG.info("registration rm, app host name: " + inetAddress + ":" + port);
 
             RegisterApplicationMasterResponse resp =
-                    rmClient.registerApplicationMaster(addr.getHostName(), port, null);
+                    rmClient.registerApplicationMaster(host, port, null);
             LOG.info("Got a registration response " + resp);
             LOG.info("Max Capability " + resp.getMaximumResourceCapability());
 
@@ -287,7 +305,7 @@ public class KattaAppMaster implements Runnable {
             LOG.info("StormAMRMClient::unregisterApplicationMaster");
             rmClient.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED,
                     "AllDone", null);
-        } catch (Exception e){
+        } catch (Exception e) {
             LOG.warn(ExceptionUtils.getFullStackTrace(e));
         } finally {
             server.stop();

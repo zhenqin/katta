@@ -29,13 +29,13 @@
 
     <property>
         <name>yarn.resourcemanager.webapp.address</name>
-        <value>zhenqin-pro102:8088</value>
+        <value>localhost:8088</value>
         <description>新框架中各个 task 的资源调度及运行状况通过通过该 web 界面访问</description>
     </property>
 
     <property>
         <name>yarn.resourcemanager.hostname</name>
-        <value>zhenqin-pro102</value>
+        <value>localhost</value>
     </property>
 
 

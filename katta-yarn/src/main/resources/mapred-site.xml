@@ -24,18 +24,6 @@
     </property> 
 
     <property>
-        <name>mapred.system.dir</name>
-        <value>file:/disk2/disk/data/hadoop/mapred/system</value>
-        <final>true</final>
-    </property> 
-
-    <property>
-        <name>mapred.local.dir</name>
-        <value>file:/disk2/disk/data/hadoop/mapred/local</value>
-        <final>true</final>
-    </property>
-
-    <property>
         <name>mapreduce.jobhistory.address</name>
         <value>zhenqin-pro102:10020</value>
     </property>
