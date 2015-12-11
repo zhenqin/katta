@@ -376,7 +376,7 @@ public class KattaOnYarn {
                 
         //throw new IOException("Fail to locat a JAR for class: "+my_class.getName());
     }
-Ka
+
     public static KattaOnYarn launchApplication(String appName,
                                                 String queue,
                                                 int amMB,
