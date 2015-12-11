@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 
 /**
@@ -64,8 +65,38 @@ public class KattaYarnClient implements KattaYarnProtocol {
 
 
     @Override
-    public Void startMaster(int num) throws AvroRemoteException {
-        return this.kattaYarnProtocol.startMaster(num);
+    public Void startMaster(int memory, int cores, java.lang.CharSequence kattaZip) throws AvroRemoteException {
+        return this.kattaYarnProtocol.startMaster(memory, cores, kattaZip);
+    }
+
+    @Override
+    public Void registerMaster(KattaAndNode kattaNode) throws AvroRemoteException {
+        return null;
+    }
+
+    @Override
+    public List<KattaAndNode> listMasters() throws AvroRemoteException {
+        return null;
+    }
+
+    @Override
+    public Void unregisterMaster(KattaAndNode kattaNode) throws AvroRemoteException {
+        return null;
+    }
+
+    @Override
+    public Void registerNode(KattaAndNode kattaNode) throws AvroRemoteException {
+        return null;
+    }
+
+    @Override
+    public Void unregisterNode(KattaAndNode kattaNode) throws AvroRemoteException {
+        return null;
+    }
+
+    @Override
+    public List<KattaAndNode> listNodes() throws AvroRemoteException {
+        return null;
     }
 
     @Override
@@ -74,13 +105,13 @@ public class KattaYarnClient implements KattaYarnProtocol {
     }
 
     @Override
-    public Void startNode(int num) throws AvroRemoteException {
-        return this.kattaYarnProtocol.startNode(num);
+    public Void stopNode() throws AvroRemoteException {
+        return this.kattaYarnProtocol.stopNode();
     }
 
     @Override
-    public Void addNode(int num) throws AvroRemoteException {
-        return this.kattaYarnProtocol.addNode(num);
+    public Void addNode(int memory, int cores, java.lang.CharSequence kattaZip) throws AvroRemoteException {
+        return this.kattaYarnProtocol.addNode(memory, cores, kattaZip);
     }
 
     @Override

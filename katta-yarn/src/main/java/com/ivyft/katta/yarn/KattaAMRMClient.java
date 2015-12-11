@@ -2,50 +2,33 @@
 
 package com.ivyft.katta.yarn;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 import com.ivyft.katta.protocol.metadata.Version;
-import com.ivyft.katta.util.CollectionUtil;
 import com.ivyft.katta.util.KattaConfiguration;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.mapreduce.security.TokenCache;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.security.Credentials;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
-import org.apache.hadoop.yarn.api.records.Container;
-import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
-import org.apache.hadoop.yarn.api.records.LocalResource;
-import org.apache.hadoop.yarn.api.records.LocalResourceType;
-import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.api.records.Priority;
-import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.*;
+import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
+import org.apache.hadoop.yarn.client.api.NMClient;
 import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.Records;
-
-import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
-import org.apache.hadoop.yarn.client.api.NMClient;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -105,8 +88,8 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
 
 
-    public synchronized void setUp() {
-        Resource resource = Resource.newInstance(512, 1);
+    public synchronized void newContainer(int memory, int cores) {
+        Resource resource = Resource.newInstance(memory, cores);
         ContainerRequest req = new ContainerRequest(
                 resource,
                 null, // String[] nodes,
@@ -153,15 +136,15 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
     }
 
 
-    public void startMaster() {
+    public void startMaster(int memory, int cores, String kattaZip) {
         try {
             //申请 Container 内存
-            this.setUp();
+            this.newContainer(memory, cores);
 
             currentContainer = CONTAINER_QUEUE.take();
             LOCK.lock();
             try {
-                launchKattaMasterOnContainer(currentContainer);
+                launchKattaMasterOnContainer(currentContainer, kattaZip);
             } finally {
                 currentContainer = null;
                 LOCK.unlock();
@@ -175,10 +158,10 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
 
 
-    public void startNode() {
+    public void startNode(int memory, int cores) {
         try {
             //申请 Container 内存
-            this.setUp();
+            this.newContainer(memory, cores);
 
             currentContainer = CONTAINER_QUEUE.take();
             LOCK.lock();
@@ -210,7 +193,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
 
 
-    public void launchKattaMasterOnContainer(Container container)
+    public void launchKattaMasterOnContainer(Container container, String katta_zip_path)
             throws IOException {
         //Path[] paths = null;
         // create a container launch context
@@ -231,7 +214,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
         // CLC: local resources includes katta, conf
         Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-        String katta_zip_path = conf.getProperty("katta.zip.path", "");
+        //String katta_zip_path = conf.getProperty("katta.zip.path", "");
 
         Version kattaVersion = Version.readFromJar();
         LOG.info(kattaVersion.getRevision());
@@ -386,7 +369,8 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         launchContext.setLocalResources(localResources);
 
         // CLC: command
-        List<String> masterArgs = Util.buildNodeCommands(this.conf);
+        String solrHome = conf.getProperty("solr.solr.home", "./katta/data/solr");
+        List<String> masterArgs = Util.buildNodeCommands(this.conf, solrHome);
 
         LOG.info("node luanch: " + StringUtils.join(masterArgs, "  "));
 

@@ -721,63 +721,13 @@ public class Katta {
     };
 
 
-
-    protected static Command CREATE_INDEX_COMMAND = new ProtocolCommand("createIndex",
-            "created a index to Katta") {
-
-        private String name;
-        private String path;
-        private int shardNum;
-        private int shardStep;
-
-
-
-        @Override
-        public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) throws Exception {
-            createIndex(protocol, name, path, shardNum, shardStep);
-        }
-
-        @Override
-        public Options getOpts() {
-            //"<> <collection name> <path to index> [<>]",
-            Options options = new Options();
-            options.addOption("i", "index", true, "index name.");
-            options.addOption("n", "shardNum", true, "Shard Number.");
-            options.addOption("t", "shardStep", true, "shard Step Number.");
-            options.addOption("p", "path", false, "index path prefix.");
-            options.addOption("s", false, "print exception");
-            return options;
-        }
-
-        @Override
-        public void process(CommandLine cl) throws Exception {
-            this.name = cl.getOptionValue("i");
-            this.shardNum = Integer.parseInt(cl.getOptionValue("n"));
-            this.shardStep = Integer.parseInt(cl.getOptionValue("t"));
-            if (cl.hasOption("p")) {
-                this.path = cl.getOptionValue("p");
-            } else {
-                MasterConfiguration masterConf = new MasterConfiguration();
-                this.path = masterConf.getString("katta.data.storage.path");
-            }
-
-            if(StringUtils.isBlank(name) || shardNum < 2 || shardStep < 1) {
-                throw new IllegalArgumentException("(-i or --index) and (-n or --shardNum) and (-t or --shardStep) must not be null.");
-            }
-
-            execute(new ZkConfiguration());
-        }
-
-    };
-
-
     protected static Command ADD_INDEX_COMMAND = new ProtocolCommand("addIndex",
             "Add a index to Katta") {
 
         private String name;
         private String collectionName;
         private String path;
-        private int replicationLevel = 3;
+        private int replicationLevel = 2;
 
 
         @Override
@@ -802,10 +752,22 @@ public class Katta {
             this.name = cl.getOptionValue("i");
             this.collectionName = cl.getOptionValue("c");
             this.path = cl.getOptionValue("p");
-            if (cl.hasOption("r")) {
-                this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
-            }
 
+            if(path.startsWith("hdfs://")) {
+                //hadoop 文件系统, replicationLevel = 1
+                if (cl.hasOption("r")) {
+                    this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
+                }
+
+                if(this.replicationLevel != 1) {
+                    this.replicationLevel = 1;
+                    System.out.print("hdfs index path, replicationLevel must eq 1, use default 1");
+                }
+            } else {
+                if (cl.hasOption("r")) {
+                    this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
+                }
+            }
 
             if(StringUtils.isBlank(name) || StringUtils.isBlank(path) || StringUtils.isBlank(collectionName)) {
                 throw new IllegalArgumentException("(-i or --index) and (-p or --path) and (-c or --core) must not be null.");
@@ -1138,7 +1100,11 @@ public class Katta {
         commands.put(SHOW_STRUCTURE_COMMAND.getCommand(), SHOW_STRUCTURE_COMMAND);
         commands.put(CHECK_COMMAND.getCommand(), CHECK_COMMAND);
         commands.put(VERSION_COMMAND.getCommand(), VERSION_COMMAND);
-        commands.put(CREATE_INDEX_COMMAND.getCommand(), CREATE_INDEX_COMMAND);
+
+        CreateIndex createIndex = new CreateIndex();
+        commands.put(createIndex.getCommand(), createIndex);
+
+
         commands.put(ADD_INDEX_COMMAND.getCommand(), ADD_INDEX_COMMAND);
         commands.put(ADD_SHARD_COMMAND.getCommand(), ADD_SHARD_COMMAND);
         commands.put(REMOVE_INDEX_COMMAND.getCommand(), REMOVE_INDEX_COMMAND);
@@ -1147,6 +1113,15 @@ public class Katta {
         commands.put(SEARCH_COMMAND.getCommand(), SEARCH_COMMAND);
         commands.put(GENERATE_INDEX_COMMAND.getCommand(), GENERATE_INDEX_COMMAND);
         commands.put(RUN_CLASS_COMMAND.getCommand(), RUN_CLASS_COMMAND);
+
+        KattaOnYarnCommand kattaOnYarn = new KattaOnYarnCommand();
+        commands.put(kattaOnYarn.getCommand(), kattaOnYarn);
+
+        YarnStartMaster yarnStartMaster = new YarnStartMaster();
+        commands.put(yarnStartMaster.getCommand(), yarnStartMaster);
+
+        YarnStartNode yarnStartNode = new YarnStartNode();
+        commands.put(yarnStartNode.getCommand(), yarnStartNode);
 
         String commandName = null;
         String[] commandArgs = null;
@@ -1217,63 +1192,6 @@ public class Katta {
         System.err.println("Usage: ");
     }
 
-
-
-    /**
-     * 手动的添加一份shard
-     * @param protocol zk包装的协议
-     * @param name shardName
-     * @param path shardIndex索引地址
-     */
-    protected static void createIndex(InteractionProtocol protocol,
-                                      String name,
-                                      String path,
-                                      int shardNum,
-                                      int shardStep) {
-        if (name.trim().equals("*")) {
-            throw new IllegalArgumentException("Index with name " + name + " isn't allowed.");
-        }
-
-        //用于判断当前是否已经部署过这个shardName的shard
-        IDeployClient deployClient = new DeployClient(protocol);
-        if (deployClient.existsIndex(name)) {
-            throw new IllegalArgumentException("Index with name " + name + " already exists.");
-        }
-
-        NewIndexMetaData newIndex = protocol.getNewIndex(name);
-        if(newIndex != null) {
-            throw new IllegalArgumentException("Index: " + name + " was exists zookeeper.");
-        }
-
-        try {
-            FileSystem fs = HadoopUtil.getFileSystem();
-            Path f = new Path(path, name);
-            if(fs.exists(f)) {
-                throw new IllegalArgumentException("Index: " + name + " was exists FileSystem. path: " + f);
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-
-        try {
-            long startTime = System.currentTimeMillis();
-            IIndexDeployFuture deployFuture = deployClient.createIndex(name, path, shardNum, shardStep);
-            while (true) {
-                long duration = System.currentTimeMillis() - startTime;
-                if (deployFuture.getState() == IndexState.DEPLOYED) {
-                    System.out.println("\ncreated index '" + name + "' in " + duration + " ms");
-                    break;
-                } else if (deployFuture.getState() == IndexState.ERROR) {
-                    System.err.println("\nfailed to created index '" + name + "' in " + duration + " ms");
-                    break;
-                }
-                System.out.print(".");
-                deployFuture.joinDeployment(1000);
-            }
-        } catch (final InterruptedException e) {
-            printError("interrupted wait on index deployment");
-        }
-    }
 
 
 
@@ -1367,7 +1285,7 @@ public class Katta {
         }
     }
 
-    private static void printError(String errorMsg) {
+    public static void printError(String errorMsg) {
         System.err.println("ERROR: " + errorMsg);
     }
 

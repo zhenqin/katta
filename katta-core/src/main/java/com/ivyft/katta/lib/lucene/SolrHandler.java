@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Collection;
 
 /**
  * <pre>
@@ -106,6 +107,12 @@ public class SolrHandler {
             container = new CoreContainer(SolrHandler.solrHome.getAbsolutePath());
             container.load();
             LOG.info("init success! end init solr core container.");
+        }
+
+        Collection<String> coreNames = container.getAllCoreNames();
+        if(coreNames == null || coreNames.isEmpty()) {
+            throw new IllegalStateException(SolrHandler.solrHome.getAbsolutePath()
+                    + " not available solr core collections.");
         }
     }
 

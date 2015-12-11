@@ -29,12 +29,10 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
 import java.io.*;
-import java.net.InterfaceAddress;
 import java.net.URL;
 import java.util.*;
 import java.util.zip.ZipEntry;
@@ -207,6 +205,7 @@ public class Util {
 
     public static List<String> buildMasterCommands(KattaConfiguration conf) throws IOException {
         List<String> toRet = buildCommandPrefix(conf);
+        toRet.add(conf.getProperty("katta.yarn.master.jvm.opts", ""));
         toRet.add("-Dkatta.root.logger=INFO,DRFA");
         //toRet.add("-Dkatta.node.hostname.overwritten=" + ApplicationConstants.Environment.NM_HOST.$());
         toRet.add("-Dkatta.log.dir=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
@@ -218,12 +217,13 @@ public class Util {
         return toRet;
     }
 
-    public static List<String> buildNodeCommands(KattaConfiguration conf) throws IOException {
+    public static List<String> buildNodeCommands(KattaConfiguration conf, String solrHome) throws IOException {
         List<String> toRet = buildCommandPrefix(conf);
         //toRet.add("-Dkatta.node.hostname.overwritten=" + ApplicationConstants.Environment.NM_HOST.$());
+        toRet.add(conf.getProperty("katta.yarn.node.jvm.opts", ""));
         toRet.add("-Dkatta.root.logger=INFO,DRFA");
-        toRet.add("-Dsolr.solr.home=" + conf.getProperty("solr.solr.home", "./katta/data/solr"));
-        toRet.add("-Dnode.solrhome.folder=" + conf.getProperty("node.solrhome.folder", "./katta/data/solr"));
+        toRet.add("-Dsolr.solr.home=" + solrHome);
+        toRet.add("-Dnode.solrhome.folder=" + solrHome);
         toRet.add("-Dkatta.log.dir=" + ApplicationConstants.LOG_DIR_EXPANSION_VAR);
         toRet.add("-Dkatta.log.file=" + "katta-node-" + ApplicationConstants.Environment.USER.$()
                 + "-" +

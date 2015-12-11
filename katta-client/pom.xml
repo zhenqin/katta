@@ -23,6 +23,12 @@
             <artifactId>katta-core</artifactId>
             <version>1.2.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.ivyft.katta</groupId>
+            <artifactId>katta-yarn</artifactId>
+            <version>1.2.0</version>
+        </dependency>
     </dependencies>
 
     <build>

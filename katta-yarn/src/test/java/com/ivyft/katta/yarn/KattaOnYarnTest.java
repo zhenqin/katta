@@ -20,7 +20,7 @@ import org.junit.Test;
 public class KattaOnYarnTest {
 
 
-    String appId = "application_1449641118529_0001";
+    String appId = "application_1449803042845_0006";
 
 
 
@@ -33,7 +33,7 @@ public class KattaOnYarnTest {
     public void testStartMaster() throws Exception {
         KattaYarnClient client = KattaOnYarn.attachToApp(appId,
                 new KattaConfiguration("katta.node.properties")).getClient();
-        client.startMaster(1);
+        client.startMaster(512, 1, null);
         client.close();
     }
 
@@ -43,7 +43,7 @@ public class KattaOnYarnTest {
     public void testStartNode() throws Exception {
         KattaYarnClient client = KattaOnYarn.attachToApp(appId,
                 new KattaConfiguration("katta.node.properties")).getClient();
-        client.addNode(1);
+        client.addNode(512, 1, null);
         client.close();
     }
 
