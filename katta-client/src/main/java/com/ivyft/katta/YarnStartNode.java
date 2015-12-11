@@ -31,6 +31,7 @@ public class YarnStartNode extends ProtocolCommand {
     private int cores = 1;
     private int nodeMB = 512;
     private String kattaZip;
+    private String solrZip;
 
     public YarnStartNode() {
         super("yarn-start-node", "katta on yarn, start katta node");
@@ -40,7 +41,7 @@ public class YarnStartNode extends ProtocolCommand {
     @Override
     public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) throws Exception {
         KattaYarnClient yarnClient = KattaOnYarn.attachToApp(appId, new NodeConfiguration()).getClient();
-        yarnClient.addNode(nodeMB, cores, kattaZip);
+        yarnClient.addNode(nodeMB, cores, kattaZip, solrZip);
         yarnClient.close();
     }
 
@@ -80,6 +81,11 @@ public class YarnStartNode extends ProtocolCommand {
         String kattaZip = cl.getOptionValue("z");
         if(StringUtils.isNotBlank(kattaZip)) {
             this.kattaZip = kattaZip;
+        }
+
+        String solr = cl.getOptionValue("solr");
+        if(StringUtils.isNotBlank(solr)) {
+            this.solrZip = solr;
         }
 
         execute(new ZkConfiguration());

@@ -192,56 +192,6 @@ public class Katta {
     };
 
 
-    protected static Command START_NODE_COMMAND = new ProtocolCommand("node",
-            "Starts a local node") {
-
-        private NodeConfiguration nodeConfiguration;
-        private IContentServer server = null;
-
-        @Override
-        public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) throws Exception {
-            SolrHandler.init(nodeConfiguration.getFile("node.solrhome.folder"));
-            final Node node = new Node(protocol, nodeConfiguration, server);
-            node.start();
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                @Override
-                public void run() {
-                    node.shutdown();
-                }
-            });
-            node.join();
-        }
-
-        @Override
-        public Options getOpts() {
-            Options options = new Options();
-            options.addOption("c", false, "node server class, ? implements ILuceneServer");
-            options.addOption("p", false, "port number");
-            options.addOption("s", false, "print exception");
-            return options;
-        }
-
-        @Override
-        public void process(CommandLine cl) throws Exception {
-            nodeConfiguration = new NodeConfiguration();
-            String serverClassName;
-            if(cl.hasOption("c")) {
-                serverClassName = cl.getOptionValue("c");
-            } else {
-                serverClassName = nodeConfiguration.getServerClassName();
-            }
-            if (cl.hasOption("p")) {
-                String portNumber = cl.getOptionValue("p");
-                nodeConfiguration.setStartPort(Integer.parseInt(portNumber));
-            }
-
-            Class<?> serverClass = ClassUtil.forName(serverClassName, IContentServer.class);
-            server = (IContentServer) ClassUtil.newInstance(serverClass);
-
-            execute(new ZkConfiguration());
-        }
-    };
-
     protected static Command LIST_NODES_COMMAND = new ProtocolCommand("listNodes",
             "Lists all nodes. ") {
 
@@ -1090,7 +1040,11 @@ public class Katta {
         commands.put(help.getCommand(), help);
         commands.put(START_ZK_COMMAND.getCommand(), START_ZK_COMMAND);
         commands.put(START_MASTER_COMMAND.getCommand(), START_MASTER_COMMAND);
-        commands.put(START_NODE_COMMAND.getCommand(), START_NODE_COMMAND);
+
+        KattaNode kattaNode = new KattaNode();
+        commands.put(kattaNode.getCommand(), kattaNode);
+
+
         commands.put(LIST_NODES_COMMAND.getCommand(), LIST_NODES_COMMAND);
         commands.put(LIST_INDICES_COMMAND.getCommand(), LIST_INDICES_COMMAND);
         commands.put(LOG_METRICS_COMMAND.getCommand(), LOG_METRICS_COMMAND);

@@ -84,7 +84,8 @@
              "request": [
                  {"name" : "memory", "type" : "int"},
                  {"name" : "cores", "type" : "int"},
-                 {"name" : "kattaZip", "type" : ["null", "string"]}],
+                 {"name" : "kattaZip", "type" : ["null", "string"]},
+                 {"name" : "solrZip", "type" : ["null", "string"]}],
              "response": "null"
         },
         "stopAllNode" :{

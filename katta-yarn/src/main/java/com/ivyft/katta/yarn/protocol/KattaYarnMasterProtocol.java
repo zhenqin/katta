@@ -110,9 +110,9 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
     }
 
     @Override
-    public Void addNode(int memory, int cores, java.lang.CharSequence kattaZip) throws AvroRemoteException {
+    public Void addNode(int memory, int cores, java.lang.CharSequence kattaZip, java.lang.CharSequence solrZip) throws AvroRemoteException {
         kattaZip = kattaZip == null ? "" : kattaZip;
-        amrmClient.startNode(memory, cores);
+        amrmClient.startNode(memory, cores, kattaZip.toString(), solrZip.toString());
         return null;
     }
 

@@ -155,10 +155,15 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
     }
 
 
-
-
-
-    public void startNode(int memory, int cores) {
+    /**
+     * 启动 Yarn Katta Node
+     * @param memory 内存大小
+     * @param cores 使用 Cores
+     * @param kattaZip Katta-Home.zip
+     * @param solrZip Solr/Home zip
+     *
+     */
+    public void startNode(int memory, int cores, String kattaZip, String solrZip) {
         try {
             //申请 Container 内存
             this.newContainer(memory, cores);
@@ -166,7 +171,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
             currentContainer = CONTAINER_QUEUE.take();
             LOCK.lock();
             try {
-                launchKattaNodeOnContainer(currentContainer);
+                launchKattaNodeOnContainer(currentContainer, kattaZip, solrZip);
             } finally {
                 currentContainer = null;
                 LOCK.unlock();
@@ -293,7 +298,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
 
 
-    public void launchKattaNodeOnContainer(Container container)
+    public void launchKattaNodeOnContainer(Container container, String katta_zip_path, String solrZip)
             throws IOException {
         //Path[] paths = null;
         // create a container launch context
@@ -314,7 +319,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
         // CLC: local resources includes katta, conf
         Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-        String katta_zip_path = conf.getProperty("katta.zip.path", "");
+        //String katta_zip_path = conf.getProperty("katta.zip.path", "");
 
         Version kattaVersion = Version.readFromJar();
         LOG.info(kattaVersion.getRevision());
@@ -369,8 +374,15 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         launchContext.setLocalResources(localResources);
 
         // CLC: command
-        String solrHome = conf.getProperty("solr.solr.home", "./katta/data/solr");
-        List<String> masterArgs = Util.buildNodeCommands(this.conf, solrHome);
+        if(StringUtils.isBlank(solrZip)) {
+            solrZip = conf.getProperty("solr.solr.home", solrZip);
+        }
+
+        if(StringUtils.isBlank(solrZip)) {
+            throw new IllegalStateException("can not find solr home." + solrZip);
+        }
+
+        List<String> masterArgs = Util.buildNodeCommands(this.conf, solrZip);
 
         LOG.info("node luanch: " + StringUtils.join(masterArgs, "  "));
 
