@@ -102,6 +102,8 @@ public class SolrHandler {
             SolrHandler.solrHome = new File(tmpHome);
         }
 
+        LOG.info("solr.solr.home: " + SolrHandler.solrHome.getAbsolutePath());
+
         if(container == null) {
             LOG.info("start init solr core container.");
             container = new CoreContainer(SolrHandler.solrHome.getAbsolutePath());

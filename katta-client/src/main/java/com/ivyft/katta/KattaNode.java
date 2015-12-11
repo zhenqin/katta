@@ -58,7 +58,11 @@ public class KattaNode extends ProtocolCommand {
 
                 Path kattaHome = new Path(pwd, "solr");
                 File solrHomeDir = new File(kattaHome.toString());
-                CompressUtils.uncompressZip(new Path(solrHome), HadoopUtil.getFileSystem(), solrHomeDir);
+                CompressUtils.uncompressZip(new Path(solrHome),
+                        HadoopUtil.getFileSystem(), solrHomeDir);
+
+                System.setProperty("solr.solr.home", solrHomeDir.getAbsolutePath());
+                System.setProperty("node.solrhome.folder", solrHomeDir.getAbsolutePath());
                 SolrHandler.init(solrHomeDir);
             } else {
                 SolrHandler.init(new File(solrHome));

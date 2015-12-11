@@ -86,6 +86,8 @@ public class YarnStartNode extends ProtocolCommand {
         String solr = cl.getOptionValue("solr");
         if(StringUtils.isNotBlank(solr)) {
             this.solrZip = solr;
+        } else {
+            throw new IllegalArgumentException("solr must not be null.");
         }
 
         execute(new ZkConfiguration());
