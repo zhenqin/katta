@@ -34,7 +34,6 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -42,7 +41,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.*;
@@ -1114,8 +1112,11 @@ public class Katta {
         commands.put(GENERATE_INDEX_COMMAND.getCommand(), GENERATE_INDEX_COMMAND);
         commands.put(RUN_CLASS_COMMAND.getCommand(), RUN_CLASS_COMMAND);
 
-        KattaOnYarnCommand kattaOnYarn = new KattaOnYarnCommand();
+        KattaOnYarn kattaOnYarn = new KattaOnYarn();
         commands.put(kattaOnYarn.getCommand(), kattaOnYarn);
+
+        KattaShutdownYarn kattaShutdownYarn = new KattaShutdownYarn();
+        commands.put(kattaShutdownYarn.getCommand(), kattaShutdownYarn);
 
         YarnStartMaster yarnStartMaster = new YarnStartMaster();
         commands.put(yarnStartMaster.getCommand(), yarnStartMaster);

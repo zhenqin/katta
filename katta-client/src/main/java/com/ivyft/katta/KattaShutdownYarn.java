@@ -1,9 +1,8 @@
 package com.ivyft.katta;
 
 import com.ivyft.katta.protocol.InteractionProtocol;
-import com.ivyft.katta.util.NodeConfiguration;
+import com.ivyft.katta.util.KattaConfiguration;
 import com.ivyft.katta.util.ZkConfiguration;
-import com.ivyft.katta.yarn.KattaOnYarn;
 import com.ivyft.katta.yarn.protocol.KattaYarnClient;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
@@ -24,39 +23,28 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
  *
  * @author zhenqin
  */
-public class YarnStartMaster extends ProtocolCommand {
+public class KattaShutdownYarn extends ProtocolCommand {
 
 
     private String appId;
 
-
-    private int cores = 1;
-
-
-    private int masterMB = 512;
-
-
-    private String kattaZip = "";
-
-    public YarnStartMaster() {
-        super("yarn-start-master", "katta on yarn, start katta master");
+    public KattaShutdownYarn() {
+        super("stop-yarn", "katta on yarn, stop katta on yarn, stop app master");
     }
 
 
     @Override
     public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) throws Exception {
-        KattaYarnClient yarnClient = KattaOnYarn.attachToApp(appId, new NodeConfiguration()).getClient();
-        yarnClient.startMaster(masterMB, cores, kattaZip);
-        yarnClient.close();
+        KattaYarnClient client = com.ivyft.katta.yarn.KattaOnYarn.attachToApp(appId,
+                new KattaConfiguration("katta.node.properties")).getClient();
+        client.shutdown();
+        client.close();
     }
 
     @Override
     public Options getOpts() {
         Options options = new Options();
         options.addOption("appid", "appid", true, "App Id, KattaOnYarn ApplicationMaster ID");
-        options.addOption("m", "memory", false, "Katta Node Memory, default 512M");
-        options.addOption("c", "core", false, "Katta Node Cores, default 1");
-        options.addOption("z", "zip", false, "Katta Zip Location, default /lib/katta/katta-{version}.zip");
         options.addOption("s", false, "print exception");
         return options;
     }
@@ -71,22 +59,6 @@ public class YarnStartMaster extends ProtocolCommand {
         ApplicationId applicationId = ConverterUtils.toApplicationId(appId);
         System.out.println(applicationId);
 
-
-        String m = cl.getOptionValue("m");
-        if(StringUtils.isNotBlank(m)) {
-            this.masterMB = Integer.parseInt(m);
-        }
-
-
-        String c = cl.getOptionValue("c");
-        if(StringUtils.isNotBlank(c)) {
-            this.cores = Integer.parseInt(c);
-        }
-
-        String kattaZip = cl.getOptionValue("z");
-        if(StringUtils.isNotBlank(kattaZip)) {
-            this.kattaZip = kattaZip;
-        }
 
         execute(new ZkConfiguration());
     }

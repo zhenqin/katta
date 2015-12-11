@@ -36,7 +36,7 @@
             "request": [
                 {"name" : "memory", "type" : "int"},
                 {"name" : "cores", "type" : "int"},
-                {"name" : "kattaZip", "type" : "string"}],
+                {"name" : "kattaZip", "type" : ["null", "string"]}],
             "response": "null"
         },
         "registerMaster" :{
@@ -84,7 +84,7 @@
              "request": [
                  {"name" : "memory", "type" : "int"},
                  {"name" : "cores", "type" : "int"},
-                 {"name" : "kattaZip", "type" : "string"}],
+                 {"name" : "kattaZip", "type" : ["null", "string"]}],
              "response": "null"
         },
         "stopAllNode" :{

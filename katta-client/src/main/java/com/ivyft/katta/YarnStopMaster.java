@@ -8,7 +8,6 @@ import com.ivyft.katta.yarn.protocol.KattaYarnClient;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.yarn.api.records.ApplicationId;
 
 /**
  * <pre>
@@ -37,20 +36,21 @@ public class YarnStopMaster extends ProtocolCommand {
     public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) throws Exception {
         KattaYarnClient yarnClient = KattaOnYarn.attachToApp(appId, new NodeConfiguration()).getClient();
         yarnClient.stopMaster();
+        yarnClient.close();
     }
 
     @Override
     public Options getOpts() {
         Options options = new Options();
-        options.addOption("i", "appid", true, "App Id, KattaOnYarn ApplicationMaster ID");
+        options.addOption("appid", "appid", true, "App Id, KattaOnYarn ApplicationMaster ID");
         options.addOption("s", false, "print exception");
         return options;
     }
 
     @Override
     public void process(CommandLine cl) throws Exception {
-        this.appId = cl.getOptionValue("i");
-        if(StringUtils.isNotBlank(appId)) {
+        this.appId = cl.getOptionValue("appid");
+        if(StringUtils.isBlank(appId)) {
             throw new IllegalArgumentException("app id must not be null.");
         }
 

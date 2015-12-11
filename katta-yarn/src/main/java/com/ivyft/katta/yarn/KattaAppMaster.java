@@ -108,7 +108,7 @@ public class KattaAppMaster implements Runnable {
             int numKattaNode =
                     conf.getInt(KattaOnYarn.DEFAULT_KATTA_NODE_NUM, 1);
             LOG.info("launch katta node, node num: " + numKattaNode);
-            protocol.startNode(numKattaNode);
+            //protocol.startNode(numKattaNode);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -62,6 +62,7 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
 
     @Override
     public Void startMaster(int memory, int cores, java.lang.CharSequence kattaZip) throws AvroRemoteException {
+        kattaZip = kattaZip == null ? "" : kattaZip;
         amrmClient.startMaster(memory, cores, kattaZip.toString());
         return null;
     }
@@ -110,6 +111,7 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
 
     @Override
     public Void addNode(int memory, int cores, java.lang.CharSequence kattaZip) throws AvroRemoteException {
+        kattaZip = kattaZip == null ? "" : kattaZip;
         amrmClient.startNode(memory, cores);
         return null;
     }

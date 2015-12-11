@@ -3,7 +3,6 @@ package com.ivyft.katta;
 import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.util.NodeConfiguration;
 import com.ivyft.katta.util.ZkConfiguration;
-import com.ivyft.katta.yarn.KattaOnYarn;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.StringUtils;
@@ -21,7 +20,7 @@ import org.apache.commons.lang.StringUtils;
  *
  * @author zhenqin
  */
-public class KattaOnYarnCommand extends ProtocolCommand {
+public class KattaOnYarn extends ProtocolCommand {
 
 
     private String appName = "KattaOnYarn";
@@ -29,14 +28,14 @@ public class KattaOnYarnCommand extends ProtocolCommand {
     private int amMB = 512;
     private String kattaZip;
 
-    public KattaOnYarnCommand() {
+    public KattaOnYarn() {
         super("yarn", "katta on yarn, start katta on yarn app master");
     }
 
 
     @Override
     public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) throws Exception {
-        KattaOnYarn.launchApplication(appName, queue, amMB, new NodeConfiguration(), kattaZip);
+        com.ivyft.katta.yarn.KattaOnYarn.launchApplication(appName, queue, amMB, new NodeConfiguration(), kattaZip);
     }
 
     @Override
