@@ -19,6 +19,7 @@ import com.ivyft.katta.node.ShardManager;
 import com.ivyft.katta.util.HadoopUtil;
 import com.ivyft.katta.util.NodeConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
@@ -74,7 +75,10 @@ public class DefaultSearcherFactory implements ISeacherFactory {
         String scheme = shardPath.getScheme();
         if(StringUtils.equals(ShardManager.HDFS, scheme)) {
             LOG.info("open hdfs index: " + shardPath.toString());
-            Directory directory = new HdfsDirectory(new Path(shardPath), HadoopUtil.getHadoopConf());
+            Configuration hadoopConf = HadoopUtil.getHadoopConf();
+            String s = hadoopConf.get("fs.defaultFS");
+            LOG.info("use fs.defaultFS: " + s);
+            Directory directory = new HdfsDirectory(new Path(shardPath), hadoopConf);
             return new IndexSearcher(DirectoryReader.open(directory));
         } else if(StringUtils.equals(ShardManager.FILE, scheme)) {
             LOG.info("open file index: " + shardPath.toString());
