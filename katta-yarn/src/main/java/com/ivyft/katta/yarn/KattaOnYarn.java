@@ -136,18 +136,18 @@ public class KattaOnYarn {
             
             LOG.info("application report for "+_appId+" :"+host+":"+port);
             LOG.info("Attaching to "+host+":"+port+" to talk to app master "+_appId);
-            _client = new KattaYarnClient("localhost", port);
+            _client = new KattaYarnClient(host, port);
         }
         return _client;
     }
 
     private void launchApp(String appName, String queue, int amMB,
                            String katta_zip_location) throws Exception {
-        LOG.debug("KattaOnYarn:launchApp() ...");
+        LOG.info("KattaOnYarn:launchApp() ...");
         YarnClientApplication client_app = _yarn.createApplication();
         GetNewApplicationResponse app = client_app.getNewApplicationResponse();
         _appId = app.getApplicationId();
-        LOG.debug("_appId:"+_appId);
+        LOG.info("_appId:"+_appId);
 
         if(amMB > app.getMaximumResourceCapability().getMemory()) {
             //TODO need some sanity checks
@@ -228,11 +228,11 @@ public class KattaOnYarn {
         paths[2] = confDst;
 
         Credentials credentials = new Credentials();
-        TokenCache.obtainTokensForNamenodes(credentials, paths, _hadoopConf);
         DataOutputBuffer dob = new DataOutputBuffer();
         credentials.writeTokenStorageToStream(dob);
         ByteBuffer securityTokens = ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
 
+        TokenCache.obtainTokensForNamenodes(credentials, paths, _hadoopConf);
         //security tokens for HDFS distributed cache
         amContainer.setTokens(securityTokens);
 
@@ -336,7 +336,7 @@ public class KattaOnYarn {
                 LOG.info(report.getApplicationId() + " luanched, status: " + state);
                 return true;
             }
-        }    
+        }
     }
 
 
@@ -376,7 +376,7 @@ public class KattaOnYarn {
                 
         //throw new IOException("Fail to locat a JAR for class: "+my_class.getName());
     }
-
+Ka
     public static KattaOnYarn launchApplication(String appName,
                                                 String queue,
                                                 int amMB,
