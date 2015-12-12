@@ -5,6 +5,8 @@ package com.ivyft.katta.yarn;
 import com.ivyft.katta.protocol.metadata.Version;
 import com.ivyft.katta.util.KattaConfiguration;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -12,10 +14,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
-import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.NMClient;
-import org.apache.hadoop.yarn.client.api.impl.AMRMClientImpl;
-import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.Apps;
 import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
@@ -44,14 +43,12 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author zhenqin
  */
-public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
+public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.NMClientAsync.CallbackHandler {
     private static final Logger LOG = LoggerFactory.getLogger(KattaAMRMClient.class);
 
     private final KattaConfiguration conf;
 
-    private final YarnConfiguration hadoopConf;
-
-    private final Priority DEFAULT_PRIORITY = Records.newRecord(Priority.class);
+    private final Configuration hadoopConf;
 
     //private final Set<Container> containers = new TreeSet<Container>();
 
@@ -68,61 +65,26 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
     public KattaAMRMClient(ApplicationAttemptId appAttemptId,
                            KattaConfiguration conf,
-                           YarnConfiguration hadoopConf) {
+                           Configuration hadoopConf) {
         this.appAttemptId = appAttemptId;
         this.conf = conf;
         this.hadoopConf = hadoopConf;
-        int pri = conf.getInt(KattaOnYarn.MASTER_CONTAINER_PRIORITY, 0);
-        this.DEFAULT_PRIORITY.setPriority(pri);
-
 
         // start am nm client
         nmClient = NMClient.createNMClient();
         nmClient.init(hadoopConf);
         nmClient.start();
 
-
-        this.init(hadoopConf);
-        this.start();
     }
-
-
-
-    public synchronized void newContainer(int memory, int cores) {
-        Resource resource = Resource.newInstance(memory, cores);
-        ContainerRequest req = new ContainerRequest(
-                resource,
-                null, // String[] nodes,
-                null, // String[] racks,
-                DEFAULT_PRIORITY);
-
-        LOG.info("开始准备申请内存: " + req.toString());
-
-        this.addContainerRequest(req);
-    }
-
-
 
     public synchronized void addAllocatedContainers(List<Container> containers) {
-        LOG.info("已申请到内存: " + containers.toString());
-
-        /*for (int i = 0; i < containers.size(); i++) {
-            Resource resource = Resource.newInstance(1024, 1);
-            ContainerRequest req = new ContainerRequest(
-                    resource,
-                    null, // String[] nodes,
-                    null, // String[] racks,
-                    DEFAULT_PRIORITY);
-            super.removeContainerRequest(req);
-        }*/
-
-        if(currentContainer != null) {
+        if (currentContainer != null) {
             containers.remove(currentContainer);
         }
         LOCK.lock();
         try {
             for (Container container : containers) {
-                if(CONTAINER_QUEUE.contains(container)) {
+                if (CONTAINER_QUEUE.contains(container)) {
                     continue;
                 }
 
@@ -136,11 +98,8 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
     }
 
 
-    public void startMaster(int memory, int cores, String kattaZip) {
+    public void startMaster(String kattaZip) {
         try {
-            //申请 Container 内存
-            this.newContainer(memory, cores);
-
             currentContainer = CONTAINER_QUEUE.take();
             LOCK.lock();
             try {
@@ -157,17 +116,12 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
 
     /**
      * 启动 Yarn Katta Node
-     * @param memory 内存大小
-     * @param cores 使用 Cores
-     * @param kattaZip Katta-Home.zip
-     * @param solrZip Solr/Home zip
      *
+     * @param kattaZip Katta-Home.zip
+     * @param solrZip  Solr/Home zip
      */
-    public void startNode(int memory, int cores, String kattaZip, String solrZip) {
+    public void startNode(String kattaZip, String solrZip) {
         try {
-            //申请 Container 内存
-            this.newContainer(memory, cores);
-
             currentContainer = CONTAINER_QUEUE.take();
             LOCK.lock();
             try {
@@ -182,20 +136,38 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
     }
 
 
-
-
-
-    private synchronized void releaseAllContainerRequest() {
-        /*Iterator<Container> it = this.containers.iterator();
-        ContainerId id;
-        while (it.hasNext()) {
-            id = it.next().getId();
-            LOG.debug("Releasing container (id:" + id + ")");
-            releaseAssignedContainer(id);
-            it.remove();
-        }*/
+    @Override
+    public void onContainerStarted(ContainerId containerId, Map<String, ByteBuffer> allServiceResponse) {
+        LOG.info("onContainerStarted: " + containerId.toString());
     }
 
+    @Override
+    public void onContainerStatusReceived(ContainerId containerId, ContainerStatus containerStatus) {
+        LOG.info("onContainerStatusReceived: " + containerId.toString() + "    " + containerStatus);
+    }
+
+    @Override
+    public void onContainerStopped(ContainerId containerId) {
+        LOG.info("onContainerStopped: " + containerId.toString());
+    }
+
+    @Override
+    public void onStartContainerError(ContainerId containerId, Throwable t) {
+        LOG.info("onStartContainerError: " + containerId.toString());
+        LOG.warn(ExceptionUtils.getFullStackTrace(t));
+    }
+
+    @Override
+    public void onGetContainerStatusError(ContainerId containerId, Throwable t) {
+        LOG.info("onGetContainerStatusError: " + containerId.toString());
+        LOG.warn(ExceptionUtils.getFullStackTrace(t));
+    }
+
+    @Override
+    public void onStopContainerError(ContainerId containerId, Throwable t) {
+        LOG.info("onStopContainerError: " + containerId.toString());
+        LOG.warn(ExceptionUtils.getFullStackTrace(t));
+    }
 
 
     public void launchKattaMasterOnContainer(Container container, String katta_zip_path)
@@ -230,7 +202,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         if (StringUtils.isNotBlank(katta_zip_path)) {
             //自己指定的
             zip = new Path(katta_zip_path);
-            if(!fs.exists(zip) || !fs.isFile(zip)) {
+            if (!fs.exists(zip) || !fs.isFile(zip)) {
                 throw new IllegalArgumentException("katta location not exists. " + katta_zip_path);
             }
 
@@ -281,7 +253,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         launchContext.setCommands(masterArgs);
 
         try {
-            LOG.info("Use NMClient to launch supervisors in container. ");
+            LOG.info("Use NMClient to launch katta master in container. ");
             Map<String, ByteBuffer> result = nmClient.startContainer(container, launchContext);
 
             LOG.info("luanch result: " + result);
@@ -295,7 +267,6 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
             throw new IllegalArgumentException(e);
         }
     }
-
 
 
     public void launchKattaNodeOnContainer(Container container, String katta_zip_path, String solrZip)
@@ -330,7 +301,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         if (StringUtils.isNotBlank(katta_zip_path)) {
             //自己指定的
             zip = new Path(katta_zip_path);
-            if(!fs.exists(zip) || !fs.isFile(zip)) {
+            if (!fs.exists(zip) || !fs.isFile(zip)) {
                 throw new IllegalArgumentException("katta location not exists. " + katta_zip_path);
             }
 
@@ -374,11 +345,11 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         launchContext.setLocalResources(localResources);
 
         // CLC: command
-        if(StringUtils.isBlank(solrZip)) {
+        if (StringUtils.isBlank(solrZip)) {
             solrZip = conf.getProperty("solr.solr.home", solrZip);
         }
 
-        if(StringUtils.isBlank(solrZip)) {
+        if (StringUtils.isBlank(solrZip)) {
             throw new IllegalStateException("can not find solr home." + solrZip);
         }
 
@@ -389,7 +360,7 @@ public class KattaAMRMClient extends AMRMClientImpl<ContainerRequest> {
         launchContext.setCommands(masterArgs);
 
         try {
-            LOG.info("Use NMClient to launch supervisors in container. ");
+            LOG.info("Use NMClient to launch katta node in container. ");
             Map<String, ByteBuffer> result = nmClient.startContainer(container, launchContext);
 
             LOG.info("luanch result: " + result);

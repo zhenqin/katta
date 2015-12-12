@@ -350,6 +350,11 @@ public class KattaOnYarn {
      * @throws IOException on any error
      */
     public static String findContainingJar(Class<?> my_class) throws IOException {
+        String appJar = System.getProperty("app.jar");
+        if(StringUtils.isNotBlank(appJar)) {
+            //katta-yarn/target/katta-yarn.jar
+            return new File(appJar).toURI().toString();
+        }
         ClassLoader loader = my_class.getClassLoader();
         String class_file = my_class.getName().replaceAll("\\.", "/") + ".class";
         for(Enumeration<URL> itr = loader.getResources(class_file);
@@ -371,10 +376,7 @@ public class KattaOnYarn {
                 return toReturn.replaceAll("!.*$", "");
             }
         }
-
-        return new File("katta-yarn/target/katta-yarn.jar").toURI().toString();
-                
-        //throw new IOException("Fail to locat a JAR for class: "+my_class.getName());
+        throw new IOException("Fail to locat a JAR for class: "+my_class.getName());
     }
 
     public static KattaOnYarn launchApplication(String appName,

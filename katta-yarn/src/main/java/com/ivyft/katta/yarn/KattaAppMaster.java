@@ -17,7 +17,6 @@
 package com.ivyft.katta.yarn;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -35,13 +34,16 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
-import org.apache.hadoop.yarn.api.protocolrecords.AllocateResponse;
 import org.apache.hadoop.yarn.api.protocolrecords.RegisterApplicationMasterResponse;
 import org.apache.hadoop.yarn.api.records.*;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
+import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
+import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,41 +60,105 @@ import org.slf4j.LoggerFactory;
  *
  * @author zhenqin
  */
-public class KattaAppMaster implements Runnable {
+public class KattaAppMaster implements Runnable, org.apache.hadoop.yarn.client.api.async.AMRMClientAsync.CallbackHandler {
     private static final Logger LOG = LoggerFactory.getLogger(KattaAppMaster.class);
 
+
+    /**
+     * 默认 Katta Master/Node 在 Yarn 任务优先级
+     */
+    private final Priority DEFAULT_PRIORITY = Records.newRecord(Priority.class);
+
+
+    /**
+     * AppMaster 当前是否调用 Stop() 方法, 防止重复调用
+     */
+    private boolean APP_MASTER_STOPPED = false;
+
+
+    /**
+     * Master Avro 命令服务器
+     */
     private final KattaYarnAvroServer server;
 
 
+    /**
+     * Katta Conf
+     */
     private final KattaConfiguration conf;
 
-    private final KattaAMRMClient client;
+
+    /**
+     * AppMaster Task ID
+     */
+    protected final ApplicationAttemptId appAttemptID;
 
 
+    /**
+     * ResourcesManager Client
+     */
+    private final AMRMClientAsync<AMRMClient.ContainerRequest> client;
+
+
+    /**
+     * Avro 协议
+     */
     private final KattaYarnMasterProtocol protocol;
 
+
+    /**
+     * Katta Client
+     */
+    protected final KattaAMRMClient kattaAMRMClient;
+
+
+    /**
+     * 内部队列消息
+     */
     private final BlockingQueue<Object> launcherQueue = new LinkedBlockingQueue<Object>();
 
 
-    public KattaAppMaster(KattaConfiguration conf,
-                          KattaAMRMClient client) {
-        this(conf, client, new KattaYarnMasterProtocol(conf, client));
+    /**
+     * 构造方法
+     * @param conf Katta Conf
+     * @param appAttemptID AppMaster Task ID
+     */
+    private KattaAppMaster(KattaConfiguration conf, ApplicationAttemptId appAttemptID) {
+        this(conf, new YarnConfiguration(), appAttemptID);
     }
 
-    private KattaAppMaster(KattaConfiguration conf,
-                           KattaAMRMClient client,
-                           KattaYarnMasterProtocol protocol) {
-        this.client = client;
-        this.conf = conf;
-        this.protocol = protocol;
 
+    /**
+     * 构造方法
+     * @param conf Katta Conf
+     * @param hadoopConf Hadoop Conf
+     * @param appAttemptID AppMaster Task ID
+     */
+    private KattaAppMaster(KattaConfiguration conf,
+                           Configuration hadoopConf, ApplicationAttemptId appAttemptID) {
+        this.conf = conf;
+        this.appAttemptID = appAttemptID;
+
+        int pri = conf.getInt(KattaOnYarn.MASTER_CONTAINER_PRIORITY, 0);
+        this.DEFAULT_PRIORITY.setPriority(pri);
+
+        int heartBeatIntervalMs = conf.getInt(KattaOnYarn.MASTER_HEARTBEAT_INTERVAL_MILLIS, 10000);
+
+
+        this.kattaAMRMClient = new KattaAMRMClient(appAttemptID, conf, hadoopConf);
+
+        this.client = AMRMClientAsync.createAMRMClientAsync(heartBeatIntervalMs, this);
+        this.client.init(hadoopConf);
+        this.client.start();
+
+
+        this.protocol = new KattaYarnMasterProtocol(conf, kattaAMRMClient);
         this.server = new KattaYarnAvroServer(KattaYarnProtocol.class, protocol);
         int port = conf.getInt(KattaOnYarn.MASTER_AVRO_PORT, 4880);
 
         SocketPortFactory portFactory = new FreeSocketPortFactory();
         port = portFactory.getSocketPort(port, conf.getInt(KattaOnYarn.MASTER_AVRO_PORT + ".step", 1));
         this.server.setHost(NetworkUtils.getLocalhostName());
-        //this.server.setHost("zhenqin-pro102");
         this.server.setPort(port);
 
         LOG.info("katta application master start at: " + getAvroServerHost() + ":" + getAvroServerPort());
@@ -101,16 +167,21 @@ public class KattaAppMaster implements Runnable {
         conf.setProperty(KattaOnYarn.MASTER_AVRO_PORT, port);
 
         protocol.setAppMaster(this);
+
         try {
             LOG.info("launch katta master");
             //protocol.startMaster(1);
+        } catch (Exception e) {
+            LOG.warn(ExceptionUtils.getFullStackTrace(e));
+        }
 
+        try {
             int numKattaNode =
                     conf.getInt(KattaOnYarn.DEFAULT_KATTA_NODE_NUM, 1);
             LOG.info("launch katta node, node num: " + numKattaNode);
             //protocol.startNode(numKattaNode);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            LOG.warn(ExceptionUtils.getFullStackTrace(e));
         }
     }
 
@@ -121,25 +192,37 @@ public class KattaAppMaster implements Runnable {
 
 
     public void stop() {
-        if (server != null) {
+        if(!APP_MASTER_STOPPED) {
+            LOG.info("Stop Katta App Master Avro Server");
+            if (server != null) {
+                try {
+                    server.stop();
+                } catch (Exception e) {
+                    LOG.warn("", e);
+                }
+            }
+
+            LOG.info("Stop Katta Masters");
             try {
-                server.stop();
-            } catch (Exception e) {
-                e.printStackTrace();
+                protocol.stopMaster();
+            } catch (AvroRemoteException e) {
+                LOG.warn("", e);
+            }
+
+            LOG.info("Stop Katta Nodes");
+            try {
+                protocol.stopAllNode();
+            } catch (AvroRemoteException e) {
+                LOG.warn("", e);
             }
         }
 
-        try {
-            protocol.stopMaster();
-        } catch (AvroRemoteException e) {
-            e.printStackTrace();
-        }
+        APP_MASTER_STOPPED = true;
+    }
 
-        try {
-            protocol.stopAllNode();
-        } catch (AvroRemoteException e) {
-            e.printStackTrace();
-        }
+
+    public ApplicationAttemptId getAppAttemptID() {
+        return appAttemptID;
     }
 
 
@@ -149,93 +232,124 @@ public class KattaAppMaster implements Runnable {
 
     @Override
     public void run() {
-        try {
-            int heartBeatIntervalMs = conf.getInt(KattaOnYarn.MASTER_HEARTBEAT_INTERVAL_MILLIS, 10000);
-            int count = 10;
-
-            while (client.getServiceState() == Service.STATE.STARTED &&
-                    !Thread.currentThread().isInterrupted()) {
-
-                // We always send 50% progress.
-                AllocateResponse allocResponse = client.allocate(0.5f);
-
-                AMCommand am_command = allocResponse.getAMCommand();
-                if (am_command != null &&
-                        (am_command == AMCommand.AM_SHUTDOWN || am_command == AMCommand.AM_RESYNC)) {
-                    LOG.info("Got AM_SHUTDOWN or AM_RESYNC from the RM");
-                    return;
+        while (!APP_MASTER_STOPPED && client.getServiceState() == Service.STATE.STARTED &&
+                !Thread.currentThread().isInterrupted()) {
+            try {
+                Object take = launcherQueue.take();
+                if(take instanceof Shutdown) {
+                    LOG.warn("shutdown message, app master stopping.");
+                    Thread.sleep(3000);
+                    this.stop();
+                    break;
+                } else if(take instanceof Container) {
+                    Container container = (Container) take;
+                    LOG.info("LAUNCHER: Taking container with id (" + container.getId() + ") from the queue.");
                 }
-
-                //取得 Yarn 还剩余的Container资源, Container代表可运行的进程
-                List<Container> allocatedContainers = allocResponse.getAllocatedContainers();
-                // Add newly allocated containers to the client.
-                LOG.info("HB: Received allocated containers (" + allocatedContainers.size() + ")");
-
-                if (allocatedContainers.size() > 0) {
-                    //有资源? 等于0说明没资源了
-                    client.addAllocatedContainers(allocatedContainers);
+            } catch (InterruptedException e) {
+                if (client.getServiceState() == Service.STATE.STARTED) {
+                    LOG.error("Launcher thread interrupted : ", e);
                 }
-                count++;
-                LOG.info("counter: " + count);
-
-                Thread.sleep(heartBeatIntervalMs);
-
-                List<ContainerStatus> completedContainers =
-                        allocResponse.getCompletedContainersStatuses();
-                LOG.info(completedContainers.toString());
-                LOG.info("HB: Containers completed (" + completedContainers.size() + "), so releasing them.");
+                break;
+            } catch (Exception e) {
+                LOG.error("Launcher thread I/O exception : ", e);
             }
-        } catch (Throwable t) {
-            // Something happened we could not handle.  Make sure the AM goes
-            // down so that we are not surprised later on that our heart
-            // stopped..
-            LOG.error("Unhandled error in AM: ", t);
-            server.stop();
-            System.exit(1);
+        }
+
+        LOG.warn("katta-app-master-worker-thread stoped.");
+    }
+
+
+
+
+    public synchronized void newContainer(int memory, int cores) {
+        Resource resource = Resource.newInstance(memory, cores);
+        AMRMClient.ContainerRequest req = new AMRMClient.ContainerRequest(
+                resource,
+                null, // String[] nodes,
+                null, // String[] racks,
+                DEFAULT_PRIORITY);
+
+        LOG.info("开始准备申请内存: " + req.toString());
+
+        this.client.addContainerRequest(req);
+    }
+
+
+    @Override
+    public void onContainersCompleted(List<ContainerStatus> statuses) {
+        LOG.info("HB: Containers completed (" + statuses.size() + "), so releasing them.");
+        LOG.info(statuses.toString());
+
+        for (ContainerStatus statuse : statuses) {
+            statuse.getContainerId();
         }
     }
 
+    @Override
+    public void onContainersAllocated(List<Container> containers) {
+        LOG.info("已申请到内存: " + containers.size());
+        LOG.info(containers.toString());
+
+        this.kattaAMRMClient.addAllocatedContainers(containers);
+    }
+
+    @Override
+    public void onShutdownRequest() {
+        LOG.info("onShutdownRequest(): katta app master shutdown");
+        stop();
+    }
+
+    @Override
+    public void onNodesUpdated(List<NodeReport> updatedNodes) {
+        LOG.info("updatedNodes(): " + updatedNodes);
+    }
+
+    @Override
+    public float getProgress() {
+        //ApplicationMaster 进度一直是 50%
+        return 0.5f;
+    }
+
+    @Override
+    public void onError(Throwable e) {
+        LOG.warn("error print: ");
+        LOG.error(ExceptionUtils.getFullStackTrace(e));
+    }
+
+
+
     private void initAndStartLauncher() {
-        Thread thread = new Thread() {
-            @Override
-            public void run() {
-                while (client.getServiceState() == Service.STATE.STARTED &&
-                        !Thread.currentThread().isInterrupted()) {
-                    try {
-                        Object take = launcherQueue.take();
-                        if(take instanceof Shutdown) {
-                            Thread.sleep(3000);
-                            KattaAppMaster.this.stop();
-                            continue;
-                        } else if(take instanceof Container) {
-                            Container container = (Container) take;
-                            LOG.info("LAUNCHER: Taking container with id (" + container.getId() + ") from the queue.");
-                        }
-                    } catch (InterruptedException e) {
-                        if (client.getServiceState() == Service.STATE.STARTED) {
-                            LOG.error("Launcher thread interrupted : ", e);
-                            System.exit(1);
-                        }
-                        return;
-                    } catch (Exception e) {
-                        LOG.error("Launcher thread I/O exception : ", e);
-                        System.exit(1);
-                    }
-                }
-            }
-        };
+        Thread thread = new Thread(this);
         thread.setDaemon(true);
-        thread.setName("katta-app-master-initQueue");
+        thread.setName("katta-app-master-worker-thread");
         thread.start();
     }
 
 
-    private Thread initAndStartHeartbeat() {
-        Thread thread = new Thread(this);
-        thread.setDaemon(true);
-        thread.setName("katta-app-master-heartbeat");
-        thread.start();
-        return thread;
+    private void registerAppMaster() throws Exception {
+        final String host = getAvroServerHost();
+        final int port = getAvroServerPort();
+        InetAddress inetAddress = InetAddress.getByName(host);
+
+        LOG.info("registration rm, app host name: " + inetAddress + ":" + port);
+
+        RegisterApplicationMasterResponse resp =
+                client.registerApplicationMaster(host, port, null);
+        LOG.info("Got a registration response " + resp);
+        LOG.info("Max Capability " + resp.getMaximumResourceCapability());
+    }
+
+
+
+
+
+    private void finishAppMaster() throws Exception {
+        try {
+            client.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED,
+                    "AllDone", null);
+        } catch (Exception e) {
+            LOG.error(ExceptionUtils.getFullStackTrace(e));
+        }
     }
 
 
@@ -277,24 +391,9 @@ public class KattaAppMaster implements Runnable {
 
         YarnConfiguration hadoopConf = new YarnConfiguration();
 
-        KattaAMRMClient rmClient =
-                new KattaAMRMClient(appAttemptID, conf, hadoopConf);
-
-
-        KattaAppMaster server = new KattaAppMaster(conf, rmClient);
+        KattaAppMaster server = new KattaAppMaster(conf, hadoopConf, appAttemptID);
         try {
-            final String host = server.getAvroServerHost();
-            final int port = server.getAvroServerPort();
-            InetAddress inetAddress = InetAddress.getByName(host);
-
-            LOG.info("registration rm, app host name: " + inetAddress + ":" + port);
-
-            RegisterApplicationMasterResponse resp =
-                    rmClient.registerApplicationMaster(host, port, null);
-            LOG.info("Got a registration response " + resp);
-            LOG.info("Max Capability " + resp.getMaximumResourceCapability());
-
-            server.initAndStartHeartbeat();
+            server.registerAppMaster();
 
             LOG.info("Starting launcher");
             server.initAndStartLauncher();
@@ -302,17 +401,14 @@ public class KattaAppMaster implements Runnable {
             LOG.info("Starting Master Avro Server");
             server.serve();
 
-            LOG.info("StormAMRMClient::unregisterApplicationMaster");
-            rmClient.unregisterApplicationMaster(FinalApplicationStatus.SUCCEEDED,
-                    "AllDone", null);
+            LOG.info("Katta AMRMClient::unregisterApplicationMaster");
+            server.finishAppMaster();
         } catch (Exception e) {
             LOG.warn(ExceptionUtils.getFullStackTrace(e));
         } finally {
+            LOG.info("Stop Katta Application Master.");
             server.stop();
-            LOG.info("Stop Master Avro Server");
 
-            rmClient.stop();
-            LOG.info("Stop RM client");
         }
         System.exit(0);
     }
