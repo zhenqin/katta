@@ -69,44 +69,32 @@ public class KattaYarnClient implements KattaYarnProtocol {
         return this.kattaYarnProtocol.startMaster(memory, cores, kattaZip);
     }
 
+
     @Override
-    public Void registerMaster(KattaAndNode kattaNode) throws AvroRemoteException {
-        return null;
+    public Void stopAllMaster() throws AvroRemoteException {
+        return this.kattaYarnProtocol.stopAllMaster();
     }
+
 
     @Override
     public List<KattaAndNode> listMasters() throws AvroRemoteException {
-        return null;
+        return this.kattaYarnProtocol.listMasters();
     }
 
-    @Override
-    public Void unregisterMaster(KattaAndNode kattaNode) throws AvroRemoteException {
-        return null;
-    }
-
-    @Override
-    public Void registerNode(KattaAndNode kattaNode) throws AvroRemoteException {
-        return null;
-    }
-
-    @Override
-    public Void unregisterNode(KattaAndNode kattaNode) throws AvroRemoteException {
-        return null;
-    }
 
     @Override
     public List<KattaAndNode> listNodes() throws AvroRemoteException {
-        return null;
+        return this.kattaYarnProtocol.listNodes();
     }
 
     @Override
-    public Void stopMaster() throws AvroRemoteException {
-        return this.kattaYarnProtocol.stopMaster();
+    public Void stopMaster(java.lang.CharSequence id, com.ivyft.katta.yarn.protocol.IdType idType) throws AvroRemoteException {
+        return this.kattaYarnProtocol.stopMaster(id, idType);
     }
 
     @Override
-    public Void stopNode() throws AvroRemoteException {
-        return this.kattaYarnProtocol.stopNode();
+    public Void stopNode(java.lang.CharSequence id, com.ivyft.katta.yarn.protocol.IdType idType) throws AvroRemoteException {
+        return this.kattaYarnProtocol.stopNode(id, idType);
     }
 
     @Override

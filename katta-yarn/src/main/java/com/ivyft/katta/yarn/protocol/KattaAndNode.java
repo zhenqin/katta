@@ -7,11 +7,13 @@ package com.ivyft.katta.yarn.protocol;
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
 public class KattaAndNode extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"KattaAndNode\",\"namespace\":\"com.ivyft.katta.yarn.protocol\",\"fields\":[{\"name\":\"nodeName\",\"type\":\"string\"},{\"name\":\"type\",\"type\":{\"type\":\"enum\",\"name\":\"NodeType\",\"symbols\":[\"KATTA_MASTER\",\"KATTA_NODE\"]}},{\"name\":\"appAttemptId\",\"type\":\"string\"}]}");
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"KattaAndNode\",\"namespace\":\"com.ivyft.katta.yarn.protocol\",\"fields\":[{\"name\":\"nodeHost\",\"type\":\"string\"},{\"name\":\"nodePort\",\"type\":\"int\"},{\"name\":\"type\",\"type\":{\"type\":\"enum\",\"name\":\"NodeType\",\"symbols\":[\"KATTA_MASTER\",\"KATTA_NODE\"]}},{\"name\":\"containerId\",\"type\":\"string\"},{\"name\":\"nodeHttpAddress\",\"type\":\"string\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
-  @Deprecated public java.lang.CharSequence nodeName;
+  @Deprecated public java.lang.CharSequence nodeHost;
+  @Deprecated public int nodePort;
   @Deprecated public com.ivyft.katta.yarn.protocol.NodeType type;
-  @Deprecated public java.lang.CharSequence appAttemptId;
+  @Deprecated public java.lang.CharSequence containerId;
+  @Deprecated public java.lang.CharSequence nodeHttpAddress;
 
   /**
    * Default constructor.  Note that this does not initialize fields
@@ -23,19 +25,23 @@ public class KattaAndNode extends org.apache.avro.specific.SpecificRecordBase im
   /**
    * All-args constructor.
    */
-  public KattaAndNode(java.lang.CharSequence nodeName, com.ivyft.katta.yarn.protocol.NodeType type, java.lang.CharSequence appAttemptId) {
-    this.nodeName = nodeName;
+  public KattaAndNode(java.lang.CharSequence nodeHost, java.lang.Integer nodePort, com.ivyft.katta.yarn.protocol.NodeType type, java.lang.CharSequence containerId, java.lang.CharSequence nodeHttpAddress) {
+    this.nodeHost = nodeHost;
+    this.nodePort = nodePort;
     this.type = type;
-    this.appAttemptId = appAttemptId;
+    this.containerId = containerId;
+    this.nodeHttpAddress = nodeHttpAddress;
   }
 
   public org.apache.avro.Schema getSchema() { return SCHEMA$; }
   // Used by DatumWriter.  Applications should not call. 
   public java.lang.Object get(int field$) {
     switch (field$) {
-    case 0: return nodeName;
-    case 1: return type;
-    case 2: return appAttemptId;
+    case 0: return nodeHost;
+    case 1: return nodePort;
+    case 2: return type;
+    case 3: return containerId;
+    case 4: return nodeHttpAddress;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -43,26 +49,43 @@ public class KattaAndNode extends org.apache.avro.specific.SpecificRecordBase im
   @SuppressWarnings(value="unchecked")
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
-    case 0: nodeName = (java.lang.CharSequence)value$; break;
-    case 1: type = (com.ivyft.katta.yarn.protocol.NodeType)value$; break;
-    case 2: appAttemptId = (java.lang.CharSequence)value$; break;
+    case 0: nodeHost = (java.lang.CharSequence)value$; break;
+    case 1: nodePort = (java.lang.Integer)value$; break;
+    case 2: type = (com.ivyft.katta.yarn.protocol.NodeType)value$; break;
+    case 3: containerId = (java.lang.CharSequence)value$; break;
+    case 4: nodeHttpAddress = (java.lang.CharSequence)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
 
   /**
-   * Gets the value of the 'nodeName' field.
+   * Gets the value of the 'nodeHost' field.
    */
-  public java.lang.CharSequence getNodeName() {
-    return nodeName;
+  public java.lang.CharSequence getNodeHost() {
+    return nodeHost;
   }
 
   /**
-   * Sets the value of the 'nodeName' field.
+   * Sets the value of the 'nodeHost' field.
    * @param value the value to set.
    */
-  public void setNodeName(java.lang.CharSequence value) {
-    this.nodeName = value;
+  public void setNodeHost(java.lang.CharSequence value) {
+    this.nodeHost = value;
+  }
+
+  /**
+   * Gets the value of the 'nodePort' field.
+   */
+  public java.lang.Integer getNodePort() {
+    return nodePort;
+  }
+
+  /**
+   * Sets the value of the 'nodePort' field.
+   * @param value the value to set.
+   */
+  public void setNodePort(java.lang.Integer value) {
+    this.nodePort = value;
   }
 
   /**
@@ -81,18 +104,33 @@ public class KattaAndNode extends org.apache.avro.specific.SpecificRecordBase im
   }
 
   /**
-   * Gets the value of the 'appAttemptId' field.
+   * Gets the value of the 'containerId' field.
    */
-  public java.lang.CharSequence getAppAttemptId() {
-    return appAttemptId;
+  public java.lang.CharSequence getContainerId() {
+    return containerId;
   }
 
   /**
-   * Sets the value of the 'appAttemptId' field.
+   * Sets the value of the 'containerId' field.
    * @param value the value to set.
    */
-  public void setAppAttemptId(java.lang.CharSequence value) {
-    this.appAttemptId = value;
+  public void setContainerId(java.lang.CharSequence value) {
+    this.containerId = value;
+  }
+
+  /**
+   * Gets the value of the 'nodeHttpAddress' field.
+   */
+  public java.lang.CharSequence getNodeHttpAddress() {
+    return nodeHttpAddress;
+  }
+
+  /**
+   * Sets the value of the 'nodeHttpAddress' field.
+   * @param value the value to set.
+   */
+  public void setNodeHttpAddress(java.lang.CharSequence value) {
+    this.nodeHttpAddress = value;
   }
 
   /** Creates a new KattaAndNode RecordBuilder */
@@ -116,9 +154,11 @@ public class KattaAndNode extends org.apache.avro.specific.SpecificRecordBase im
   public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<KattaAndNode>
     implements org.apache.avro.data.RecordBuilder<KattaAndNode> {
 
-    private java.lang.CharSequence nodeName;
+    private java.lang.CharSequence nodeHost;
+    private int nodePort;
     private com.ivyft.katta.yarn.protocol.NodeType type;
-    private java.lang.CharSequence appAttemptId;
+    private java.lang.CharSequence containerId;
+    private java.lang.CharSequence nodeHttpAddress;
 
     /** Creates a new Builder */
     private Builder() {
@@ -128,59 +168,99 @@ public class KattaAndNode extends org.apache.avro.specific.SpecificRecordBase im
     /** Creates a Builder by copying an existing Builder */
     private Builder(com.ivyft.katta.yarn.protocol.KattaAndNode.Builder other) {
       super(other);
-      if (isValidValue(fields()[0], other.nodeName)) {
-        this.nodeName = data().deepCopy(fields()[0].schema(), other.nodeName);
+      if (isValidValue(fields()[0], other.nodeHost)) {
+        this.nodeHost = data().deepCopy(fields()[0].schema(), other.nodeHost);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.type)) {
-        this.type = data().deepCopy(fields()[1].schema(), other.type);
+      if (isValidValue(fields()[1], other.nodePort)) {
+        this.nodePort = data().deepCopy(fields()[1].schema(), other.nodePort);
         fieldSetFlags()[1] = true;
       }
-      if (isValidValue(fields()[2], other.appAttemptId)) {
-        this.appAttemptId = data().deepCopy(fields()[2].schema(), other.appAttemptId);
+      if (isValidValue(fields()[2], other.type)) {
+        this.type = data().deepCopy(fields()[2].schema(), other.type);
         fieldSetFlags()[2] = true;
+      }
+      if (isValidValue(fields()[3], other.containerId)) {
+        this.containerId = data().deepCopy(fields()[3].schema(), other.containerId);
+        fieldSetFlags()[3] = true;
+      }
+      if (isValidValue(fields()[4], other.nodeHttpAddress)) {
+        this.nodeHttpAddress = data().deepCopy(fields()[4].schema(), other.nodeHttpAddress);
+        fieldSetFlags()[4] = true;
       }
     }
     
     /** Creates a Builder by copying an existing KattaAndNode instance */
     private Builder(com.ivyft.katta.yarn.protocol.KattaAndNode other) {
             super(com.ivyft.katta.yarn.protocol.KattaAndNode.SCHEMA$);
-      if (isValidValue(fields()[0], other.nodeName)) {
-        this.nodeName = data().deepCopy(fields()[0].schema(), other.nodeName);
+      if (isValidValue(fields()[0], other.nodeHost)) {
+        this.nodeHost = data().deepCopy(fields()[0].schema(), other.nodeHost);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.type)) {
-        this.type = data().deepCopy(fields()[1].schema(), other.type);
+      if (isValidValue(fields()[1], other.nodePort)) {
+        this.nodePort = data().deepCopy(fields()[1].schema(), other.nodePort);
         fieldSetFlags()[1] = true;
       }
-      if (isValidValue(fields()[2], other.appAttemptId)) {
-        this.appAttemptId = data().deepCopy(fields()[2].schema(), other.appAttemptId);
+      if (isValidValue(fields()[2], other.type)) {
+        this.type = data().deepCopy(fields()[2].schema(), other.type);
         fieldSetFlags()[2] = true;
+      }
+      if (isValidValue(fields()[3], other.containerId)) {
+        this.containerId = data().deepCopy(fields()[3].schema(), other.containerId);
+        fieldSetFlags()[3] = true;
+      }
+      if (isValidValue(fields()[4], other.nodeHttpAddress)) {
+        this.nodeHttpAddress = data().deepCopy(fields()[4].schema(), other.nodeHttpAddress);
+        fieldSetFlags()[4] = true;
       }
     }
 
-    /** Gets the value of the 'nodeName' field */
-    public java.lang.CharSequence getNodeName() {
-      return nodeName;
+    /** Gets the value of the 'nodeHost' field */
+    public java.lang.CharSequence getNodeHost() {
+      return nodeHost;
     }
     
-    /** Sets the value of the 'nodeName' field */
-    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder setNodeName(java.lang.CharSequence value) {
+    /** Sets the value of the 'nodeHost' field */
+    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder setNodeHost(java.lang.CharSequence value) {
       validate(fields()[0], value);
-      this.nodeName = value;
+      this.nodeHost = value;
       fieldSetFlags()[0] = true;
       return this; 
     }
     
-    /** Checks whether the 'nodeName' field has been set */
-    public boolean hasNodeName() {
+    /** Checks whether the 'nodeHost' field has been set */
+    public boolean hasNodeHost() {
       return fieldSetFlags()[0];
     }
     
-    /** Clears the value of the 'nodeName' field */
-    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder clearNodeName() {
-      nodeName = null;
+    /** Clears the value of the 'nodeHost' field */
+    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder clearNodeHost() {
+      nodeHost = null;
       fieldSetFlags()[0] = false;
+      return this;
+    }
+
+    /** Gets the value of the 'nodePort' field */
+    public java.lang.Integer getNodePort() {
+      return nodePort;
+    }
+    
+    /** Sets the value of the 'nodePort' field */
+    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder setNodePort(int value) {
+      validate(fields()[1], value);
+      this.nodePort = value;
+      fieldSetFlags()[1] = true;
+      return this; 
+    }
+    
+    /** Checks whether the 'nodePort' field has been set */
+    public boolean hasNodePort() {
+      return fieldSetFlags()[1];
+    }
+    
+    /** Clears the value of the 'nodePort' field */
+    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder clearNodePort() {
+      fieldSetFlags()[1] = false;
       return this;
     }
 
@@ -191,46 +271,71 @@ public class KattaAndNode extends org.apache.avro.specific.SpecificRecordBase im
     
     /** Sets the value of the 'type' field */
     public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder setType(com.ivyft.katta.yarn.protocol.NodeType value) {
-      validate(fields()[1], value);
+      validate(fields()[2], value);
       this.type = value;
-      fieldSetFlags()[1] = true;
+      fieldSetFlags()[2] = true;
       return this; 
     }
     
     /** Checks whether the 'type' field has been set */
     public boolean hasType() {
-      return fieldSetFlags()[1];
+      return fieldSetFlags()[2];
     }
     
     /** Clears the value of the 'type' field */
     public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder clearType() {
       type = null;
-      fieldSetFlags()[1] = false;
+      fieldSetFlags()[2] = false;
       return this;
     }
 
-    /** Gets the value of the 'appAttemptId' field */
-    public java.lang.CharSequence getAppAttemptId() {
-      return appAttemptId;
+    /** Gets the value of the 'containerId' field */
+    public java.lang.CharSequence getContainerId() {
+      return containerId;
     }
     
-    /** Sets the value of the 'appAttemptId' field */
-    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder setAppAttemptId(java.lang.CharSequence value) {
-      validate(fields()[2], value);
-      this.appAttemptId = value;
-      fieldSetFlags()[2] = true;
+    /** Sets the value of the 'containerId' field */
+    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder setContainerId(java.lang.CharSequence value) {
+      validate(fields()[3], value);
+      this.containerId = value;
+      fieldSetFlags()[3] = true;
       return this; 
     }
     
-    /** Checks whether the 'appAttemptId' field has been set */
-    public boolean hasAppAttemptId() {
-      return fieldSetFlags()[2];
+    /** Checks whether the 'containerId' field has been set */
+    public boolean hasContainerId() {
+      return fieldSetFlags()[3];
     }
     
-    /** Clears the value of the 'appAttemptId' field */
-    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder clearAppAttemptId() {
-      appAttemptId = null;
-      fieldSetFlags()[2] = false;
+    /** Clears the value of the 'containerId' field */
+    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder clearContainerId() {
+      containerId = null;
+      fieldSetFlags()[3] = false;
+      return this;
+    }
+
+    /** Gets the value of the 'nodeHttpAddress' field */
+    public java.lang.CharSequence getNodeHttpAddress() {
+      return nodeHttpAddress;
+    }
+    
+    /** Sets the value of the 'nodeHttpAddress' field */
+    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder setNodeHttpAddress(java.lang.CharSequence value) {
+      validate(fields()[4], value);
+      this.nodeHttpAddress = value;
+      fieldSetFlags()[4] = true;
+      return this; 
+    }
+    
+    /** Checks whether the 'nodeHttpAddress' field has been set */
+    public boolean hasNodeHttpAddress() {
+      return fieldSetFlags()[4];
+    }
+    
+    /** Clears the value of the 'nodeHttpAddress' field */
+    public com.ivyft.katta.yarn.protocol.KattaAndNode.Builder clearNodeHttpAddress() {
+      nodeHttpAddress = null;
+      fieldSetFlags()[4] = false;
       return this;
     }
 
@@ -238,9 +343,11 @@ public class KattaAndNode extends org.apache.avro.specific.SpecificRecordBase im
     public KattaAndNode build() {
       try {
         KattaAndNode record = new KattaAndNode();
-        record.nodeName = fieldSetFlags()[0] ? this.nodeName : (java.lang.CharSequence) defaultValue(fields()[0]);
-        record.type = fieldSetFlags()[1] ? this.type : (com.ivyft.katta.yarn.protocol.NodeType) defaultValue(fields()[1]);
-        record.appAttemptId = fieldSetFlags()[2] ? this.appAttemptId : (java.lang.CharSequence) defaultValue(fields()[2]);
+        record.nodeHost = fieldSetFlags()[0] ? this.nodeHost : (java.lang.CharSequence) defaultValue(fields()[0]);
+        record.nodePort = fieldSetFlags()[1] ? this.nodePort : (java.lang.Integer) defaultValue(fields()[1]);
+        record.type = fieldSetFlags()[2] ? this.type : (com.ivyft.katta.yarn.protocol.NodeType) defaultValue(fields()[2]);
+        record.containerId = fieldSetFlags()[3] ? this.containerId : (java.lang.CharSequence) defaultValue(fields()[3]);
+        record.nodeHttpAddress = fieldSetFlags()[4] ? this.nodeHttpAddress : (java.lang.CharSequence) defaultValue(fields()[4]);
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);

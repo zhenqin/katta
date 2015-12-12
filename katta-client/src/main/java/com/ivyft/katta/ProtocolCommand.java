@@ -20,6 +20,14 @@ import org.I0Itec.zkclient.ZkClient;
 public abstract class ProtocolCommand extends Command {
 
 
+
+    public final static String MASTER = "master";
+
+
+    public final static String NODE = "node";
+
+
+
     public ProtocolCommand(String command, String description) {
         super(command, description);
     }

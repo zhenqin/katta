@@ -6,25 +6,38 @@
 
     "types":[
         {
-                "name":"NodeType",
-                "type":"enum",
-                "symbols" : ["KATTA_MASTER", "KATTA_NODE"]
+             "name":"NodeType",
+             "type":"enum",
+             "symbols" : ["KATTA_MASTER", "KATTA_NODE"]
+        },
+        {
+            "name" : "IdType",
+            "type" : "enum",
+            "symbols" : ["CONTAINER_ID", "NODE_ID"]
         },
         {
              "name":"KattaAndNode",
              "type":"record",
              "fields":[
                  {
-                     "name":"nodeName",
-                     "type":"string"
+                     "name" : "nodeHost",
+                     "type" : "string"
                  },
                  {
-                     "name":"type",
-                     "type":"NodeType"
+                     "name" : "nodePort",
+                     "type" : "int"
                  },
                  {
-                     "name":"appAttemptId",
-                     "type": "string"
+                     "name" : "type",
+                     "type" : "NodeType"
+                 },
+                 {
+                     "name" : "containerId",
+                     "type" : "string"
+                 },
+                 {
+                     "name" : "nodeHttpAddress",
+                     "type" : "string"
                  }
              ]
         }
@@ -39,30 +52,10 @@
                 {"name" : "kattaZip", "type" : ["null", "string"]}],
             "response": "null"
         },
-        "registerMaster" :{
-            "doc":"启动 Master, num默认为1, 2则启动备份 Master",
-            "request": [{"name" : "kattaNode", "type" : "KattaAndNode"}],
-            "response": "null"
-        },
         "listMasters" :{
             "doc":"List Masters",
             "request": [],
             "response": {"type" : "array", "items" : "KattaAndNode"}
-        },
-        "unregisterMaster" :{
-            "doc":"注销 Katta Master",
-            "request": [{"name" : "kattaNode", "type" : "KattaAndNode"}],
-            "response": "null"
-        },
-        "registerNode" :{
-            "doc":"注册 Katta Node",
-            "request": [{"name" : "kattaNode", "type" : "KattaAndNode"}],
-            "response": "null"
-        },
-        "unregisterNode" :{
-            "doc":"注销 Katta Node",
-            "request": [{"name" : "kattaNode", "type" : "KattaAndNode"}],
-            "response": "null"
         },
         "listNodes" :{
             "doc":"List Nodes",
@@ -71,12 +64,17 @@
         },
         "stopMaster" :{
             "doc":"停止 Master",
+            "request": [{"name" : "id", "type" : "string"}, {"name" : "idType", "type" : "IdType"}],
+            "response": "null"
+        },
+        "stopAllMaster" :{
+            "doc":"停止 All Master",
             "request": [],
             "response": "null"
         },
         "stopNode" :{
              "doc":"停止 Node, 指定的 Node",
-             "request": [],
+             "request": [{"name" : "id", "type" : "string"}, {"name" : "idType", "type" : "IdType"}],
              "response": "null"
         },
         "addNode" :{

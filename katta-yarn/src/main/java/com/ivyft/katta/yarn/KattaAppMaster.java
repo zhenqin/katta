@@ -193,18 +193,10 @@ public class KattaAppMaster implements Runnable, org.apache.hadoop.yarn.client.a
 
     public void stop() {
         if(!APP_MASTER_STOPPED) {
-            LOG.info("Stop Katta App Master Avro Server");
-            if (server != null) {
-                try {
-                    server.stop();
-                } catch (Exception e) {
-                    LOG.warn("", e);
-                }
-            }
-
+            APP_MASTER_STOPPED = true;
             LOG.info("Stop Katta Masters");
             try {
-                protocol.stopMaster();
+                protocol.stopAllMaster();
             } catch (AvroRemoteException e) {
                 LOG.warn("", e);
             }
@@ -215,9 +207,16 @@ public class KattaAppMaster implements Runnable, org.apache.hadoop.yarn.client.a
             } catch (AvroRemoteException e) {
                 LOG.warn("", e);
             }
-        }
 
-        APP_MASTER_STOPPED = true;
+            LOG.info("Stop Katta App Master Avro Server");
+            if (server != null) {
+                try {
+                    server.stop();
+                } catch (Exception e) {
+                    LOG.warn("", e);
+                }
+            }
+        }
     }
 
 
@@ -278,10 +277,10 @@ public class KattaAppMaster implements Runnable, org.apache.hadoop.yarn.client.a
     @Override
     public void onContainersCompleted(List<ContainerStatus> statuses) {
         LOG.info("HB: Containers completed (" + statuses.size() + "), so releasing them.");
-        LOG.info(statuses.toString());
 
-        for (ContainerStatus statuse : statuses) {
-            statuse.getContainerId();
+        for (ContainerStatus status : statuses) {
+            LOG.info(status.toString());
+            this.kattaAMRMClient.releaseContainer(status);
         }
     }
 

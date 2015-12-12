@@ -4,6 +4,8 @@ package com.ivyft.katta.yarn;
 
 import com.ivyft.katta.protocol.metadata.Version;
 import com.ivyft.katta.util.KattaConfiguration;
+import com.ivyft.katta.yarn.protocol.KattaAndNode;
+import com.ivyft.katta.yarn.protocol.NodeType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -14,18 +16,18 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.*;
-import org.apache.hadoop.yarn.client.api.NMClient;
+import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.hadoop.yarn.util.Apps;
+import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -46,6 +48,17 @@ import java.util.concurrent.locks.ReentrantLock;
 public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.NMClientAsync.CallbackHandler {
     private static final Logger LOG = LoggerFactory.getLogger(KattaAMRMClient.class);
 
+    private final Map<ContainerId, KattaAndNode> CONTAINERID_NODE_MAP = new ConcurrentHashMap<ContainerId, KattaAndNode>(5);
+
+
+
+    private final Map<ContainerId, KattaAndNode> RUNNING_CONTAINERID_NODE_MAP = new ConcurrentHashMap<ContainerId, KattaAndNode>(5);
+
+
+
+    private final Map<ContainerId, KattaAndNode> COMPILED_CONTAINERID_NODE_MAP = new ConcurrentHashMap<ContainerId, KattaAndNode>(5);
+
+
     private final KattaConfiguration conf;
 
     private final Configuration hadoopConf;
@@ -61,7 +74,7 @@ public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.
 
     private ApplicationAttemptId appAttemptId;
 
-    private NMClient nmClient;
+    private NMClientAsync nmClient;
 
     public KattaAMRMClient(ApplicationAttemptId appAttemptId,
                            KattaConfiguration conf,
@@ -71,9 +84,10 @@ public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.
         this.hadoopConf = hadoopConf;
 
         // start am nm client
-        nmClient = NMClient.createNMClient();
-        nmClient.init(hadoopConf);
-        nmClient.start();
+        this.nmClient = NMClientAsync.createNMClientAsync(this);
+        this.nmClient.init(hadoopConf);
+        this.nmClient.start();
+
 
     }
 
@@ -104,12 +118,48 @@ public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.
             LOCK.lock();
             try {
                 launchKattaMasterOnContainer(currentContainer, kattaZip);
+
+
+                ContainerId containerId = currentContainer.getId();
+                NodeId nodeId = currentContainer.getNodeId();
+
+                KattaAndNode kattaAndNode = new KattaAndNode();
+                kattaAndNode.setType(NodeType.KATTA_MASTER);
+                kattaAndNode.setContainerId(containerId.toString());
+                kattaAndNode.setNodeHost(nodeId.getHost());
+                kattaAndNode.setNodePort(nodeId.getPort());
+                kattaAndNode.setNodeHttpAddress(currentContainer.getNodeHttpAddress());
+
+                CONTAINERID_NODE_MAP.put(containerId, kattaAndNode);
             } finally {
                 currentContainer = null;
                 LOCK.unlock();
             }
         } catch (Exception e) {
             LOG.error("", e);
+        }
+    }
+
+
+    public void stopMaster(KattaAndNode kattaAndNode) throws Exception {
+        stopMaster(kattaAndNode.getContainerId().toString());
+    }
+
+    public void stopMaster(String id) throws Exception {
+        ContainerId containerId = ConverterUtils.toContainerId(id);
+
+        KattaAndNode andNode = RUNNING_CONTAINERID_NODE_MAP.get(containerId);
+        if(andNode == null) {
+            andNode = CONTAINERID_NODE_MAP.get(containerId);
+        }
+
+        NodeId nodeId = NodeId.newInstance(andNode.getNodeHost().toString(), andNode.getNodePort());
+
+        ContainerStatus containerStatus = nmClient.getClient().getContainerStatus(containerId, nodeId);
+        LOG.info(containerStatus.toString());
+
+        if(containerStatus.getState() != ContainerState.COMPLETE) {
+            nmClient.stopContainerAsync(containerId, nodeId);
         }
     }
 
@@ -126,6 +176,19 @@ public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.
             LOCK.lock();
             try {
                 launchKattaNodeOnContainer(currentContainer, kattaZip, solrZip);
+
+                ContainerId containerId = currentContainer.getId();
+                NodeId nodeId = currentContainer.getNodeId();
+
+                KattaAndNode kattaAndNode = new KattaAndNode();
+                kattaAndNode.setType(NodeType.KATTA_NODE);
+                kattaAndNode.setContainerId(containerId.toString());
+                kattaAndNode.setNodeHost(nodeId.getHost());
+                kattaAndNode.setNodePort(nodeId.getPort());
+                kattaAndNode.setNodeHttpAddress(currentContainer.getNodeHttpAddress());
+
+
+                CONTAINERID_NODE_MAP.put(containerId, kattaAndNode);
             } finally {
                 currentContainer = null;
                 LOCK.unlock();
@@ -136,25 +199,82 @@ public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.
     }
 
 
+
+    public List<KattaAndNode> listKattaNodes(NodeType type) {
+        List<KattaAndNode> nodes = new ArrayList<KattaAndNode>(3);
+        Set<Map.Entry<ContainerId, KattaAndNode>> entrySet = RUNNING_CONTAINERID_NODE_MAP.entrySet();
+        for (Map.Entry<ContainerId, KattaAndNode> entry : entrySet) {
+            if(entry.getValue().getType() == type) {
+                nodes.add(entry.getValue());
+            }
+        }
+        return nodes;
+    }
+
+
+
+    /**
+     * Container 运行结束调用
+     * @param status
+     */
+    public void releaseContainer(ContainerStatus status) {
+        ContainerId containerId = status.getContainerId();
+        KattaAndNode kattaAndNode = RUNNING_CONTAINERID_NODE_MAP.get(containerId);
+
+
+        RUNNING_CONTAINERID_NODE_MAP.remove(containerId);
+        if(kattaAndNode == null) {
+            kattaAndNode = CONTAINERID_NODE_MAP.get(containerId);
+        }
+        LOG.info("release container: " + containerId + "    " + kattaAndNode);
+
+        if (null != kattaAndNode) {
+            COMPILED_CONTAINERID_NODE_MAP.put(containerId, kattaAndNode);
+        }
+
+    }
+
     @Override
     public void onContainerStarted(ContainerId containerId, Map<String, ByteBuffer> allServiceResponse) {
-        LOG.info("onContainerStarted: " + containerId.toString());
+        LOG.info("onContainerStarted: " + containerId.toString() + "    " + allServiceResponse);
+
+        KattaAndNode andNode = CONTAINERID_NODE_MAP.get(containerId);
+        if (null != andNode) {
+            RUNNING_CONTAINERID_NODE_MAP.put(containerId, andNode);
+        }
+
+        LOG.info("started container: " + containerId + "    " + andNode);
     }
 
     @Override
     public void onContainerStatusReceived(ContainerId containerId, ContainerStatus containerStatus) {
         LOG.info("onContainerStatusReceived: " + containerId.toString() + "    " + containerStatus);
+
+        KattaAndNode andNode = CONTAINERID_NODE_MAP.get(containerId);
+        LOG.info("received container: " + containerId + "    " + andNode);
     }
 
     @Override
     public void onContainerStopped(ContainerId containerId) {
         LOG.info("onContainerStopped: " + containerId.toString());
+
+        KattaAndNode andNode = CONTAINERID_NODE_MAP.get(containerId);
+        RUNNING_CONTAINERID_NODE_MAP.remove(containerId);
+        if (null != andNode) {
+            COMPILED_CONTAINERID_NODE_MAP.put(containerId, andNode);
+        }
     }
 
     @Override
     public void onStartContainerError(ContainerId containerId, Throwable t) {
         LOG.info("onStartContainerError: " + containerId.toString());
         LOG.warn(ExceptionUtils.getFullStackTrace(t));
+
+        KattaAndNode andNode = CONTAINERID_NODE_MAP.get(containerId);
+        RUNNING_CONTAINERID_NODE_MAP.remove(containerId);
+        if (null != andNode) {
+            COMPILED_CONTAINERID_NODE_MAP.put(containerId, andNode);
+        }
     }
 
     @Override
@@ -254,9 +374,10 @@ public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.
 
         try {
             LOG.info("Use NMClient to launch katta master in container. ");
-            Map<String, ByteBuffer> result = nmClient.startContainer(container, launchContext);
+            nmClient.startContainerAsync(container, launchContext);
+            //Map<String, ByteBuffer> result = nmClient.startContainer(
 
-            LOG.info("luanch result: " + result);
+            //LOG.info("luanch result: " + result);
 
             String userShortName = user.getShortUserName();
             if (userShortName != null)
@@ -361,9 +482,10 @@ public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.
 
         try {
             LOG.info("Use NMClient to launch katta node in container. ");
-            Map<String, ByteBuffer> result = nmClient.startContainer(container, launchContext);
+            nmClient.startContainerAsync(container, launchContext);
+            //Map<String, ByteBuffer> result = nmClient.startContainer(container, launchContext);
 
-            LOG.info("luanch result: " + result);
+            //LOG.info("luanch result: " + result);
 
             String userShortName = user.getShortUserName();
             if (userShortName != null)

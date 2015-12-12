@@ -19,7 +19,6 @@ import com.ivyft.katta.client.*;
 import com.ivyft.katta.lib.lucene.*;
 import com.ivyft.katta.master.Master;
 import com.ivyft.katta.node.IContentServer;
-import com.ivyft.katta.node.Node;
 import com.ivyft.katta.node.monitor.MetricLogger;
 import com.ivyft.katta.node.monitor.MetricLogger.OutputType;
 import com.ivyft.katta.protocol.InteractionProtocol;
@@ -1069,14 +1068,14 @@ public class Katta {
         KattaOnYarn kattaOnYarn = new KattaOnYarn();
         commands.put(kattaOnYarn.getCommand(), kattaOnYarn);
 
-        KattaShutdownYarn kattaShutdownYarn = new KattaShutdownYarn();
-        commands.put(kattaShutdownYarn.getCommand(), kattaShutdownYarn);
+        YarnStartNodes yarnStartNodes = new YarnStartNodes();
+        commands.put(yarnStartNodes.getCommand(), yarnStartNodes);
 
-        YarnStartMaster yarnStartMaster = new YarnStartMaster();
-        commands.put(yarnStartMaster.getCommand(), yarnStartMaster);
+        YarnListNodes yarnListNodes = new YarnListNodes();
+        commands.put(yarnListNodes.getCommand(), yarnListNodes);
 
-        YarnStartNode yarnStartNode = new YarnStartNode();
-        commands.put(yarnStartNode.getCommand(), yarnStartNode);
+        YarnStopNodes yarnStopNodes = new YarnStopNodes();
+        commands.put(yarnStopNodes.getCommand(), yarnStopNodes);
 
         String commandName = null;
         String[] commandArgs = null;
