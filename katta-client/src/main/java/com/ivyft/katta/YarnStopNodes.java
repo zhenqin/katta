@@ -77,11 +77,12 @@ public class YarnStopNodes extends ProtocolCommand {
     public Options getOpts() {
         Options options = new Options();
         options.addOption("appid", "appid", true, "App Id, KattaOnYarn ApplicationMaster ID");
-        options.addOption("c", "containerid", false, "Container ID");
+        options.addOption("c", "containerid", true, "Container ID");
+        options.addOption("n", "nodeid", true, "Node Id, Yarn Node ID");
+
         options.addOption("a", "all", false, "all, shutdown all master.");
         options.addOption("master", "master", false, "Katta Master");
         options.addOption("node", "node", false, "Katta Node");
-        options.addOption("n", "nodeid", false, "Node Id, Yarn Node ID");
         options.addOption("s", false, "print exception");
         return options;
     }
