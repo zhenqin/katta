@@ -43,6 +43,17 @@
              }],
              "response": "string"
         },
+        "fsh" :{
+             "doc":"提交成功, 启动创建索引进程",
+             "request": [{
+                 "name":"indexId",
+                 "type":"string"
+             }, {
+                 "name":"commitId",
+                 "type": "string"
+             }],
+             "response": "null"
+        },
         "roll" :{
              "doc":"提交失败回滚",
              "request": [{

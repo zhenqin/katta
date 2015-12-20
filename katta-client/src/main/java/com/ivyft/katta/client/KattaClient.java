@@ -131,8 +131,28 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
         }
     }
 
+
+
+    @Override
+    public void finish() {
+        if(currentCommitId == null) {
+            throw new IllegalArgumentException("currentCommitId is null, please commit first.");
+        }
+        try {
+             kattaClientProtocol.fsh(indexName, currentCommitId);
+            currentCommitId = null;
+        } catch (AvroRemoteException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+
+
     @Override
     public void rollback() {
+        if(currentCommitId == null) {
+            LOG.warn("currentCommitId is null, rollback all of blck data.");
+        }
         try {
             kattaClientProtocol.roll(indexName, currentCommitId);
             currentCommitId = null;
@@ -147,10 +167,14 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     }
 
     @Override
+    public Void fsh(CharSequence indexId, CharSequence commitId) throws AvroRemoteException {
+        return kattaClientProtocol.fsh(indexId, commitId);
+    }
+
+    @Override
     public Void roll(java.lang.CharSequence indexId, java.lang.CharSequence commitId) throws AvroRemoteException {
         return kattaClientProtocol.roll(indexId, commitId);
     }
-
 
 
     public void close() throws IOException {

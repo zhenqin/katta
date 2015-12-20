@@ -37,7 +37,7 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
 
 
 
-    protected final Map<String, Set<ShardRange>> COMMIT_TIMELINE_MAP = new ConcurrentHashMap<String, Set<ShardRange>>(3);
+    protected final Map<String, CommitShards> COMMIT_TIMELINE_MAP = new ConcurrentHashMap<String, CommitShards>(3);
 
 
 
@@ -164,8 +164,7 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
                 LOG.info("commit path: " + commit.getShardPath());
             }
 
-            COMMIT_TIMELINE_MAP.put(commitId, commits);
-
+            COMMIT_TIMELINE_MAP.put(commitId, new CommitShards(indexId.toString(), commitId, commits));
             return commitId;
         } catch (Exception e) {
             throw new AvroRemoteException(e);
@@ -173,6 +172,25 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
     }
 
 
+    /** 提交成功, 启动创建索引进程 */
+    @Override
+    public java.lang.Void fsh(java.lang.CharSequence indexId, java.lang.CharSequence commitId) throws org.apache.avro.AvroRemoteException {
+        try {
+            CommitShards commitShards = COMMIT_TIMELINE_MAP.get(commitId.toString());
+            if(commitShards != null) {
+                //do something
+
+                //可以提交创建索引了.
+                LOG.info("finished index: "+ indexId + " commit: " + commitId);
+            }
+
+            COMMIT_TIMELINE_MAP.remove(commitId.toString());
+        } catch (Exception e) {
+            throw new AvroRemoteException(e);
+        }
+
+        return null;
+    }
 
     @Override
     public Void roll(java.lang.CharSequence indexId, java.lang.CharSequence commitId) throws AvroRemoteException {
@@ -181,10 +199,11 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
             if(commitId == null) {
                 dataWriter.rollback();
             } else {
-                Set<ShardRange> shardRanges = COMMIT_TIMELINE_MAP.get(commitId.toString());
-                if(shardRanges != null) {
-                    dataWriter.rollback(shardRanges);
+                CommitShards commitShards = COMMIT_TIMELINE_MAP.get(commitId.toString());
+                if(commitShards != null) {
+                    dataWriter.rollback(commitShards.getCommits());
                 }
+                COMMIT_TIMELINE_MAP.remove(commitId.toString());
             }
         } catch (Exception e) {
             throw new AvroRemoteException(e);

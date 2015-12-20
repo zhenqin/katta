@@ -31,6 +31,11 @@ public interface KattaLoader<T> {
     public void commit();
 
 
+
+    public void finish();
+
+
+
     public void rollback();
 
 
