@@ -1,9 +1,13 @@
 package com.ivyft.katta.protocol;
 
 import com.ivyft.katta.lib.writer.DataWriter;
+import com.ivyft.katta.lib.writer.ShardRange;
 import com.ivyft.katta.util.MasterConfiguration;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.apache.avro.AvroRemoteException;
+import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +36,11 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
     protected final Map<String, DataWriter> CACHED_INDEX_DATAWRITER_MAP = new ConcurrentHashMap<String, DataWriter>(3);
 
 
+
+    protected final Map<String, Set<ShardRange>> COMMIT_TIMELINE_MAP = new ConcurrentHashMap<String, Set<ShardRange>>(3);
+
+
+
     protected final Class<? extends DataWriter> aClass;
 
 
@@ -40,14 +49,21 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
 
 
 
+
+    private static Logger LOG = LoggerFactory.getLogger(MasterStorageProtocol.class);
+
+
     public MasterStorageProtocol(MasterConfiguration conf, InteractionProtocol protocol) {
         this.conf = conf;
         this.protocol = protocol;
 
         this.aClass = (Class<? extends DataWriter>) conf.getClass("master.data.writer");
 
+        LOG.info("master.data.writer: " + aClass.getName());
+
         indices.addAll(protocol.getIndices());
         indices.addAll(protocol.getNewIndexs());
+        LOG.info("may blck index: " + indices.toString());
 
         reconnect();
     }
@@ -88,6 +104,11 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
     }
 
 
+    /**
+     * 根据 Index Name 获取该 Index 的 Writer
+     * @param index IndexName
+     * @return 返回该 Index 的 Writer
+     */
     private DataWriter getDataWriter(String index) {
         DataWriter dataWriter = CACHED_INDEX_DATAWRITER_MAP.get(index);
         if(dataWriter == null) {
@@ -98,10 +119,14 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
                 dataWriter = aClass.newInstance();
                 dataWriter.init(conf, protocol, index);
                 CACHED_INDEX_DATAWRITER_MAP.put(index, dataWriter);
+                LOG.info("new index writer instance, index name: " + index);
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
         }
+
+        //已经存在该 Writer, 这里应该检查是否可用, 并且不可用要等待可用
+        //比如正在 commit 索引
 
         return dataWriter;
     }
@@ -111,8 +136,11 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
     @Override
     public int add(Message message) throws AvroRemoteException {
         getDataWriter(message.getIndexId().toString()).write(message.getRowId().toString(), message.getPayload());
-        return new Random().nextInt(10000);
+        return 1;
     }
+
+
+
 
     @Override
     public int addList(List<Message> messages) throws AvroRemoteException {
@@ -123,25 +151,44 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
         return count;
     }
 
+
+
     @Override
-    public Void comm(java.lang.CharSequence indexId) throws AvroRemoteException {
-        System.out.println("=================out===================");
+    public CharSequence comm(java.lang.CharSequence indexId) throws AvroRemoteException {
         try {
-            getDataWriter(indexId.toString()).close();
+            DataWriter dataWriter = getDataWriter(indexId.toString());
+            dataWriter.flush();
+            String commitId = DateTime.now().toString("yyyyMMddHHmmss");
+            Set<ShardRange> commits = dataWriter.commit(commitId);
+            for (ShardRange commit : commits) {
+                LOG.info("commit path: " + commit.getShardPath());
+            }
+
+            COMMIT_TIMELINE_MAP.put(commitId, commits);
+
+            return commitId;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new AvroRemoteException(e);
         }
-        return null;
     }
 
-    @Override
-    public Void roll(java.lang.CharSequence indexId) throws AvroRemoteException {
-        return null;
-    }
+
 
     @Override
-    public Void cls() throws AvroRemoteException {
-        disconnect();
+    public Void roll(java.lang.CharSequence indexId, java.lang.CharSequence commitId) throws AvroRemoteException {
+        try {
+            DataWriter dataWriter = getDataWriter(indexId.toString());
+            if(commitId == null) {
+                dataWriter.rollback();
+            } else {
+                Set<ShardRange> shardRanges = COMMIT_TIMELINE_MAP.get(commitId.toString());
+                if(shardRanges != null) {
+                    dataWriter.rollback(shardRanges);
+                }
+            }
+        } catch (Exception e) {
+            throw new AvroRemoteException(e);
+        }
         return null;
     }
 

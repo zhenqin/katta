@@ -52,6 +52,10 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
 
     private final String indexName;
 
+
+
+    private CharSequence currentCommitId;
+
     /**
      * LOG
      */
@@ -121,7 +125,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     @Override
     public void commit() {
         try {
-            kattaClientProtocol.comm(indexName);
+            currentCommitId = kattaClientProtocol.comm(indexName);
         } catch (AvroRemoteException e) {
             throw new IllegalStateException(e);
         }
@@ -130,25 +134,27 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     @Override
     public void rollback() {
         try {
-            kattaClientProtocol.roll(indexName);
+            kattaClientProtocol.roll(indexName, currentCommitId);
+            currentCommitId = null;
         } catch (AvroRemoteException e) {
             throw new IllegalStateException(e);
         }
     }
 
     @Override
-    public Void comm(java.lang.CharSequence indexId) throws AvroRemoteException {
+    public CharSequence comm(java.lang.CharSequence indexId) throws AvroRemoteException {
         return kattaClientProtocol.comm(indexId);
     }
 
     @Override
-    public Void roll(java.lang.CharSequence indexId) throws AvroRemoteException {
-        return kattaClientProtocol.roll(indexId);
+    public Void roll(java.lang.CharSequence indexId, java.lang.CharSequence commitId) throws AvroRemoteException {
+        return kattaClientProtocol.roll(indexId, commitId);
     }
 
-    @Override
-    public Void cls() throws AvroRemoteException {
-        return kattaClientProtocol.cls();
+
+
+    public void close() throws IOException {
+        t.close();
     }
 
 

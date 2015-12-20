@@ -1,5 +1,6 @@
 package com.ivyft.katta.client;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -31,6 +32,10 @@ public interface KattaLoader<T> {
 
 
     public void rollback();
+
+
+
+    public void close() throws IOException;
 
 
 }

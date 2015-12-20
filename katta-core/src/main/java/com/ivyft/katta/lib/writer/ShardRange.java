@@ -15,7 +15,7 @@ import java.io.Serializable;
  *
  * @author zhenqin
  */
-public class ShardRange implements Serializable {
+public class ShardRange implements Serializable, Cloneable {
 
 
     /**
@@ -100,6 +100,13 @@ public class ShardRange implements Serializable {
         return (range.start >= start) && (range.end <= end);
 
     }
+
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
+
 
     @Override
     public int hashCode() {

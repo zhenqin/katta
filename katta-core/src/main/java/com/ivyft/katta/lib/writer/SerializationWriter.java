@@ -1,6 +1,7 @@
 package com.ivyft.katta.lib.writer;
 
 import com.ivyft.katta.protocol.IntLengthHeaderFile;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,17 +28,51 @@ import java.util.ServiceLoader;
 public class SerializationWriter {
 
 
+    /**
+     * writer
+     */
     private final IntLengthHeaderFile.Writer writer;
 
 
+    /**
+     * File Path
+     */
+    private final Path filePath;
+
+
+    /**
+     * 是否已经 write Meta data
+     */
     private boolean notWriteSerdeContext = true;
+
+
+    /**
+     * 当前 Writer 是否已经关闭
+     */
+    private boolean closed = true;
+
 
 
     protected final static Logger LOG = LoggerFactory.getLogger(SerializationWriter.class);
 
 
-    public SerializationWriter(IntLengthHeaderFile.Writer writer) {
+    /**
+     *
+     * writeMeta default true
+     *
+     * @param writer writer
+     */
+    public SerializationWriter(IntLengthHeaderFile.Writer writer, Path filePath) {
+        this(writer, filePath, true);
+    }
+
+
+
+    public SerializationWriter(IntLengthHeaderFile.Writer writer, Path filePath, boolean writeMeta) {
         this.writer = writer;
+        this.filePath = filePath;
+        closed = false;
+        notWriteSerdeContext = writeMeta;
     }
 
 
@@ -64,6 +99,11 @@ public class SerializationWriter {
     }
 
 
+    /**
+     * Write Message
+     * @param message 消息实体
+     * @throws IOException
+     */
     public void write(ByteBuffer message) throws IOException {
         if(notWriteSerdeContext) {
             writeSerdeContext();
@@ -71,14 +111,32 @@ public class SerializationWriter {
         writer.write(message);
     }
 
+
+
     public void flush() throws IOException {
         writer.flush();
     }
 
+
+
     public void close() throws IOException {
         writer.close();
+        closed = true;
     }
 
+
+    public Path getFilePath() {
+        return filePath;
+    }
+
+    public boolean isClosed() {
+        return closed;
+    }
+
+
+    public boolean isOpened() {
+        return !closed;
+    }
 
     public static void main(String[] args) {
         Iterator iterator = ServiceLoader.load(Serialization.class).iterator();

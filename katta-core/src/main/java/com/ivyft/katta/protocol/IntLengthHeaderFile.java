@@ -182,8 +182,8 @@ public class IntLengthHeaderFile {
             if(message.limit() == message.capacity() && message.position() > 0) {
                 message.flip();
             }
-            System.out.println("capacity: " + message.capacity() + " limit:" +
-                    message.limit() + " position: " + message.position());
+//            System.out.println("capacity: " + message.capacity() + " limit:" +
+//                    message.limit() + " position: " + message.position());
             out.writeInt(message.limit());
             out.write(message.array());
         }

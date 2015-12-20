@@ -41,19 +41,17 @@
                  "name":"indexId",
                  "type":"string"
              }],
-             "response": "null"
+             "response": "string"
         },
         "roll" :{
              "doc":"提交失败回滚",
              "request": [{
                  "name":"indexId",
                  "type":"string"
+             }, {
+                 "name":"commitId",
+                 "type":["null", "string"]
              }],
-             "response": "null"
-        },
-        "cls" :{
-             "doc":"关闭接口",
-             "request": [],
              "response": "null"
         }
     }
