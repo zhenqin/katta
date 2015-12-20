@@ -1,5 +1,6 @@
 package com.ivyft.katta.lib.writer;
 
+import com.ivyft.katta.codec.Serializer;
 import com.ivyft.katta.protocol.IntLengthHeaderFile;
 import com.ivyft.katta.util.HadoopUtil;
 import org.apache.hadoop.fs.Path;
@@ -8,7 +9,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -31,7 +31,7 @@ public class SerializationReader {
     private IntLengthHeaderFile.Reader reader;
 
 
-    private SerdeContext serdeContext;
+    private final SerdeContext serdeContext;
 
 
     protected final static Logger LOG = LoggerFactory.getLogger(SerializationReader.class);
@@ -40,16 +40,7 @@ public class SerializationReader {
     public SerializationReader(IntLengthHeaderFile.Reader reader) {
         this.reader = reader;
         try {
-            readSerdeContext();
-        } catch (IOException e) {
-            throw new IllegalStateException("读取序列化上下文出错, 或者该文件不是 Katta 生成的序列化文件.", e);
-        }
-    }
-
-
-    protected void readSerdeContext() throws IOException {
-        SerdeContext context = new SerdeContext();
-        if(serdeContext == null) {
+            SerdeContext context = new SerdeContext();
             int available = reader.available();
 
             reader.hasNext();
@@ -60,8 +51,10 @@ public class SerializationReader {
             LOG.info("Serialization class: " + context.getSerClass());
             context.setSize(available);
 
+            this.serdeContext = context;
+        } catch (IOException e) {
+            throw new IllegalStateException("读取序列化上下文出错, 或者该文件不是 Katta 生成的序列化文件.", e);
         }
-        this.serdeContext = context;
     }
 
 
@@ -69,8 +62,7 @@ public class SerializationReader {
         if(reader.hasNext()) {
             return reader.nextByteBuffer();
         }
-
-        throw new EOFException("end file.");
+        return null;
     }
 
     public SerdeContext getSerdeContext() {
@@ -83,10 +75,24 @@ public class SerializationReader {
     }
 
 
-    public static void main(String[] args) throws IOException {
-        Path p = new Path("/user/katta/data/test/2/bggtf09-ojih65f-151207004525-data.dat");
+    public static void main(String[] args) throws Exception {
+        Path p = new Path("/user/katta/data/hello/4Nx6WBy6nO6QsMr1Hok/commit-20151220205414/dfbc784bfd7e-20151220205410-data.dat");
         IntLengthHeaderFile.Reader reader = new IntLengthHeaderFile.Reader(HadoopUtil.getFileSystem(p), p);
         SerializationReader r = new SerializationReader(reader);
-        System.out.println(r.getSerdeContext());
+        SerdeContext context = r.getSerdeContext();
+        System.out.println(context);
+
+        Class<Serialization> aClass = (Class<Serialization>) Class.forName(context.getSerClass());
+        Serializer serializer = aClass.newInstance().serialize();
+
+        int count = 1;
+        ByteBuffer byteBuffer = r.nextByteBuffer();
+        while (byteBuffer != null) {
+            System.out.println(count + "   " + serializer.deserialize(byteBuffer.array()));
+            count++;
+
+            byteBuffer = r.nextByteBuffer();
+        }
+        r.close();
     }
 }
