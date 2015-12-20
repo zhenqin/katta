@@ -182,6 +182,8 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
 
                 //可以提交创建索引了.
                 LOG.info("finished index: "+ indexId + " commit: " + commitId);
+
+                throw new IllegalStateException("unsupport finish option.");
             }
 
             COMMIT_TIMELINE_MAP.remove(commitId.toString());
