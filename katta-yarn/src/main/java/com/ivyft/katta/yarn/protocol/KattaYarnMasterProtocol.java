@@ -5,6 +5,7 @@ import com.ivyft.katta.yarn.KattaAMRMClient;
 import com.ivyft.katta.yarn.KattaAppMaster;
 import com.ivyft.katta.yarn.Shutdown;
 import org.apache.avro.AvroRemoteException;
+import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +42,6 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
 
 
 
-
     public KattaYarnMasterProtocol(KattaConfiguration conf, KattaAMRMClient amrmClient) {
         this.conf = conf;
         this.kattaAMRMClient = amrmClient;
@@ -69,7 +69,8 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
     @Override
     public Void stopMaster(java.lang.CharSequence id, com.ivyft.katta.yarn.protocol.IdType idType) throws AvroRemoteException {
         try {
-            kattaAMRMClient.stopMaster(id.toString());
+            ContainerId containerId = kattaAMRMClient.stop(id.toString());
+            appMaster.releaseContainer(containerId);
         } catch (Exception e) {
             throw new AvroRemoteException(e);
         }
@@ -87,6 +88,12 @@ public class KattaYarnMasterProtocol implements KattaYarnProtocol {
 
     @Override
     public Void stopNode(java.lang.CharSequence id, com.ivyft.katta.yarn.protocol.IdType idType) throws AvroRemoteException {
+        try {
+            ContainerId containerId = kattaAMRMClient.stop(id.toString());
+            appMaster.releaseContainer(containerId);
+        } catch (Exception e) {
+            throw new AvroRemoteException(e);
+        }
         return null;
     }
 

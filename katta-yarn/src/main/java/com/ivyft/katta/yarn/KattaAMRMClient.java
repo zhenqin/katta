@@ -141,29 +141,6 @@ public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.
     }
 
 
-    public void stopMaster(KattaAndNode kattaAndNode) throws Exception {
-        stopMaster(kattaAndNode.getContainerId().toString());
-    }
-
-    public void stopMaster(String id) throws Exception {
-        ContainerId containerId = ConverterUtils.toContainerId(id);
-
-        KattaAndNode andNode = RUNNING_CONTAINERID_NODE_MAP.get(containerId);
-        if(andNode == null) {
-            andNode = CONTAINERID_NODE_MAP.get(containerId);
-        }
-
-        NodeId nodeId = NodeId.newInstance(andNode.getNodeHost().toString(), andNode.getNodePort());
-
-        ContainerStatus containerStatus = nmClient.getClient().getContainerStatus(containerId, nodeId);
-        LOG.info(containerStatus.toString());
-
-        if(containerStatus.getState() != ContainerState.COMPLETE) {
-            nmClient.stopContainerAsync(containerId, nodeId);
-        }
-    }
-
-
     /**
      * 启动 Yarn Katta Node
      *
@@ -198,6 +175,62 @@ public class KattaAMRMClient implements org.apache.hadoop.yarn.client.api.async.
         }
     }
 
+
+
+    /**
+     * Stop Master
+     * @param kattaAndNode
+     * @return
+     * @throws Exception
+     */
+    public ContainerId stopMaster(KattaAndNode kattaAndNode) throws Exception {
+        if(kattaAndNode.getType() != NodeType.KATTA_MASTER) {
+            throw new IllegalArgumentException("unknown stop master, " + kattaAndNode);
+        }
+        return stop(kattaAndNode.getContainerId().toString());
+    }
+
+
+
+    /**
+     * Stop Node
+     * @param kattaAndNode
+     * @return
+     * @throws Exception
+     */
+    public ContainerId stopNode(KattaAndNode kattaAndNode) throws Exception {
+        if(kattaAndNode.getType() != NodeType.KATTA_NODE) {
+            throw new IllegalArgumentException("unknown stop node, " + kattaAndNode);
+        }
+        return stop(kattaAndNode.getContainerId().toString());
+    }
+
+
+    /**
+     *
+     * @param container
+     * @return
+     * @throws Exception
+     */
+    public ContainerId stop(String container) throws Exception {
+        ContainerId containerId = ConverterUtils.toContainerId(container);
+
+        KattaAndNode andNode = RUNNING_CONTAINERID_NODE_MAP.get(containerId);
+        if(andNode == null) {
+            andNode = CONTAINERID_NODE_MAP.get(containerId);
+        }
+
+        NodeId nodeId = NodeId.newInstance(andNode.getNodeHost().toString(), andNode.getNodePort());
+
+        ContainerStatus containerStatus = nmClient.getClient().getContainerStatus(containerId, nodeId);
+        LOG.info(containerStatus.toString());
+
+//        if(containerStatus.getState() != ContainerState.COMPLETE) {
+//            nmClient.stopContainerAsync(containerId, nodeId);
+//        }
+
+        return containerId;
+    }
 
 
     public List<KattaAndNode> listKattaNodes(NodeType type) {

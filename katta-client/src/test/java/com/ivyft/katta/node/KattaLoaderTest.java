@@ -34,16 +34,16 @@ public class KattaLoaderTest {
         LuceneClient client = new LuceneClient(new ZkConfiguration());
         KattaLoader<Object> test = client.getKattaLoader("hello");
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100; i++) {
             System.out.println(test.addBean("java" + i, "hello" + new Random().nextInt()));
         }
-        //test.commit();
+        test.commit();
     }
 
 
     @Test
     public void testSend() throws Exception {
-        KattaLoader<String> loader = new KattaClient<String>("zhenqin-pro102", 8440, "ts");
+        KattaLoader<String> loader = new KattaClient<String>("zhenqin-pro102", 8440, "hello");
         for (int i = 0; i < 10000; i++) {
             System.out.println(loader.addBean("java" + i, "hello" + new Random().nextInt()));
         }

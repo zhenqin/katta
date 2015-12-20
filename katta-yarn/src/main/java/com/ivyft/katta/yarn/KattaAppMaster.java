@@ -268,12 +268,26 @@ public class KattaAppMaster implements Runnable, org.apache.hadoop.yarn.client.a
                 null, // String[] racks,
                 DEFAULT_PRIORITY);
 
-        LOG.info("开始准备申请内存: " + req.toString());
+        LOG.info("开始准备申请Container: " + req.toString());
 
         this.client.addContainerRequest(req);
     }
 
 
+    /**
+     * 释放 Yarn Container
+     * @param containerId container id
+     */
+    public synchronized void releaseContainer(ContainerId containerId) {
+        LOG.info("释放Container, Container ID: " + containerId.toString());
+        this.client.releaseAssignedContainer(containerId);
+    }
+
+
+    /**
+     * 当某个 Container 结束时调用
+     * @param statuses
+     */
     @Override
     public void onContainersCompleted(List<ContainerStatus> statuses) {
         LOG.info("HB: Containers completed (" + statuses.size() + "), so releasing them.");
@@ -286,7 +300,7 @@ public class KattaAppMaster implements Runnable, org.apache.hadoop.yarn.client.a
 
     @Override
     public void onContainersAllocated(List<Container> containers) {
-        LOG.info("已申请到内存: " + containers.size());
+        LOG.info("已申请到Container: " + containers.size());
         LOG.info(containers.toString());
 
         this.kattaAMRMClient.addAllocatedContainers(containers);
