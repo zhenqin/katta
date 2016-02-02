@@ -309,6 +309,7 @@ public class DefaultDataWriter extends DataWriter implements Runnable {
     @Override
     protected Set<ShardRange> reset(String actionName, String commitId) {
         Set<ShardRange> aShardRanges = new HashSet<ShardRange>(SHARD_RANGE_MAP.size());
+        //锁定写入的数据, 防止正在创建 commit 还有写的情况
         LOCK.lock();
         try {
             LOG.info(this.indexName + " index data writer locked");
@@ -362,6 +363,8 @@ public class DefaultDataWriter extends DataWriter implements Runnable {
             throw new IllegalStateException(e);
         } finally {
             LOCK.unlock();
+
+            //结束锁定写入, 立即激活在写入的线程
             LOG.info(this.indexName + " index data writer unlocked");
             synchronized (this) {
                 this.notifyAll();
