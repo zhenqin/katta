@@ -1,6 +1,7 @@
 package com.ivyft.katta.lib.lucene;
 
 import com.ivyft.katta.util.NodeConfiguration;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +68,7 @@ public class DefaultCloseIndexSearcherPolicy implements CloseIndexSearcherPolicy
         long now = System.currentTimeMillis();
         int ref = handle.refCount();
 
-        LOG.info("now - lastVisited = " + (now - lastVisited));
+        LOG.debug("lastVisited = {}", new DateTime(lastVisited).toString("yyyy-mm-dd HH:mm:ss"));
         if(ref == 0 && (now - lastVisited >= MINUTE * closeSearcherMinutes)) {
             handle.closeIndexSearcher();
             return true;
