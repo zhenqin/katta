@@ -4,7 +4,7 @@
 
     <groupId>com.ivyft.katta</groupId>
     <artifactId>katta-hadoop</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
     <packaging>jar</packaging>
 
     <name>Katta Hadoop Adapter</name>
@@ -14,14 +14,14 @@
     <parent>
         <groupId>com.ivyft.katta</groupId>
         <artifactId>katta</artifactId>
-        <version>1.4.0</version>
+        <version>1.5.0</version>
     </parent>
 
     <dependencies>
         <dependency>
             <groupId>com.ivyft.katta</groupId>
             <artifactId>katta-core</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.0</version>
         </dependency>
     </dependencies>
 
