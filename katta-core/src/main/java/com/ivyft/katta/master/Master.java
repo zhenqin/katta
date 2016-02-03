@@ -268,6 +268,8 @@ public class Master implements ConnectedComponent {
             //启动一个线程，监控所有变动
             this.operatorThread = new OperatorThread(masterContext,
                     this.safeModeMaxTime);
+            this.operatorThread.setName("MasterOperatorThread");
+            this.operatorThread.setDaemon(true);
             this.operatorThread.start();
         }
     }

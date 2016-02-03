@@ -161,6 +161,7 @@ public class BlockingQueue<T extends Serializable> {
      */
     public T remove() throws InterruptedException {
         Element<T> element = getFirstElement();
+        log.info("remove {}", element.toString());
         this.zkClient.delete(getElementPath(element.getName()));
         return element.getData();
     }

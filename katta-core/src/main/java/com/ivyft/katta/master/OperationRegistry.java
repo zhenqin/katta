@@ -67,7 +67,10 @@ public class OperationRegistry {
 
 
     /**
+     *
      * 完成一个事件上一次未完成的事件
+     *
+     *
      * @param watchdog 事件
      */
     public synchronized void watchFor(OperationWatchdog watchdog) {

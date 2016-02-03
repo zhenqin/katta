@@ -117,6 +117,7 @@ class OperatorThread extends Thread {
             while (true) {
                 try {
                     //TODO Master 全局的操作
+                    //取出一个操作
                     MasterOperation operation = _queue.peek();
                     List<OperationId> nodeOperationIds = null;
                     try {
@@ -129,12 +130,14 @@ class OperatorThread extends Thread {
                         ExceptionUtil.rethrowInterruptedException(e);
                         LOG.error("failed to execute " + operation, e);
                     }
+
                     if (nodeOperationIds != null && !nodeOperationIds.isEmpty()) {
                         OperationWatchdog watchdog = _queue.moveOperationToWatching(operation, nodeOperationIds);
 
                         //发布一个事件，立即监听各个Node的执行结果
                         _registry.watchFor(watchdog);
                     } else {
+                        //该操作执行完成后, 移除该操作
                         _queue.remove();
                     }
                 } catch (InterruptedException e) {
