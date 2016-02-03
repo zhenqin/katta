@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -37,15 +39,51 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class SearcherHandle {
 
+
+    /**
+     * 创建该索引的 SearcherFactory
+     */
+    private final ISeacherFactory seacherFactory;
+
+
+    /**
+     * 索引存储的目录
+     */
+    private final URI shardDir;
+
+
+    /**
+     * 索引名称
+     */
+    private final String collectionName;
+
+
+    /**
+     * 索引名称, Shard Name
+     */
+    private final String shardName;
+
+
+    /**
+     *
+     * 当前所有是否已经关闭
+     *
+     */
+    private final AtomicBoolean closed = new AtomicBoolean(true);
+
+
+    /**
+     * 最后访问索引的时间
+     */
+    private long lastVisited = 0;
+
+
+
     /**
      * Shard的Lucene IndexSearcher
      */
     private volatile IndexSearcher indexSearcher;
 
-    /**
-     * 一个同步的锁
-     */
-    private final Object _lock = new Object();
 
 
     /**
@@ -57,82 +95,190 @@ public class SearcherHandle {
     /**
      * Log
      */
-    private static Logger log = LoggerFactory.getLogger(SearcherHandle.class);
+    private static Logger LOG = LoggerFactory.getLogger(SearcherHandle.class);
 
 
     /**
      *
-     * @param indexSearcher
+     * @param seacherFactory
+     * @param shardName
+     * @param shardDir
      */
-    public SearcherHandle(IndexSearcher indexSearcher) {
-        this.indexSearcher = indexSearcher;
+    public SearcherHandle(ISeacherFactory seacherFactory, String collectionName, String shardName, URI shardDir) {
+        this.seacherFactory = seacherFactory;
+        this.shardDir = shardDir;
+        this.shardName = shardName;
+        this.collectionName = collectionName;
     }
 
+
     /**
+     *
+     * 初始化索引
+     *
+     * @return 初始化成功, 返回. 也可使用 context.this.IndexSearcher
+     */
+    protected IndexSearcher initIndexSearch() {
+        try {
+            this.indexSearcher = this.seacherFactory.createSearcher(shardName, shardDir);
+            LOG.info("createSearcher, shardDir: " + shardDir);
+            this.lastVisited = System.currentTimeMillis();
+            return this.indexSearcher;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+
+    /**
+     *
      * Returns the IndexSearcher and increments the usage count.
      * finishSearcher() must be called once after each call to getSearcher().
      *
      * @return the searcher
      */
-    public IndexSearcher getSearcher() {
-        synchronized (_lock) {
-            if (_refCount.get() < 0) {
+    public synchronized IndexSearcher getSearcher() {
+        //_refCount 如果是0, 则表示长时间没有访问而关闭的, 如果是-1, 则代表 Node 将要 shutdown
+        if(this.indexSearcher == null) {
+            if(_refCount.get() >= 0) {
+                initIndexSearch();
+            } else {
                 return null;
             }
-            _refCount.incrementAndGet();
         }
+        _refCount.incrementAndGet();
+        this.lastVisited = System.currentTimeMillis();
         return this.indexSearcher;
     }
 
+
+
     /**
+     *
      * Decrements the searcher usage count.
+     *
      */
-    public void finishSearcher() {
-        synchronized (_lock) {
-            _refCount.decrementAndGet();
+    public synchronized void finishSearcher() {
+        _refCount.decrementAndGet();
+    }
+
+
+
+    public boolean isClosed() {
+        return closed.get();
+    }
+
+
+
+    public int refCount() {
+        return _refCount.get();
+    }
+
+
+
+    public long getLastVisited() {
+        return lastVisited;
+    }
+
+
+    public ISeacherFactory getSeacherFactory() {
+        return seacherFactory;
+    }
+
+    public URI getShardDir() {
+        return shardDir;
+    }
+
+    public String getCollectionName() {
+        return collectionName;
+    }
+
+    public String getShardName() {
+        return shardName;
+    }
+
+
+
+    /**
+     *
+     * @param policy
+     */
+    public synchronized void closeWithPolicy(String name, CloseIndexSearcherPolicy policy)
+            throws IOException {
+        LOG.info("start close index: " + name + " index searcher.");
+        boolean close = policy.close(name, this);
+        closed.set(close);
+        LOG.info("close index: " + name + " index searcher result: " + close);
+        //已经关闭了 IndexSearcher
+        if(close) {
+            _refCount.set(0);
+            this.indexSearcher = null;
         }
     }
 
+
     /**
+     * Policy Close IndexSearcher
+     *
+     * @throws IOException
+     */
+    public synchronized void closeIndexSearcher() throws IOException {
+        this.indexSearcher.getIndexReader().close();
+    }
+
+
+
+    /**
+     *
+     *
      * Spins until the searcher is no longer in use, then closes it.
+     *
      * @param name name只是用户打印日志用
      * @throws IOException on IndexSearcher close failure
+     *
      */
-    public void closeSearcher(String name) throws IOException {
+    public synchronized void closeSearcher(String name) throws IOException {
         int times = 0;
         while (true) {
-            synchronized (_lock) {
-                if (_refCount.get() == 0) {
-                    try {
-                        this.indexSearcher.getIndexReader().close();
-                        log.info("closed " + name + " IndexSearcher.");
-                    } catch (Exception e) {
-                        log.error(ExceptionUtils.getFullStackTrace(e));
-                    }
-                    this.indexSearcher = null;
-                    _refCount.set(-1);
-                    return;
-                } else if(times >= 5) {
-                    try {
-                        this.indexSearcher.getIndexReader().close();
-                        log.info("closed " + name + " IndexSearcher, refCount: " + _refCount.get());
-                    } catch (Exception e) {
-                        log.error(ExceptionUtils.getFullStackTrace(e));
-                    }
-
-                    this.indexSearcher = null;
-                    _refCount.set(-1);
-                    return;
-                } else {
-                    times++;
-                    log.info("close " + name + " IndexSearcher, refCount: " +
-                            _refCount.get() + " retry " + (5 - times));
-                }
+            if(indexSearcher == null) {
+                return;
             }
+            if (_refCount.get() == 0) {
+                try {
+                    closeIndexSearcher();
+                    LOG.info("closed " + name + " IndexSearcher.");
+                    closed.set(true);
+                } catch (Exception e) {
+                    LOG.error(ExceptionUtils.getFullStackTrace(e));
+                }
+                this.indexSearcher = null;
+                _refCount.set(-1);
+                return;
+            } else if (times >= 5) {
+                try {
+                    closeIndexSearcher();
+                    closed.set(true);
+                    LOG.info("closed " + name + " IndexSearcher, refCount: " + _refCount.get());
+                } catch (Exception e) {
+                    LOG.error(ExceptionUtils.getFullStackTrace(e));
+                }
+
+                this.indexSearcher = null;
+                _refCount.set(-1);
+                return;
+            } else {
+                times++;
+                LOG.info("close " + name + " IndexSearcher, refCount: " +
+                        _refCount.get() + " retry " + (5 - times));
+            }
+
             try {
                 Thread.sleep(LuceneServer.INDEX_HANDLE_CLOSE_SLEEP_TIME);
             } catch (InterruptedException e) {
+                Thread.interrupted();
             }
         }
+
     }
 }

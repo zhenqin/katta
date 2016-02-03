@@ -36,7 +36,6 @@ import org.apache.lucene.facet.range.RangeFacetRequest;
 import org.apache.lucene.facet.search.FacetResult;
 import org.apache.lucene.facet.search.FacetResultNode;
 import org.apache.lucene.facet.search.FacetsCollector;
-import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.queries.function.ValueSource;
@@ -99,6 +98,15 @@ public class LuceneServer implements IContentServer, ILuceneServer {
     public final static String CONF_KEY_SEARCHER_FACTORY_CLASS = "lucene.searcher.factory-class";
 
 
+    /**
+     * 关闭 IndexSearcher 的 Policy
+     */
+    public final static String CONF_KEY_SEARCHER_CLOSE_POLICY_CLASS = "lucene.searcher.close.policy-class";
+
+
+    /**
+     * 搜索时, 超时控制
+     */
     public final static String CONF_KEY_COLLECTOR_TIMOUT_PERCENTAGE = "lucene.collector.timeout-percentage";
 
 
@@ -196,18 +204,25 @@ public class LuceneServer implements IContentServer, ILuceneServer {
 
 
 
-    private float timeoutPercentage = 0.75f;
+    protected float timeoutPercentage = 0.75f;
 
 
     /**
      * Lucene在Facet时缓存大小
      */
-    private double facetCacheMB = 64d;
+    protected double facetCacheMB = 64d;
+
 
     /**
      * 负责创建Lucene索引的Factory工厂类
      */
-    private ISeacherFactory seacherFactory;
+    protected ISeacherFactory seacherFactory;
+
+
+    /**
+     * 关闭长期不用的 IndexSearcher, 以释放资源
+     */
+    protected CloseIndexSearcherPolicy closeIndexSearcherPolicy;
 
 
     /**
@@ -256,14 +271,19 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                 nodeConfiguration.getClass(
                 CONF_KEY_SEARCHER_FACTORY_CLASS, DefaultSearcherFactory.class));
 
+
+         this.closeIndexSearcherPolicy = (CloseIndexSearcherPolicy) ClassUtil.newInstance(
+                nodeConfiguration.getClass(
+                        CONF_KEY_SEARCHER_CLOSE_POLICY_CLASS, DefaultCloseIndexSearcherPolicy.class));
+
         this.timeoutPercentage = nodeConfiguration.getFloat(CONF_KEY_COLLECTOR_TIMOUT_PERCENTAGE, this.timeoutPercentage);
 
         if (this.timeoutPercentage < 0 || this.timeoutPercentage > 1) {
             throw new IllegalArgumentException("illegal value '" + this.timeoutPercentage + "' for "
                     + CONF_KEY_COLLECTOR_TIMOUT_PERCENTAGE + ". Only values between 0 and 1 are allowed.");
         }
-        int coreSize = nodeConfiguration.getInt(CONF_KEY_SEARCHER_THREADPOOL_CORESIZE, 25);
-        int maxSize = nodeConfiguration.getInt(CONF_KEY_SEARCHER_THREADPOOL_MAXSIZE, 100);
+        int coreSize = nodeConfiguration.getInt(CONF_KEY_SEARCHER_THREADPOOL_CORESIZE, 10);
+        int maxSize = nodeConfiguration.getInt(CONF_KEY_SEARCHER_THREADPOOL_MAXSIZE, coreSize * 8);
         this.facetCacheMB = nodeConfiguration.getDouble(FACET_CACHE_MB, 64.0D);
 
 
@@ -295,7 +315,54 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         searchTimerThread.setDaemon(true);
         searchTimerThread.setName("TimeLimitingThread");
         searchTimerThread.start();
+
+
+
+        CloseIndexSearcherThread closeIndexSearcherThread = new CloseIndexSearcherThread("CloseIndexSearcherThread");
+        closeIndexSearcherThread.setDaemon(true);
+        closeIndexSearcherThread.start();
+
     }
+
+
+    class CloseIndexSearcherThread extends Thread {
+
+
+        public CloseIndexSearcherThread(String name) {
+            super(name);
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    LOG.info("notify close index searcher thread...");
+                    for (Map.Entry<String, SearcherHandle> entry : searcherHandlesByShard.entrySet()) {
+                        try {
+                            entry.getValue().closeWithPolicy(entry.getKey(), LuceneServer.this.closeIndexSearcherPolicy);
+                        } catch (Exception e) {
+                            LOG.error("close " + entry.getKey() + " index searcher, print error: ", e);
+                        }
+                    }
+
+                    synchronized (this) {
+                        try {
+                            //睡眠一分钟
+                            this.wait(5 * 60 * 1000L);
+                        } catch (InterruptedException e) {
+                            LOG.warn("interrupt " + this.getName() + ", @@@");
+                            return;
+                        }
+                    }
+
+                } catch (Exception e) {
+                    LOG.warn(this.getName() + " error print: ", e);
+                }
+            }
+        }
+    }
+
+
 
 
     /**
@@ -328,17 +395,17 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                          final String collectionName) throws IOException {
         LOG.info("LuceneServer " + this.nodeName + " got shard " + shardName);
         try {
-            IndexSearcher indexSearcher = this.seacherFactory.createSearcher(shardName, shardDir);
-            searcherHandlesByShard.put(shardName, new SearcherHandle(indexSearcher));
+            searcherHandlesByShard.put(shardName,
+                    new SearcherHandle(seacherFactory, collectionName, shardName, shardDir));
 
             LOG.info("collectionName: " + collectionName);
             SolrHandler solrHandler = new SolrHandler(shardName, collectionName);
             LOG.info("solr core is null: " + (solrHandler.getSolrCore() == null));
 
             shardBySolrPath.put(shardName, solrHandler);
-        } catch (CorruptIndexException e) {
+        } catch (Exception e) {
             LOG.error("Error building index for shard " + shardName, e);
-            throw e;
+            throw new IOException(e);
         }
     }
 
@@ -387,8 +454,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
      */
     protected int shardSize(String shardName) {
         SearcherHandle handle = getSearcherHandleByShard(shardName);
-        IndexSearcher searcher = handle.getSearcher();
         try {
+            IndexSearcher searcher = handle.getSearcher();
             if (searcher != null) {
                 int size = searcher.getIndexReader().numDocs();
                 if (LOG.isDebugEnabled()) {
@@ -1193,8 +1260,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                            int docId,
                            String[] fieldNames) throws IOException {
         SearcherHandle handle = getSearcherHandleByShard(shardName);
-        IndexSearcher searcher = handle.getSearcher();
         try {
+            IndexSearcher searcher = handle.getSearcher();
             if (searcher != null) {
                 if (fieldNames == null) {
                     return searcher.doc(docId);
@@ -1225,8 +1292,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                            int[] docIds,
                            String[] fieldNames) throws IOException {
         SearcherHandle handle = getSearcherHandleByShard(shardName);
-        IndexSearcher searcher = handle.getSearcher();
         try {
+            IndexSearcher searcher = handle.getSearcher();
             if (searcher != null) {
                 if (fieldNames == null) {
                     List<Document> docs = new LinkedList<Document>();
@@ -1289,9 +1356,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         @Override
         public SearchResult call() throws Exception {
             SearcherHandle handle = getSearcherHandleByShard(shardName);
-            IndexSearcher searcher = handle.getSearcher();
-
             try {
+                IndexSearcher searcher = handle.getSearcher();
                 if (searcher == null) {
                     LOG.warn(String.format("Search attempt for shard %s skipped because shard was closed; empty result returned",
                             shardName));
@@ -1377,8 +1443,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         @Override
         public Result call() throws Exception {
             SearcherHandle handle = getSearcherHandleByShard(shardName);
-            IndexSearcher searcher = handle.getSearcher();
             try {
+                IndexSearcher searcher = handle.getSearcher();
                 if (searcher == null) {
                     LOG.warn(String.format("Search attempt for shard %s skipped because shard was closed; empty result returned",
                             shardName));
@@ -1468,8 +1534,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         @Override
         public Group<T> call() throws Exception {
             SearcherHandle handle = getSearcherHandleByShard(shardName);
-            IndexSearcher searcher = handle.getSearcher();
             try {
+                IndexSearcher searcher = handle.getSearcher();
                 if (searcher == null) {
                     LOG.warn(String.format("Search attempt for shard %s " +
                             "skipped because shard was closed; empty result returned",
@@ -1556,8 +1622,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         @Override
         public Facet<T> call() throws Exception {
             SearcherHandle handle = getSearcherHandleByShard(shardName);
-            IndexSearcher searcher = handle.getSearcher();
             try {
+                IndexSearcher searcher = handle.getSearcher();
                 if (searcher == null) {
                     LOG.warn(String.format("Search attempt for shard %s " +
                             "skipped because shard was closed; empty result returned",
@@ -1646,8 +1712,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         @Override
         public Facet<T> call() throws Exception {
             SearcherHandle handle = getSearcherHandleByShard(shardName);
-            IndexSearcher searcher = handle.getSearcher();
             try {
+                IndexSearcher searcher = handle.getSearcher();
                 if (searcher == null) {
                     LOG.warn(String.format("Search attempt for shard %s " +
                             "skipped because shard was closed; empty result returned",
@@ -1764,8 +1830,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         @Override
         public Facet<T> call() throws Exception {
             SearcherHandle handle = getSearcherHandleByShard(shardName);
-            IndexSearcher searcher = handle.getSearcher();
             try {
+                IndexSearcher searcher = handle.getSearcher();
                 if (searcher == null) {
                     LOG.warn(String.format("Search attempt for shard %s " +
                             "skipped because shard was closed; empty result returned",

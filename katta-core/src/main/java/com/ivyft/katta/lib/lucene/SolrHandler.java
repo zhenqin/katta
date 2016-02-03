@@ -39,18 +39,18 @@ public class SolrHandler {
     /**
      * ShardName
      */
-    private String shardName;
+    protected final String shardName;
 
 
     /**
      * Solr Collection
      */
-    private String collectionName;
+    protected final String collectionName;
 
     /**
      * Solr Core
      */
-    private SolrCore solrCore;
+    protected final SolrCore solrCore;
 
 
 
@@ -70,6 +70,8 @@ public class SolrHandler {
      * Log
      */
     private static Logger LOG = LoggerFactory.getLogger(SolrHandler.class);
+
+
 
     /**
      * Constructor

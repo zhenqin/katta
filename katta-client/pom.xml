@@ -4,7 +4,7 @@
 
     <groupId>com.ivyft.katta</groupId>
     <artifactId>katta-client</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
     <packaging>jar</packaging>
 
     <name>Katta Client</name>
@@ -14,20 +14,21 @@
     <parent>
         <groupId>com.ivyft.katta</groupId>
         <artifactId>katta</artifactId>
-        <version>1.3.0</version>
+        <version>1.4.0</version>
     </parent>
 
     <dependencies>
         <dependency>
             <groupId>com.ivyft.katta</groupId>
             <artifactId>katta-core</artifactId>
-            <version>1.3.0</version>
+            <version>1.4.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.ivyft.katta</groupId>
             <artifactId>katta-yarn</artifactId>
-            <version>1.3.0</version>
+            <version>1.4.0</version>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 
