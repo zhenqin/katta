@@ -59,9 +59,9 @@ public class YarnStartNodes extends ProtocolCommand {
         options.addOption("appid", "appid", true, "App Id, KattaOnYarn ApplicationMaster ID");
         options.addOption("solr", "solr", true, "Solr Home Location, default /lib/solr/solr.zip");
 
-        options.addOption("m", "memory", false, "Katta Node Memory, default 512M");
-        options.addOption("c", "core", false, "Katta Node Cores, default 1");
-        options.addOption("z", "zip", false, "Katta Zip Location, default /lib/katta/katta-{version}.zip");
+        options.addOption("m", "memory", true, "Katta Node Memory, default 512M");
+        options.addOption("c", "core", true, "Katta Node Cores, default 1");
+        options.addOption("z", "zip", true, "Katta Zip Location, default /lib/katta/katta-{version}.zip");
         options.addOption("master", "master", false, "Katta Master");
         options.addOption("node", "node", false, "Katta Node");
         options.addOption("s", false, "print exception");

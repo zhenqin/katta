@@ -56,7 +56,7 @@ public class CreateIndex extends ProtocolCommand {
         options.addOption("i", "index", true, "index name.");
         options.addOption("n", "shardNum", true, "Shard Number.");
         options.addOption("t", "shardStep", true, "shard Step Number.");
-        options.addOption("p", "path", false, "index path prefix.");
+        options.addOption("p", "path", true, "index path prefix.");
         options.addOption("s", false, "print exception");
         return options;
     }

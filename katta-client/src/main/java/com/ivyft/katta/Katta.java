@@ -345,10 +345,10 @@ public class Katta {
         public Options getOpts() {
             //[-d] [-b] [-n] [-S]
             Options options = new Options();
-            options.addOption("d", false, "for detailed view.");
-            options.addOption("b", false, "for batch mode.");
-            options.addOption("n", false, "don't write column headers.");
-            options.addOption("S", false, "for sorting the shard names.");
+            options.addOption("d", true, "for detailed view.");
+            options.addOption("b", true, "for batch mode.");
+            options.addOption("n", true, "don't write column headers.");
+            options.addOption("S", true, "for sorting the shard names.");
             options.addOption("s", false, "print exception");
             return options;
         }
@@ -397,7 +397,7 @@ public class Katta {
         public Options getOpts() {
             //"[sysout|log4j]",
             Options options = new Options();
-            options.addOption("o", "out", false, "[sysout print to console, |log4j log4j to print]");
+            options.addOption("o", "out", true, "[sysout print to console, |log4j log4j to print]");
             options.addOption("s", false, "print exception");
             return options;
         }
@@ -434,7 +434,7 @@ public class Katta {
             //"[-war <pathToWar>] [-port <port>]"
             Options options = new Options();
             options.addOption("w", "war", true, "a java web archive path for local.");
-            options.addOption("p", "port", false, "start jetty server for port(default 8080).");
+            options.addOption("p", "port", true, "start jetty server for port(default 8080).");
             options.addOption("s", false, "print exception");
             return options;
         }
@@ -477,7 +477,7 @@ public class Katta {
         @Override
         public Options getOpts() {
             Options options = new Options();
-            options.addOption("d", false, "for detailed view.");
+            options.addOption("d", true, "for detailed view.");
             options.addOption("s", false, "print exception");
             return options;
         }
@@ -619,9 +619,9 @@ public class Katta {
         public Options getOpts() {
             //"[-b] [-n] [-S]",
             Options options = new Options();
-            options.addOption("b", false, "for batch mode.");
-            options.addOption("n", false, "don't write column names.");
-            options.addOption("S", false, "for sorting the index/shard/node names.");
+            options.addOption("b", true, "for batch mode.");
+            options.addOption("n", true, "don't write column names.");
+            options.addOption("S", true, "for sorting the index/shard/node names.");
             options.addOption("s", false, "print exception");
             return options;
         }
@@ -689,7 +689,7 @@ public class Katta {
             options.addOption("i", "index", true, "index name.");
             options.addOption("c", "core", true, "Solr Core, Installed for Katta Solr(solr.xml).");
             options.addOption("p", "path", true, "index path. support hdfs|file protocol.");
-            options.addOption("r", "replication", false, "replication level.");
+            options.addOption("r", "replication", true, "replication level.");
             options.addOption("s", false, "print exception");
             return options;
         }
@@ -936,7 +936,7 @@ public class Katta {
             Options options = new Options();
             options.addOption("i", "index", true, "query indices for register.");
             options.addOption("q", "query", true, "solr query");
-            options.addOption("c", "count", false, "returns count");
+            options.addOption("c", "count", true, "returns count");
             options.addOption("s", false, "print exception");
             return options;
         }

@@ -58,10 +58,10 @@ public class KattaOnYarn extends ProtocolCommand {
         Options options = new Options();
         options.addOption("appid", "appid", true, "App Id, KattaOnYarn ApplicationMaster ID");
         options.addOption("shutdown", "shutdown", false, "App Name, shutdown KattaOnYarn");
-        options.addOption("n", "appname", false, "App Name, KattaOnYarn");
-        options.addOption("q", "queue", false, "Hadoop Yarn Queue, default");
-        options.addOption("m", "am-mb", false, "ApplicationMaster Memory, default 512M");
-        options.addOption("z", "zip", false, "Katta Zip Location, default /lib/katta/katta-{version}.zip");
+        options.addOption("n", "appname", true, "App Name, KattaOnYarn");
+        options.addOption("q", "queue", true, "Hadoop Yarn Queue, default");
+        options.addOption("m", "am-mb", true, "ApplicationMaster Memory, default 512M");
+        options.addOption("z", "zip", true, "Katta Zip Location, default /lib/katta/katta-{version}.zip");
         options.addOption("s", false, "print exception");
         return options;
     }
