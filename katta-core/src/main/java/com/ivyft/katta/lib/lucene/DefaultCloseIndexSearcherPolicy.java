@@ -50,7 +50,7 @@ public class DefaultCloseIndexSearcherPolicy implements CloseIndexSearcherPolicy
 
     @Override
     public void init(NodeConfiguration conf) {
-        this.closeSearcherMinutes = conf.getInt("lucene.close.index.search.minutes", 30);
+        this.closeSearcherMinutes = conf.getInt("lucene.searcher.close.when.minutes", 30);
     }
 
 
