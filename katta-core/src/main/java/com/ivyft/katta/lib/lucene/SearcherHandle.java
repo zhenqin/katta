@@ -207,7 +207,6 @@ public class SearcherHandle {
      */
     public synchronized void closeWithPolicy(String name, CloseIndexSearcherPolicy policy)
             throws IOException {
-        LOG.info("start close index: " + name + " index searcher.");
         boolean close = policy.close(name, this);
         closed.set(close);
         LOG.info("close index: " + name + " index searcher result: " + close);
