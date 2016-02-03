@@ -1,6 +1,8 @@
 package com.ivyft.katta.lib.lucene;
 
 import com.ivyft.katta.util.NodeConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -38,6 +40,13 @@ public class DefaultCloseIndexSearcherPolicy implements CloseIndexSearcherPolicy
     protected int closeSearcherMinutes = 30;
 
 
+    /**
+     * LOG
+     */
+    private static Logger LOG = LoggerFactory.getLogger(DefaultCloseIndexSearcherPolicy.class);
+
+
+
 
     @Override
     public void init(NodeConfiguration conf) {
@@ -51,12 +60,14 @@ public class DefaultCloseIndexSearcherPolicy implements CloseIndexSearcherPolicy
     public boolean close(String name, SearcherHandle handle) throws IOException {
         //已关闭
         if(handle.isClosed()) {
+            LOG.info(name + " index searcher closed.");
             return true;
         }
         long lastVisited = handle.getLastVisited();
         long now = System.currentTimeMillis();
         int ref = handle.refCount();
 
+        LOG.info("now - lastVisited = " + (now - lastVisited));
         if(ref == 0 && (now - lastVisited >= MINUTE * closeSearcherMinutes)) {
             handle.closeIndexSearcher();
             return true;

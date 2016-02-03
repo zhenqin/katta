@@ -123,6 +123,7 @@ public class SearcherHandle {
             this.indexSearcher = this.seacherFactory.createSearcher(shardName, shardDir);
             LOG.info("createSearcher, shardDir: " + shardDir);
             this.lastVisited = System.currentTimeMillis();
+            closed.set(false);
             return this.indexSearcher;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -225,6 +226,7 @@ public class SearcherHandle {
      */
     public synchronized void closeIndexSearcher() throws IOException {
         this.indexSearcher.getIndexReader().close();
+        LOG.warn(getCollectionName() + "'s shard " + shardName + " searcher closed.");
     }
 
 
