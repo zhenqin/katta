@@ -44,7 +44,21 @@ import java.net.URI;
  */
 public interface ISeacherFactory {
 
-    void init(NodeConfiguration config);
 
-    IndexSearcher createSearcher(String shardName, URI shardPath) throws IOException;
+    /**
+     * 初始化 Factory, 获取一些 Node conf
+     * @param config Node Conf
+     */
+    public void init(NodeConfiguration config);
+
+
+
+    /**
+     * 创建 IndexSearcher
+     * @param shardName Index Shard Name
+     * @param shardPath Index Shard Path
+     * @return 返回根据 Path 创建的 IndexSearcher
+     * @throws IOException
+     */
+    public IndexSearcher createSearcher(String shardName, URI shardPath) throws IOException;
 }

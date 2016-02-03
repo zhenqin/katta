@@ -317,8 +317,9 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         searchTimerThread.start();
 
 
-
-        CloseIndexSearcherThread closeIndexSearcherThread = new CloseIndexSearcherThread("CloseIndexSearcherThread");
+        int minute = nodeConfiguration.getInt("lucene.searcher.close.thread.period.minute", 5);
+        CloseIndexSearcherThread closeIndexSearcherThread =
+                new CloseIndexSearcherThread("CloseIndexSearcherThread", minute);
         closeIndexSearcherThread.setDaemon(true);
         closeIndexSearcherThread.start();
 
@@ -328,8 +329,12 @@ public class LuceneServer implements IContentServer, ILuceneServer {
     class CloseIndexSearcherThread extends Thread {
 
 
-        public CloseIndexSearcherThread(String name) {
+        private final int periodMinute;
+
+
+        public CloseIndexSearcherThread(String name, int periodMinute) {
             super(name);
+            this.periodMinute = periodMinute;
         }
 
         @Override
@@ -348,7 +353,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                     synchronized (this) {
                         try {
                             //睡眠一分钟
-                            this.wait(5 * 60 * 1000L);
+                            this.wait(periodMinute * 60 * 1000L);
                         } catch (InterruptedException e) {
                             LOG.warn("interrupt " + this.getName() + ", @@@");
                             return;

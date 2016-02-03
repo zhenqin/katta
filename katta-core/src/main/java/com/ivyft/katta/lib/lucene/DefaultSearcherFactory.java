@@ -76,8 +76,6 @@ public class DefaultSearcherFactory implements ISeacherFactory {
         if(StringUtils.equals(ShardManager.HDFS, scheme)) {
             LOG.info("open hdfs index: " + shardPath.toString());
             Configuration hadoopConf = HadoopUtil.getHadoopConf();
-            String s = hadoopConf.get("fs.defaultFS");
-            LOG.info("use fs.defaultFS: " + s);
             Directory directory = new HdfsDirectory(new Path(shardPath), hadoopConf);
             return new IndexSearcher(DirectoryReader.open(directory));
         } else if(StringUtils.equals(ShardManager.FILE, scheme)) {
