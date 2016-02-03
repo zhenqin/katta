@@ -332,6 +332,7 @@ public class Master implements ConnectedComponent {
         LOG.info("start managing nodes...");
 
         //监控/katta/live_nodes下节点的变化.这里保存真正活着的节点
+        //任何有节点变化的, 都需要检查分片分配
         List<String> nodes = this.protocol.registerChildListener(this,
                 PathDef.NODES_LIVE,
                 new IAddRemoveListener() {

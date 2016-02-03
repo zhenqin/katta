@@ -251,7 +251,7 @@ public class SearcherHandle {
                     LOG.info("closed " + name + " IndexSearcher.");
                     closed.set(true);
                 } catch (Exception e) {
-                    LOG.error(ExceptionUtils.getFullStackTrace(e));
+                    LOG.error(ExceptionUtils.getMessage(e));
                 }
                 this.indexSearcher = null;
                 _refCount.set(-1);
@@ -262,7 +262,7 @@ public class SearcherHandle {
                     closed.set(true);
                     LOG.info("closed " + name + " IndexSearcher, refCount: " + _refCount.get());
                 } catch (Exception e) {
-                    LOG.error(ExceptionUtils.getFullStackTrace(e));
+                    LOG.error(ExceptionUtils.getMessage(e));
                 }
 
                 this.indexSearcher = null;

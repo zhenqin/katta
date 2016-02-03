@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -59,6 +60,15 @@ public class BlockingQueue<T extends Serializable> {
 
         public T getData() {
             return data;
+        }
+
+
+        @Override
+        public String toString() {
+            return "Element{" +
+                    "name='" + name + '\'' +
+                    ", data=" + data +
+                    '}';
         }
     }
 
@@ -97,7 +107,8 @@ public class BlockingQueue<T extends Serializable> {
 
     /**
      * 发布地址?
-     * @return
+     *
+     * @return 子节点事件
      */
     private String getElementRoughPath() {
         //发布地址? 这里可能有Bug
@@ -105,18 +116,28 @@ public class BlockingQueue<T extends Serializable> {
     }
 
 
+
     /**
+     *
      *  返回"/katta/work/operations/elementId" 的节点
+     *
+     *
      * @param elementId elementId
      * @return 返回"/kattawork//operations/elementId" 的节点
      */
     public String getElementPath(String elementId) {
 
-        ///katta/work/master-queue/operations/elementId
+        ///katta/work/master-queue/operations-355
         return this.elementsPath + "/" + elementId;
     }
 
+
+
     /**
+     *
+     * 创建一个 master-queue 事件子节点
+     *
+     *
      * @param element
      * @return the id of the element in the queue
      */
@@ -125,18 +146,32 @@ public class BlockingQueue<T extends Serializable> {
             //发布了一个AbstractIndexOperation到 /katta/work/operations/operation-
             String sequential = this.zkClient.createPersistentSequential(getElementRoughPath(), element);
             String elementId = sequential.substring(sequential.lastIndexOf('/') + 1);
+            log.info("add element: {}, data: {}", elementId, element.toString());
             return elementId;
         } catch (Exception e) {
             throw ExceptionUtil.convertToRuntimeException(e);
         }
     }
 
+
+    /**
+     * 删除第一个子节点事件
+     * @return
+     * @throws InterruptedException
+     */
     public T remove() throws InterruptedException {
         Element<T> element = getFirstElement();
         this.zkClient.delete(getElementPath(element.getName()));
         return element.getData();
     }
 
+
+    /**
+     * 是否包含该子节点
+     *
+     * @param elementId
+     * @return
+     */
     public boolean containsElement(String elementId) {
         String zkPath = getElementPath(elementId);
         return this.zkClient.exists(zkPath);
@@ -156,14 +191,30 @@ public class BlockingQueue<T extends Serializable> {
         return element.getData();
     }
 
+
+    /**
+     * 返回 Master Queue Children Size
+     * @return 返回子节点个数
+     */
     public int size() {
         return this.zkClient.getChildren(this.elementsPath).size();
     }
 
+
+    /**
+     * master-queue 子节点 size
+     * @return 返回时子节点 size 是否等于 0
+     */
     public boolean isEmpty() {
         return size() == 0;
     }
 
+
+    /**
+     * 获取消息列表中, 最新的消息
+     * @param list 消息
+     * @return 返回最近的一个
+     */
     private String getSmallestElement(List<String> list) {
         String smallestElement = list.get(0);
         for (String element : list) {
@@ -184,6 +235,7 @@ public class BlockingQueue<T extends Serializable> {
     protected Element<T> getFirstElement() throws InterruptedException {
         final Object mutex = new Object();
 
+        //TODO Master 获取集群的事件
         IZkChildListener notifyListener = new IZkChildListener() {
             @Override
             public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
@@ -219,7 +271,9 @@ public class BlockingQueue<T extends Serializable> {
                     String elementPath = getElementPath(elementName);
 
                     //读出Path的数据信息，放在data中，data中是一个对象。
-                    return new Element<T>(elementName, (T) this.zkClient.readData(elementPath));
+                    Element<T> element = new Element<T>(elementName, (T) this.zkClient.readData(elementPath));
+                    log.info("elementName: {}, elementPath: {}, data: {}", elementName, elementPath, element.toString());
+                    return element;
                 } catch (ZkNoNodeException e) {
                     // somebody else picked up the element first, so we have to
                     // retry with the new first element

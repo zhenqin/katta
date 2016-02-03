@@ -116,7 +116,7 @@ class OperatorThread extends Thread {
 
             while (true) {
                 try {
-                    //TODO Master global check operation ?
+                    //TODO Master 全局的操作
                     MasterOperation operation = _queue.peek();
                     List<OperationId> nodeOperationIds = null;
                     try {
@@ -177,7 +177,8 @@ class OperatorThread extends Thread {
         }
     }
 
-    private List<OperationId> executeOperation(MasterOperation operation, ExecutionInstruction instruction,
+    private List<OperationId> executeOperation(MasterOperation operation,
+                                               ExecutionInstruction instruction,
                                                List<MasterOperation> runningOperations) throws Exception {
         List<OperationId> operationIds = null;
         switch (instruction) {

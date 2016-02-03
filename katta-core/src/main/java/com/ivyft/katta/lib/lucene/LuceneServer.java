@@ -60,6 +60,7 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -143,6 +144,10 @@ public class LuceneServer implements IContentServer, ILuceneServer {
 
 
 
+    /**
+     *
+     * 关闭 IndexSearcher 时, 如果 IndexSearcher 正在使用, 则等待的时间.
+     */
     public static final int INDEX_HANDLE_CLOSE_SLEEP_TIME = 50;
 
 
@@ -187,7 +192,21 @@ public class LuceneServer implements IContentServer, ILuceneServer {
     /**
      * 该类的实例会结束超时的查询
      */
-    private TimeLimitingCollector.TimerThread searchTimerThread;
+    protected TimeLimitingCollector.TimerThread searchTimerThread;
+
+
+    /**
+     * 定时扫描, 关闭长期不使用的 IndexSearcher 的内部线程
+     */
+    protected CloseIndexSearcherThread closeIndexSearcherThread;
+
+
+    /**
+     *
+     * Katta 内部打开的 Hadoop Reader Port Server
+     *
+     */
+    protected SerialSocketServer serialSocketServer;
 
 
     /**
@@ -223,6 +242,13 @@ public class LuceneServer implements IContentServer, ILuceneServer {
      * 关闭长期不用的 IndexSearcher, 以释放资源
      */
     protected CloseIndexSearcherPolicy closeIndexSearcherPolicy;
+
+
+    /**
+     * 关闭当前 Server
+     */
+    protected final AtomicBoolean shutdown = new AtomicBoolean(false);
+
 
 
     /**
@@ -304,10 +330,10 @@ public class LuceneServer implements IContentServer, ILuceneServer {
 
 
         //初始化Hadoop Adapter
-        SerialSocketServer socketServer = new SerialSocketServer(this, nodeConfiguration);
-        socketServer.setDaemon(true);
-        socketServer.setName("SerialSocketServerThread");
-        socketServer.start();
+        serialSocketServer = new SerialSocketServer(this, nodeConfiguration);
+        serialSocketServer.setDaemon(true);
+        serialSocketServer.setName("SerialSocketServerThread");
+        serialSocketServer.start();
 
         //超时的查询后被强制结束
         searchTimerCounter = Counter.newCounter(true);
@@ -318,8 +344,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
 
 
         int minute = nodeConfiguration.getInt("lucene.searcher.close.thread.period.minute", 5);
-        CloseIndexSearcherThread closeIndexSearcherThread =
-                new CloseIndexSearcherThread("CloseIndexSearcherThread", minute);
+
+        closeIndexSearcherThread = new CloseIndexSearcherThread("CloseIndexSearcherThread", minute);
         closeIndexSearcherThread.setDaemon(true);
         closeIndexSearcherThread.start();
 
@@ -339,7 +365,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
 
         @Override
         public void run() {
-            while (true) {
+            while (!shutdown.get()) {
                 try {
                     LOG.info("notify close index searcher thread...");
                     for (Map.Entry<String, SearcherHandle> entry : searcherHandlesByShard.entrySet()) {
@@ -364,6 +390,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                     LOG.warn(this.getName() + " error print: ", e);
                 }
             }
+
+            LOG.info(getName() + " exit.");
         }
     }
 
@@ -376,6 +404,11 @@ public class LuceneServer implements IContentServer, ILuceneServer {
      */
     public String getNodeName() {
         return this.nodeName;
+    }
+
+
+    public boolean getShutdown() {
+        return shutdown.get();
     }
 
     public float getTimeoutPercentage() {
@@ -509,6 +542,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
      */
     @Override
     public void shutdown() throws IOException {
+        shutdown.set(true);
         for (Map.Entry<String, SearcherHandle> entry : searcherHandlesByShard.entrySet()) {
             SearcherHandle handle = entry.getValue();
             try {
@@ -521,6 +555,24 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         searcherHandlesByShard.clear();
         shardBySolrPath.clear();
         searchTimerThread.stopTimer();
+
+        try {
+            serialSocketServer.interrupt();
+            serialSocketServer.join();
+            LOG.info(serialSocketServer.getName() + " exit.");
+        } catch (Exception e) {
+
+        }
+
+        try {
+            synchronized (closeIndexSearcherThread) {
+                closeIndexSearcherThread.notify();
+            }
+            closeIndexSearcherThread.join();
+        } catch (Exception e) {
+
+        }
+
     }
 
     /**

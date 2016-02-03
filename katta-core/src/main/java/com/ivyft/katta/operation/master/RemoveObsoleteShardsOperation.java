@@ -114,10 +114,12 @@ public class RemoveObsoleteShardsOperation implements MasterOperation {
 
     /**
      *
+     * 返回失效的 Node
+     *
      * @param protocol zk 操作
      * @param nodeShards 指定node的shard集合
      * @param runningOperations ope
-     * @return
+     * @return 返回该 Node 上, 失效的 Shard
      */
     private List<String> collectObsoleteShards(InteractionProtocol protocol,
                                                Collection<String> nodeShards,

@@ -118,7 +118,9 @@ public class JmxMonitor implements IMonitor {
                         LOG.warn(ExceptionUtils.getFullStackTrace(e));
                     }
 
-                    Thread.sleep(protocol.getZkConfiguration().getMonitorInt());
+                    synchronized (this) {
+                        this.wait(protocol.getZkConfiguration().getMonitorInt());
+                    }
                 }
             } catch (InterruptedException e) {
                 ExceptionUtil.retainInterruptFlag(e);

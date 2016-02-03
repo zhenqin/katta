@@ -90,7 +90,7 @@ public class NodeConfiguration extends KattaConfiguration {
     }
 
     public int getRpcHandlerCount() {
-        return getInt(RPC_HANDLER_COUNT, 25);
+        return getInt(RPC_HANDLER_COUNT, 5);
     }
 
     public void setRpcHandlerCount(int handlerCount) {

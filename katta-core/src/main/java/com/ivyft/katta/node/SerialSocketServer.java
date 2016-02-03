@@ -1,6 +1,5 @@
 package com.ivyft.katta.node;
 
-import com.ivyft.katta.lib.lucene.DefaultSocketPortFactory;
 import com.ivyft.katta.lib.lucene.FreeSocketPortFactory;
 import com.ivyft.katta.lib.lucene.LuceneServer;
 import com.ivyft.katta.lib.lucene.SocketPortFactory;
@@ -66,8 +65,7 @@ public class SerialSocketServer extends Thread  {
             throw new IllegalArgumentException(e);
         }
 
-        boolean run = true;
-        while (run){
+        while (luceneServer.getShutdown()){
             try {
                 Socket socket = serverSocket.accept();
                 //传入Solr IndexSearcher
