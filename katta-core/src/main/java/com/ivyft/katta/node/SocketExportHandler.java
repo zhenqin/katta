@@ -27,7 +27,6 @@ import java.io.ObjectInputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * <pre>
@@ -90,7 +89,7 @@ public class SocketExportHandler implements Runnable {
     /**
      * 通信的Socket
      */
-    private Socket socket = null;
+    private Socket socket;
 
 
     /**
@@ -119,13 +118,11 @@ public class SocketExportHandler implements Runnable {
     /**
      * 构造方法
      * @param socket
-     * @param shardBySolrPath Solr Core 和 shardName的一个对应
-     * @param searcherHandlesByShard 该变量可以用于获得IndexSearcher用
+     * @param contentServer Solr Core 和 shardName的一个对应
      */
-    public SocketExportHandler(Socket socket,
-                               Map<String, SolrHandler> shardBySolrPath,
-                               Map<String, SearcherHandle> searcherHandlesByShard) {
+    public SocketExportHandler(Socket socket, IContentServer contentServer) {
         this.socket = socket;
+
         ip = socket.getInetAddress().getHostAddress();
 
         try {
@@ -144,7 +141,7 @@ public class SocketExportHandler implements Runnable {
                 //第一次是查询, 准备好各种参数
                 query = (LuceneQuery) message;
 
-                SolrHandler solrHandler = shardBySolrPath.get(query.getShardName());
+                SolrHandler solrHandler = contentServer.getSolrHandlerByShard(query.getShardName());
                 if(solrHandler != null) {
                     this.core = solrHandler.getSolrCore();
                 }
@@ -155,10 +152,8 @@ public class SocketExportHandler implements Runnable {
                 }
 
                 //获取Solr 的 Lucene SearchIndex.
-                searcherHandle = searcherHandlesByShard.get(query.getShardName());
-                if(searcherHandle != null) {
-                    searcher = searcherHandle.getSearcher();
-                }
+                searcherHandle = contentServer.getSearcherHandleByShard(query.getShardName());
+                searcher = searcherHandle.getSearcher();
 
                 if(searcher == null) {
                     throw new IllegalStateException("找不到：" + query.getShardName() + "对应的IndexSearcher。");

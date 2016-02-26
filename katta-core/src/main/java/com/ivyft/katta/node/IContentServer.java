@@ -15,6 +15,8 @@
  */
 package com.ivyft.katta.node;
 
+import com.ivyft.katta.lib.lucene.SearcherHandle;
+import com.ivyft.katta.lib.lucene.SolrHandler;
 import com.ivyft.katta.util.NodeConfiguration;
 import org.apache.hadoop.ipc.VersionedProtocol;
 
@@ -120,6 +122,24 @@ public interface IContentServer extends VersionedProtocol {
      * @throws Exception
      */
     public Map<String, String> getShardMetaData(String shardName) throws Exception;
+
+
+    /**
+     * get IndexSearcher
+     * @param shardName shard
+     * @return
+     */
+    public SearcherHandle getSearcherHandleByShard(String shardName);
+
+
+    /**
+     * get Solr Core
+     * @param shardName ShardName
+     * @return
+     */
+    public SolrHandler getSolrHandlerByShard(String shardName);
+
+
 
 
     /**

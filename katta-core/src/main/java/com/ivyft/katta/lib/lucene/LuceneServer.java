@@ -581,7 +581,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
      * @param shardName the name of the shard
      * @return the <code>IndexHandle</code> of the given shardName
      */
-    protected SearcherHandle getSearcherHandleByShard(String shardName) {
+    @Override
+    public SearcherHandle getSearcherHandleByShard(String shardName) {
         SearcherHandle handle = searcherHandlesByShard.get(shardName);
         if (handle == null) {
             throw new IllegalStateException("no index-server for shard '" +
@@ -597,7 +598,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
      * @param shardName the name of the shard
      * @return the <code>IndexHandle</code> of the given shardName
      */
-    protected SolrHandler getSolrHandlerByShard(String shardName) {
+    @Override
+    public SolrHandler getSolrHandlerByShard(String shardName) {
         SolrHandler handle = shardBySolrPath.get(shardName);
         if (handle == null) {
             throw new IllegalStateException("no index-server for shard '" +

@@ -151,6 +151,59 @@ public class ShardManager {
     }
 
 
+
+
+
+
+    /**
+     * 安装Shard，提供一个ShardName和一个Path, 如果该 Path 是 HDFS 索引, 则从 HDFS copy 到本地
+     *
+     * @param shardName shardName
+     * @param shardPath IndexFile Path
+     * @return 返回本地索引文件的路径
+     * @throws Exception
+     */
+    public URI installShard2(String shardName,
+                            String shardPath) throws Exception {
+        URI path = new URI(shardPath);
+        String scheme = path.getScheme();
+        if(StringUtils.equals(ShardManager.HDFS, scheme)) {
+            //本地文件系统 copy 文件
+            File localShardFolder = getShardFolder(shardName);
+            try {
+                LOG.info("hdfs use local dir: " + localShardFolder.getAbsolutePath());
+                if (!localShardFolder.exists()) {
+                    if(!localShardFolder.mkdirs()) {
+                        throw new IOException("can't mkdir: " + localShardFolder);
+                    }
+
+                    LOG.info("mkdir: " + localShardFolder.getAbsolutePath());
+                }
+
+                //from hdfs copy to Local
+                installShard(shardName, shardPath, localShardFolder);
+                return localShardFolder.toURI();
+            } catch (Exception e) {
+                FileUtil.deleteFolder(localShardFolder);
+                throw e;
+            }
+        } else {
+            //本地文件系统 copy 文件
+            File localShardFolder = getShardFolder(shardName);
+            try {
+                if (!localShardFolder.exists()) {
+                    installShard(shardName, shardPath, localShardFolder);
+                }
+                return localShardFolder.toURI();
+            } catch (Exception e) {
+                FileUtil.deleteFolder(localShardFolder);
+                throw e;
+            }
+        }
+    }
+
+
+
     /**
      * 移除shardName的shard
      * @param shardName shardName
@@ -289,8 +342,8 @@ public class ShardManager {
                     FileUtil.unzip(path, shardTmpFolder, fileSystem, System.getProperty("katta.spool.zip.shards", "false")
                             .equalsIgnoreCase("true"));
                 } else {
-                    fileSystem.copyToLocalFile(false, path, new Path(shardTmpFolder.getAbsolutePath()), true);
                     LOG.info("copy shard to local: " + shardTmpFolder.getAbsolutePath());
+                    fileSystem.copyToLocalFile(false, path, new Path(shardTmpFolder.getAbsolutePath()), true);
                 }
 
                 boolean b = shardTmpFolder.renameTo(localShardFolder);
