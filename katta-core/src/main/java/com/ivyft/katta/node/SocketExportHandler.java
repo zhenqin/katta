@@ -173,9 +173,6 @@ public class SocketExportHandler implements Runnable {
                 throw new IllegalArgumentException("error query Object.");
             }
         } catch (Exception e) {
-            if(searcherHandle != null) {
-                searcherHandle.finishSearcher();
-            }
             log.info(ip + " exception disconnected.");
             if(socket != null) {
                 if (inputStream != null && !socket.isClosed() && !socket.isInputShutdown()) {
@@ -201,6 +198,10 @@ public class SocketExportHandler implements Runnable {
                 }
             }
             throw new RuntimeException(e);
+        } finally {
+            if(searcherHandle != null) {
+                searcherHandle.finishSearcher();
+            }
         }
     }
 

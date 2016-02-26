@@ -41,7 +41,7 @@ import java.util.Comparator;
  *
  * @author zhenqin
  */
-class FieldSortComparator implements Comparator<Hit> {
+public class FieldSortComparator implements Comparator<Hit> {
 
     private static Comparator<Comparable> COMPARABLE_COMPARATOR = new ComparableComparator();
     private static Comparator<Comparable> REVERSED_COMPARABLE_COMPARATOR = new ComparableComparator(true);

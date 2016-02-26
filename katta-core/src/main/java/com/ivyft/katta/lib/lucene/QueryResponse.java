@@ -68,7 +68,7 @@ public class QueryResponse implements Serializable {
         return numFount;
     }
 
-    void setNumFount(long numFount) {
+    public void setNumFount(long numFount) {
         this.numFount = numFount;
     }
 
@@ -89,7 +89,7 @@ public class QueryResponse implements Serializable {
         return (List<T>) docs;
     }
 
-    void setDocs(List<? extends Map<String, ? extends Serializable>> docs) {
+    public void setDocs(List<? extends Map<String, ? extends Serializable>> docs) {
         this.docs = docs;
     }
 

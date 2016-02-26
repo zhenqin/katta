@@ -76,6 +76,11 @@ public class Group<T extends Writable> {
         return false;
     }
 
+
+    public Set<T> getGroupResult() {
+        return groupResult;
+    }
+
     public void clear() {
         groupResult.clear();
     }
