@@ -69,9 +69,7 @@ public class SerialSocketServer extends Thread  {
             try {
                 Socket socket = serverSocket.accept();
                 //传入Solr IndexSearcher
-                luceneServer.submit(new SocketExportHandler(socket,
-                        luceneServer.getShardBySolrPath(),
-                        luceneServer.getSearcherHandlesByShard()));
+                luceneServer.submit(new SocketExportHandler(socket, luceneServer));
             } catch (Exception e) {
                 log.error(ExceptionUtils.getFullStackTrace(e));
             }

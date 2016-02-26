@@ -15,6 +15,8 @@
  */
 package com.ivyft.katta.lib.mapfile;
 
+import com.ivyft.katta.lib.lucene.SearcherHandle;
+import com.ivyft.katta.lib.lucene.SolrHandler;
 import com.ivyft.katta.node.IContentServer;
 import com.ivyft.katta.util.HadoopUtil;
 import com.ivyft.katta.util.NodeConfiguration;
@@ -162,6 +164,16 @@ public class MapFileServer implements IContentServer, IMapFileServer {
         }
         LOG.warn("Shard " + shardName + " not found!");
         throw new IllegalArgumentException("Shard " + shardName + " unknown");
+    }
+
+    @Override
+    public SearcherHandle getSearcherHandleByShard(String shardName) {
+        return null;
+    }
+
+    @Override
+    public SolrHandler getSolrHandlerByShard(String shardName) {
+        return null;
     }
 
     /**
