@@ -78,9 +78,7 @@ public class SerialSocketServer extends Thread implements Closeable {
                 log.info("{} accept.", this.getName());
                 Socket socket = serverSocket.accept();
                 //传入Solr IndexSearcher
-                luceneServer.submit(new SocketExportHandler(socket,
-                        luceneServer.getShardBySolrPath(),
-                        luceneServer.getSearcherHandlesByShard()));
+                luceneServer.submit(new SocketExportHandler(socket, luceneServer));
             } catch (SocketException e) {
                 if(serverSocket == null || serverSocket.isClosed()) {
                     break;
