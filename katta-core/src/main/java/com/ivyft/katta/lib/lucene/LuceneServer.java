@@ -558,6 +558,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         searchTimerThread.stopTimer();
 
         try {
+            serialSocketServer.close();
             serialSocketServer.interrupt();
             serialSocketServer.join();
             LOG.info(serialSocketServer.getName() + " exit.");
