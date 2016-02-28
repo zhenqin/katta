@@ -8,9 +8,11 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 
 /**
  * <pre>
@@ -25,7 +27,7 @@ import java.net.Socket;
  *
  * @author zhenqin
  */
-public class SerialSocketServer extends Thread  {
+public class SerialSocketServer extends Thread implements Closeable {
 
 
     /**
@@ -37,6 +39,14 @@ public class SerialSocketServer extends Thread  {
      * Lucene Server
      */
     private final LuceneServer luceneServer;
+
+
+    /**
+     * Server Socket
+     */
+    private ServerSocket serverSocket;
+
+
 
     /**
      * 日志记录
@@ -56,8 +66,6 @@ public class SerialSocketServer extends Thread  {
 
     @Override
     public void run() {
-        ServerSocket serverSocket;
-
         try {
             serverSocket = new ServerSocket(port);
             log.info("socket listening port: " + port + "  server is starting.");
@@ -65,21 +73,36 @@ public class SerialSocketServer extends Thread  {
             throw new IllegalArgumentException(e);
         }
 
-        while (luceneServer.getShutdown()){
+        while (!luceneServer.getShutdown()){
             try {
+                log.info("{} accept.", this.getName());
                 Socket socket = serverSocket.accept();
                 //传入Solr IndexSearcher
-                luceneServer.submit(new SocketExportHandler(socket, luceneServer));
+                luceneServer.submit(new SocketExportHandler(socket,
+                        luceneServer.getShardBySolrPath(),
+                        luceneServer.getSearcherHandlesByShard()));
+            } catch (SocketException e) {
+                if(serverSocket == null || serverSocket.isClosed()) {
+                    break;
+                }
             } catch (Exception e) {
                 log.error(ExceptionUtils.getFullStackTrace(e));
             }
         }
 
-        if(serverSocket != null) {
-            try{
+        log.info("{} closed and exit.", this.getName());
+        close();
+    }
+
+
+
+    @Override
+    public void close() {
+        if(serverSocket != null && !serverSocket.isClosed()) {
+            try {
                 serverSocket.close();
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (IOException e) {
+
             }
         }
     }
