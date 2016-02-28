@@ -298,9 +298,10 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                 CONF_KEY_SEARCHER_FACTORY_CLASS, DefaultSearcherFactory.class));
 
 
-         this.closeIndexSearcherPolicy = (CloseIndexSearcherPolicy) ClassUtil.newInstance(
+        this.closeIndexSearcherPolicy = (CloseIndexSearcherPolicy) ClassUtil.newInstance(
                 nodeConfiguration.getClass(
                         CONF_KEY_SEARCHER_CLOSE_POLICY_CLASS, DefaultCloseIndexSearcherPolicy.class));
+        this.closeIndexSearcherPolicy.init(nodeConfiguration);
 
         this.timeoutPercentage = nodeConfiguration.getFloat(CONF_KEY_COLLECTOR_TIMOUT_PERCENTAGE, this.timeoutPercentage);
 
