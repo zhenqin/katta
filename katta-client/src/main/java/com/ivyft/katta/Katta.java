@@ -1044,6 +1044,10 @@ public class Katta {
         commands.put(kattaNode.getCommand(), kattaNode);
 
 
+        SingleKattaServer kattaServer = new SingleKattaServer();
+        commands.put(kattaServer.getCommand(), kattaServer);
+
+
         commands.put(LIST_NODES_COMMAND.getCommand(), LIST_NODES_COMMAND);
         commands.put(LIST_INDICES_COMMAND.getCommand(), LIST_INDICES_COMMAND);
         commands.put(LOG_METRICS_COMMAND.getCommand(), LOG_METRICS_COMMAND);
