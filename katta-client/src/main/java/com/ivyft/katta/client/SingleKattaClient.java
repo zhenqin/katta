@@ -11,6 +11,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,7 @@ import java.util.Set;
  *
  * @author zhenqin
  */
-public class SingleKattaClient implements ISolrClient {
+public class SingleKattaClient implements ISolrClient, ISingleKattaClient {
 
     /**
      * Katta Server Proxy
@@ -177,6 +178,31 @@ public class SingleKattaClient implements ISolrClient {
     }
 
 
+    @Override
+    public void close() {
+        RPC.stopProxy(this.protocolProxy);
+    }
+
+    @Override
+    public void addIndex(String name, String solr, URI path) throws KattaException {
+        try {
+            kattaServerProtocol.addShard(name, solr, path.toString());
+        } catch (IOException e) {
+            throw new KattaException(e);
+        }
+    }
+
+    @Override
+    public void removeIndex(String name) throws KattaException {
+        try {
+            kattaServerProtocol.removeShard(name);
+        } catch (IOException e) {
+            throw new KattaException(e);
+        }
+    }
+
+
+
     public KattaServerProtocol getKattaServerProtocol() {
         return kattaServerProtocol;
     }
@@ -190,8 +216,4 @@ public class SingleKattaClient implements ISolrClient {
         this.timeout = timeout;
     }
 
-    @Override
-    public void close() {
-        RPC.stopProxy(this.protocolProxy);
-    }
 }

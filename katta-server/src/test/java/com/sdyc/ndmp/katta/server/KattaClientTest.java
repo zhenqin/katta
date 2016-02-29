@@ -38,14 +38,17 @@ public class KattaClientTest {
         System.out.println("===========================");
         long start = System.currentTimeMillis();
         kattaServerProtocol = RPC.getProtocolProxy(KattaServerProtocol.class,
-                ILuceneServer.versionID, new InetSocketAddress("localhost", 20020), conf).getProxy();
+                ILuceneServer.versionID, new InetSocketAddress("nowledgedata-n3", 20020), conf).getProxy();
         System.out.println("connect cost: " + (System.currentTimeMillis() - start));
     }
 
 
     @Test
     public void testHadoopRpc() throws Exception {
-        kattaServerProtocol.addShard("userindex#2PD95Ggl2tWnSynu8gX", "userindex", "hdfs:/user/katta/userindex/2PD95Ggl2tWnSynu8gX");
+        kattaServerProtocol.addShard(
+                "userindex#2XD8fuPaE2igN4pct9h",
+                "userindex",
+                "hdfs:/user/hadoop/lucene/userindex/2XD8fuPaE2igN4pct9h");
 
     }
 
@@ -56,6 +59,22 @@ public class KattaClientTest {
         for (int i = 0; i < 20; i++) {
             long start = System.currentTimeMillis();
             int count = kattaServerProtocol.count(q, new String[]{"userindex#2PD95Ggl2tWnSynu8gX"}, 60000);
+            System.out.println("cost: " + (System.currentTimeMillis() - start)
+                    + " ms  count:   " + count);
+
+        }
+    }
+
+
+
+
+    @Test
+    public void testCount2() throws Exception {
+        SolrQuery solrQuery = new SolrQuery("*:*");
+        QueryWritable q = new QueryWritable(solrQuery);
+        for (int i = 0; i < 20; i++) {
+            long start = System.currentTimeMillis();
+            int count = kattaServerProtocol.count(q, new String[]{"userindex#2XD8fuPaE2igN4pct9h"}, 60000);
             System.out.println("cost: " + (System.currentTimeMillis() - start)
                     + " ms  count:   " + count);
 
