@@ -183,10 +183,21 @@ public class SingleKattaClient implements ISolrClient, ISingleKattaClient {
         RPC.stopProxy(this.protocolProxy);
     }
 
+
+
+
     @Override
-    public void addIndex(String name, String solr, URI path) throws KattaException {
+    public void addIndex(String name, String solr, URI... path) throws KattaException {
+        if(path.length == 0) {
+            throw new KattaException("path is none.");
+        }
         try {
-            kattaServerProtocol.addShard(name, solr, path.toString());
+            boolean merge = false;
+            for (int i = 0; i < path.length; i++) {
+                String uri =  path[i].toString();
+                merge = (i > 0); //第一个索引时，不合并。从第二个开始合并索引
+                kattaServerProtocol.addShard(name, solr, uri, merge);
+            }
         } catch (IOException e) {
             throw new KattaException(e);
         }

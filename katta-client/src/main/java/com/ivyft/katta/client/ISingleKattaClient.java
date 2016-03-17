@@ -27,7 +27,7 @@ public interface ISingleKattaClient {
      * @param solr Solr Core
      * @param path HDFS Path
      */
-    public void addIndex(String name, String solr, URI path) throws KattaException;
+    public void addIndex(String name, String solr, URI... path) throws KattaException;
 
 
     /**

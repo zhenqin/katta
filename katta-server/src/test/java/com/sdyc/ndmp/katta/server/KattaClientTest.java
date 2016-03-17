@@ -37,8 +37,8 @@ public class KattaClientTest {
     public void setUp() throws Exception {
         System.out.println("===========================");
         long start = System.currentTimeMillis();
-        kattaServerProtocol = RPC.getProtocolProxy(KattaServerProtocol.class,
-                ILuceneServer.versionID, new InetSocketAddress("nowledgedata-n3", 20020), conf).getProxy();
+        kattaServerProtocol = RPC.getProxy(KattaServerProtocol.class,
+                ILuceneServer.versionID, new InetSocketAddress("nowledgedata-n3", 20020), conf);
         System.out.println("connect cost: " + (System.currentTimeMillis() - start));
     }
 
@@ -48,7 +48,7 @@ public class KattaClientTest {
         kattaServerProtocol.addShard(
                 "userindex#2XD8fuPaE2igN4pct9h",
                 "userindex",
-                "hdfs:/user/hadoop/lucene/userindex/2XD8fuPaE2igN4pct9h");
+                "hdfs:/user/hadoop/lucene/userindex/2XD8fuPaE2igN4pct9h", true);
 
     }
 

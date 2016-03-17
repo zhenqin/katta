@@ -37,9 +37,10 @@ public interface KattaServerProtocol extends ILuceneServer {
      * @param name 索引 Name(index#shard)
      * @param solrCollection solr core
      * @param uri hdfs path
+     * @param merge 是否和已有的索引覆盖
      * @throws IOException
      */
-    public void addShard(String name, String solrCollection, String uri) throws IOException;
+    public void addShard(String name, String solrCollection, String uri, boolean merge) throws IOException;
 
 
     /**

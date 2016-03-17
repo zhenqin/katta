@@ -372,15 +372,15 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
 
 
     @Override
-    public void addShard(String name, String solrCollection, String uri) throws IOException {
+    public void addShard(String name, String solrCollection, String uri, boolean  merge) throws IOException {
         LOG.info("index name {}, solr core {}, path {}", name, solrCollection, uri);
         try {
-            URI localUri = shardManager.installShard2(name, uri);
+            URI localUri = shardManager.installShard2(name, uri, merge);
             LOG.info("install shard {} to {}", name, localUri.toString());
 
             File localIndexDir = new File(localUri);
             File shardMeta = new File(localIndexDir, ".shard.info");
-            FileUtils.write(shardMeta, name + "\n" + solrCollection + "\n" + uri, "UTF-8", false);
+            FileUtils.write(shardMeta, name + "\n" + solrCollection + "\n" + uri + "\n\n", "UTF-8", merge);
 
             addShard(name, localUri, solrCollection);
         } catch (Exception e) {
@@ -404,9 +404,23 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
                          final URI shardDir,
                          final String collectionName) throws IOException {
         LOG.info("KattaLuceneServer " + this.nodeName + " got shard " + shardName);
+        SearcherHandle searcherHandle = searcherHandlesByShard.get(shardName);
+        if(searcherHandle != null) {
+            //关闭原来的 SearcherHandler
+            searcherHandle.closeSearcher(searcherHandle.getShardName());
+
+
+            //可能是索引合并，合并后需要重新打开 IndexReader，否则新内容并不能被搜索到
+            searcherHandle = new SearcherHandle(seacherFactory, collectionName, shardName, shardDir);
+
+            searcherHandlesByShard.put(shardName, searcherHandle);
+            return;
+        }
+
+
         try {
-            searcherHandlesByShard.put(shardName,
-                    new SearcherHandle(seacherFactory, collectionName, shardName, shardDir));
+            searcherHandle = new SearcherHandle(seacherFactory, collectionName, shardName, shardDir);
+            searcherHandlesByShard.put(shardName, searcherHandle);
 
             LOG.info("collectionName: " + collectionName);
             SolrHandler solrHandler = new SolrHandler(shardName, collectionName);
@@ -569,10 +583,11 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
                 try {
                     List<String> lines = FileUtils.readLines(shardInfo, "UTF-8");
                     LOG.info(StringUtils.join(lines, "; "));
-                    if(lines.size() == 3) {
+                    if(lines.size() >= 3) {
+                        //这里相当于本地索引安装，本地索引当在磁盘上存在时，只会按照本地模式安装
                         addShard(StringUtils.trimToEmpty(lines.get(0)),
                                  StringUtils.trimToEmpty(lines.get(1)),
-                                StringUtils.trimToEmpty(shardIndexDir.toURI().toString()));
+                                StringUtils.trimToEmpty(shardIndexDir.toURI().toString()), false);
 
                         handle = searcherHandlesByShard.get(shardName);
                     }
@@ -606,10 +621,11 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
                 File shardInfo = new File(shardIndexDir, ".shard.info");
                 try {
                     List<String> lines = FileUtils.readLines(shardInfo, "UTF-8");
-                    if(lines.size() == 3) {
+                    if(lines.size() >= 3) {
+                        //这里相当于本地索引安装，本地索引当在磁盘上存在时，只会按照本地模式安装
                         addShard(StringUtils.trimToEmpty(lines.get(0)),
                                 StringUtils.trimToEmpty(lines.get(1)),
-                                StringUtils.trimToEmpty(shardIndexDir.toURI().toString()));
+                                StringUtils.trimToEmpty(shardIndexDir.toURI().toString()), false);
 
                         handle = shardBySolrPath.get(shardName);
                     }
