@@ -275,6 +275,7 @@ public class ShardManager {
         try {
             Class.forName(this.analyzerClass);
             this.analyzerClass = analyzerClass;
+            LOG.info("analyzer class {}", analyzerClass);
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException(e);
         }
