@@ -128,8 +128,9 @@ public class KattaBooter {
             shardManager = new ShardManager(shardsFolder);
         }
 
-        shardManager.setAnalyzerClass(_nodeConf.getString("lucene.index.writer.analyzer.class",
-                StandardAnalyzer.class.getName()));
+        shardManager.setAnalyzerClass(
+                _nodeConf.getString("lucene.index.writer.analyzer.class", StandardAnalyzer.class.getName())
+        );
 
         luceneServer.setShardManager(shardManager);
 

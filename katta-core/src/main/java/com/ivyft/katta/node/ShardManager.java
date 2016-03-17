@@ -273,7 +273,7 @@ public class ShardManager {
 
     public void setAnalyzerClass(String analyzerClass) {
         try {
-            Class.forName(this.analyzerClass);
+            Class.forName(analyzerClass);
             this.analyzerClass = analyzerClass;
             LOG.info("analyzer class {}", analyzerClass);
         } catch (ClassNotFoundException e) {
