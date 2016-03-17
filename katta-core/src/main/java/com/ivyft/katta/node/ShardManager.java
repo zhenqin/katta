@@ -24,11 +24,14 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -66,6 +69,13 @@ public class ShardManager {
      * 索引文件复制的本地路径
      */
     private final File shardsFolder;
+
+
+    /**
+     * Merge Index Analyzer
+     */
+    protected String analyzerClass;
+
 
 
     /**
@@ -257,6 +267,19 @@ public class ShardManager {
     }
 
 
+    public String getAnalyzerClass() {
+        return analyzerClass;
+    }
+
+    public void setAnalyzerClass(String analyzerClass) {
+        try {
+            Class.forName(this.analyzerClass);
+            this.analyzerClass = analyzerClass;
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
     /**
      * 拼接本地Shard路径
      * @param shardName shardName
@@ -429,7 +452,8 @@ public class ShardManager {
                     fileSystem.copyToLocalFile(false, path, new Path(shardTmpFolder.getAbsolutePath()), true);
                 }
 
-                LuceneIndexMergeManager mergeManager = new LuceneIndexMergeManager(localShardFolder);
+                Analyzer analyzer = getAnalyzer((Class<? extends Analyzer>) Class.forName(this.analyzerClass));
+                LuceneIndexMergeManager mergeManager = new LuceneIndexMergeManager(localShardFolder, analyzer);
                 try {
                     LOG.info(localShardFolder.getAbsolutePath() + " add index path " + shardTmpFolder.getName());
                     mergeManager.mergeIndex(shardTmpFolder);
@@ -465,6 +489,31 @@ public class ShardManager {
             }
         }
     }
+
+
+    /**
+     * 根据 Analyzer Class，反射获取 Analyzer
+     * @param analysisClass class
+     * @return
+     */
+    protected Analyzer getAnalyzer(Class<? extends Analyzer> analysisClass) {
+        Constructor<? extends Analyzer> constructor;
+        try {
+            constructor = analysisClass.getDeclaredConstructor();
+            return constructor.newInstance();
+        } catch (Exception e) {
+            try {
+                constructor = analysisClass.getDeclaredConstructor(Version.class);
+                return constructor.newInstance(Version.LUCENE_CURRENT);
+            } catch (Exception e1) {
+
+            }
+            throw new IllegalStateException("analyzer class: " + analysisClass.getName() +
+                    " no Default Constructor() or  Constructor(Version);");
+        }
+    }
+
+
 
     public static void main(String[] args) throws Exception {
         File local = new File("./data/test");

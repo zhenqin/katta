@@ -1,7 +1,6 @@
 package com.ivyft.katta.server;
 
 import com.ivyft.katta.lib.lucene.FreeSocketPortFactory;
-import com.ivyft.katta.lib.lucene.ILuceneServer;
 import com.ivyft.katta.lib.lucene.SocketPortFactory;
 import com.ivyft.katta.lib.lucene.SolrHandler;
 import com.ivyft.katta.node.IContentServer;
@@ -15,6 +14,7 @@ import com.ivyft.katta.util.ThrottledInputStream;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.ipc.Server;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,6 +127,9 @@ public class KattaBooter {
         } else {
             shardManager = new ShardManager(shardsFolder);
         }
+
+        shardManager.setAnalyzerClass(_nodeConf.getString("lucene.index.writer.analyzer.class",
+                StandardAnalyzer.class.getName()));
 
         luceneServer.setShardManager(shardManager);
 
