@@ -867,14 +867,12 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
         SolrQuery solrQuery = query.getQuery();
         LOG.info("Lucene query: " + solrQuery.toString() + " shards: [" + StringUtils.join(shards, ",") +"]");
 
-        int count = query.getQuery().getRows() == null ? LuceneServer.DEFAULT_QUERY.getRows() : query.getQuery().getRows();
-
         long start = System.currentTimeMillis();
 
         QueryResponse response = new QueryResponse();
 
         //启动多线程搜索
-        query(solrQuery, shards, response, count, timeout);
+        query(solrQuery, shards, response, timeout);
 
         //计时
         response.setQTime(System.currentTimeMillis() - start);
@@ -890,13 +888,11 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
      * @param query
      * @param shards
      * @param response
-     * @param max
      * @throws IOException
      */
     protected final void query(SolrQuery query,
                                 String[] shards,
                                 QueryResponse response,
-                                int max,
                                 long timeout) throws IOException {
         timeout = getCollectorTiemout(timeout);
         Query luceneQuery;
@@ -908,6 +904,10 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
         if(StringUtils.isNotBlank(fieldString)) {
             fields = new HashSet<String>(Arrays.asList(fieldString));
         }
+
+
+        int offset = query.getStart() == null ? 0 : query.getStart();
+        int limit = query.getRows() == null ? LuceneServer.DEFAULT_QUERY.getRows() : query.getRows();
 
         try {
             luceneQuery = parse(query, shards[0]);
@@ -922,7 +922,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
 
         //这里是并行搜索, 搜索并直接返回结果
         for (int i = 0; i < shardsCount; i++) {
-            QueryCall call = new QueryCall(shards[i], max, timeout, luceneQuery, fields);
+            QueryCall call = new QueryCall(shards[i], limit, timeout, luceneQuery, fields);
             if(StringUtils.isNotBlank(convertClass)) {
                 DocumentConvertor convertor = (DocumentConvertor)cache.getIfPresent(convertClass);
                 if(convertor == null) {
