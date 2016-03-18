@@ -225,6 +225,7 @@ public class SearcherHandle {
      */
     public synchronized void closeIndexSearcher() throws IOException {
         this.indexSearcher.getIndexReader().close();
+        closed.set(true);
         LOG.warn(getCollectionName() + "'s shard " + shardName + " searcher closed.");
     }
 

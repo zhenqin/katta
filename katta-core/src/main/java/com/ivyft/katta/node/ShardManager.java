@@ -24,11 +24,14 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -66,6 +69,13 @@ public class ShardManager {
      * 索引文件复制的本地路径
      */
     private final File shardsFolder;
+
+
+    /**
+     * Merge Index Analyzer
+     */
+    protected String analyzerClass;
+
 
 
     /**
@@ -160,11 +170,13 @@ public class ShardManager {
      *
      * @param shardName shardName
      * @param shardPath IndexFile Path
+     * @param merge 是否覆盖
+     *
      * @return 返回本地索引文件的路径
      * @throws Exception
      */
     public URI installShard2(String shardName,
-                            String shardPath) throws Exception {
+                            String shardPath, boolean merge) throws Exception {
         URI path = new URI(shardPath);
         String scheme = path.getScheme();
         if(StringUtils.equals(ShardManager.HDFS, scheme)) {
@@ -178,6 +190,13 @@ public class ShardManager {
                     }
 
                     LOG.info("mkdir: " + localShardFolder.getAbsolutePath());
+                } else {
+                    //文件夹已经存在，并且需要合并的
+                    if(merge) {
+                        //合并两个目录的索引
+                        installShardMergeIndex(shardName, shardPath, localShardFolder);
+                        return localShardFolder.toURI();
+                    }
                 }
 
                 //from hdfs copy to Local
@@ -189,11 +208,15 @@ public class ShardManager {
             }
         } else {
             //本地文件系统 copy 文件
+            //本地索引安装，不需要 copy
             File localShardFolder = getShardFolder(shardName);
             try {
                 if (!localShardFolder.exists()) {
+                    //如果不存在本地索引目录，则安装， 可能是从另一个本地 copy 到 shardFolder
                     installShard(shardName, shardPath, localShardFolder);
                 }
+
+                //已经存在，则直接返回
                 return localShardFolder.toURI();
             } catch (Exception e) {
                 FileUtil.deleteFolder(localShardFolder);
@@ -243,6 +266,20 @@ public class ShardManager {
         return this.shardsFolder;
     }
 
+
+    public String getAnalyzerClass() {
+        return analyzerClass;
+    }
+
+    public void setAnalyzerClass(String analyzerClass) {
+        try {
+            Class.forName(analyzerClass);
+            this.analyzerClass = analyzerClass;
+            LOG.info("analyzer class {}", analyzerClass);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
 
     /**
      * 拼接本地Shard路径
@@ -325,7 +362,7 @@ public class ShardManager {
         } catch (Exception e) {
             throw new KattaException("Can not init file system " + uri, e);
         }
-        int maxTries = 5;
+        int maxTries = 3;
         for (int i = 0; i < maxTries; i++) {
             try {
                 //原路径
@@ -367,4 +404,123 @@ public class ShardManager {
             }
         }
     }
+
+
+
+    /*
+     * Loads a shard from the given URI. The uri is handled bye the hadoop file
+     * system. So all hadoop support file systems can be used, like local hdfs s3
+     * etc. In case the shard is compressed we also unzip the content. If the
+     * system property katta.spool.zip.shards is true, the zip file is staged to
+     * the local disk before being unzipped.
+     */
+    private void installShardMergeIndex(String shardName,
+                              String shardPath,
+                              File localShardFolder) throws KattaException {
+        LOG.info("install shard '" + shardName + "' from " + shardPath);
+        URI uri = null;
+        FileSystem fileSystem = null;
+        try {
+            uri = new URI(shardPath);
+            fileSystem = HadoopUtil.getFileSystem(uri);
+            if (this.throttleSemaphore != null) {
+                fileSystem =
+                        new ThrottledFileSystem(fileSystem, this.throttleSemaphore);
+            }
+        } catch (URISyntaxException e) {
+            throw new KattaException("Can not parse uri for path: " + shardPath, e);
+        } catch (Exception e) {
+            throw new KattaException("Can not init file system " + uri, e);
+        }
+        int maxTries = 3;
+        for (int i = 0; i < maxTries; i++) {
+            try {
+                //原路径
+                final Path path = new Path(shardPath);
+                boolean isZip = fileSystem.isFile(path) && shardPath.endsWith(".zip");
+
+                File shardTmpFolder = new File(localShardFolder.getAbsolutePath() + "_tmp");
+
+                //删除旧的
+                FileUtil.deleteFolder(shardTmpFolder);
+                LOG.info("delete folder: " + shardTmpFolder.getAbsolutePath());
+
+                if (isZip) {
+                    FileUtil.unzip(path, shardTmpFolder, fileSystem, System.getProperty("katta.spool.zip.shards", "false")
+                            .equalsIgnoreCase("true"));
+                } else {
+                    LOG.info("copy shard to local: " + shardTmpFolder.getAbsolutePath());
+                    fileSystem.copyToLocalFile(false, path, new Path(shardTmpFolder.getAbsolutePath()), true);
+                }
+
+                Analyzer analyzer = getAnalyzer((Class<? extends Analyzer>) Class.forName(this.analyzerClass));
+                LuceneIndexMergeManager mergeManager = new LuceneIndexMergeManager(localShardFolder, analyzer);
+                try {
+                    LOG.info(localShardFolder.getAbsolutePath() + " add index path " + shardTmpFolder.getName());
+                    mergeManager.mergeIndex(shardTmpFolder);
+
+
+                    mergeManager.optimize(5);
+                } finally {
+                    mergeManager.close();
+
+                    try {
+                        LOG.info("clean folder: " + shardTmpFolder.getAbsolutePath());
+                        FileUtil.deleteFolder(shardTmpFolder);
+                    } catch (Exception e) {
+
+                    }
+                }
+
+                //文件修改時間
+                long lastModified = fileSystem.getFileStatus(path).getModificationTime();
+                localShardFolder.setLastModified(lastModified);
+                LOG.info(localShardFolder.getAbsolutePath() + " lastModifies " + new Date(lastModified));
+
+                // Looks like we were successful.
+                if (i > 0) {
+                    LOG.error("Loaded shard:" + shardPath);
+                }
+                return;
+            } catch (Exception e) {
+                LOG.error(String.format("Error loading shard: %s (try %d of %d)", shardPath, i, maxTries), e);
+                if (i >= maxTries - 1) {
+                    throw new KattaException("Can not load shard: " + shardPath, e);
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 根据 Analyzer Class，反射获取 Analyzer
+     * @param analysisClass class
+     * @return
+     */
+    protected Analyzer getAnalyzer(Class<? extends Analyzer> analysisClass) {
+        Constructor<? extends Analyzer> constructor;
+        try {
+            constructor = analysisClass.getDeclaredConstructor();
+            return constructor.newInstance();
+        } catch (Exception e) {
+            try {
+                constructor = analysisClass.getDeclaredConstructor(Version.class);
+                return constructor.newInstance(Version.LUCENE_CURRENT);
+            } catch (Exception e1) {
+
+            }
+            throw new IllegalStateException("analyzer class: " + analysisClass.getName() +
+                    " no Default Constructor() or  Constructor(Version);");
+        }
+    }
+
+
+
+    public static void main(String[] args) throws Exception {
+        File local = new File("./data/test");
+        ShardManager shardManager = new ShardManager(local);
+
+        shardManager.installShard2("2gj3oTQbG5TV0XJfWDJ", "hdfs:///user/katta/luce200/2gj3oTQbG5TV0XJfWDJ", true);
+    }
+
 }

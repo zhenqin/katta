@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.ivyft.katta</groupId>
-    <artifactId>katta-yarn</artifactId>
+    <artifactId>katta-server</artifactId>
     <version>1.5.1</version>
     <packaging>jar</packaging>
 
-    <name>Katta Yarn Support</name>
+    <name>Katta Server</name>
     <url>http://www.ivyft.com</url>
 
 
@@ -17,52 +17,13 @@
         <version>1.5.1</version>
     </parent>
 
+
     <dependencies>
         <dependency>
             <groupId>com.ivyft.katta</groupId>
             <artifactId>katta-core</artifactId>
             <version>1.5.1</version>
         </dependency>
-
-        <dependency>
-            <groupId>com.ivyft.katta</groupId>
-            <artifactId>katta-client</artifactId>
-            <version>1.3.0</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-yarn-client</artifactId>
-            <version>${hadoop.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>guice-servlet</artifactId>
-                    <groupId>com.google.inject.extensions</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>guice</artifactId>
-                    <groupId>com.google.inject</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jersey-test-framework-grizzly2</artifactId>
-                    <groupId>com.sun.jersey.jersey-test-framework</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jersey-server</artifactId>
-                    <groupId>com.sun.jersey</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jersey-json</artifactId>
-                    <groupId>com.sun.jersey</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jersey-guice</artifactId>
-                    <groupId>com.sun.jersey.contribs</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
     </dependencies>
 
     <build>
@@ -103,39 +64,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.5</version>
-                <configuration>
-                    <author>true</author>
-                    <locale>zh_CN</locale>
-                    <doctitle>${project.artifactId} Javadoc</doctitle>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-eclipse-plugin</artifactId>
-                <version>2.9</version>
-                <configuration>
-                    <additionalProjectnatures>
-                        <projectnature>org.eclipse.jdt.core.javanature</projectnature>
-                        <projectnature>org.eclipse.m2e.core.maven2Nature</projectnature>
-                    </additionalProjectnatures>
-                    <additionalBuildcommands>
-                        <buildcommand>org.eclipse.jdt.core.javabuilder</buildcommand>
-                        <buildcommand>org.eclipse.m2e.core.maven2Builder</buildcommand>
-                    </additionalBuildcommands>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-idea-plugin</artifactId>
-                <version>2.2</version>
             </plugin>
 
             <plugin>
