@@ -775,13 +775,15 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         }
 
         int shardsCount = shards.length;
+        int offset = query.getStart() == null ? 0 : query.getStart();
+
 
         // Run the search in parallel on the shards with a thread pool.
         CompletionService<SearchResult> csSearch = new ExecutorCompletionService<SearchResult>(threadPool);
 
         //这里是并行搜索
         for (int i = 0; i < shardsCount; i++) {
-            SearchCall call = new SearchCall(shards[i], max, timeout, i, luceneQuery);
+            SearchCall call = new SearchCall(shards[i], offset, max, timeout, i, luceneQuery, null);
             csSearch.submit(call);
         }
 
@@ -854,32 +856,54 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         timeout = getCollectorTiemout(timeout);
         Query luceneQuery;
 
+        //处理搜索时，包含的返回字段
         String fieldString = query.getFields();
-        String convertClass = query.get("document.convertor.class");
-
         Set<String> fields = null;
         if(StringUtils.isNotBlank(fieldString)) {
             fields = new HashSet<String>(Arrays.asList(fieldString));
         }
 
-
         int offset = query.getStart() == null ? 0 : query.getStart();
         int limit = query.getRows() == null ? LuceneServer.DEFAULT_QUERY.getRows() : query.getRows();
 
+
+        //解析 SolrQuery 为 Lucene 的 Query 对象
         try {
             luceneQuery = parse(query, shards[0]);
         } catch (Exception e) {
             throw new IOException(e);
         }
 
-        int shardsCount = shards.length;
 
+        //排序策略
+        List<SolrQuery.SortClause> sorts = query.getSorts();
+        Sort sort = null;
+        if(sorts.size() > 0) {
+            SolrHandler handler = shardBySolrPath.get(shards[0]);
+
+
+            sort = new Sort();
+            SortField[] sortFields = new SortField[sorts.size()];
+            int m = 0;
+            for (SolrQuery.SortClause sortClause : sorts) {
+                TypeSource typeSource = handler.getFieldGroup(sortClause.getItem());
+
+                sortFields[m] = new SortField(sortClause.getItem(),
+                        typeSource.getFieldType(),
+                        sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
+                m++;
+            }
+        }
+
+
+        //多线程搜素
+        int shardsCount = shards.length;
         // Run the search in parallel on the shards with a thread pool.
         CompletionService<Result> csSearch = new ExecutorCompletionService<Result>(threadPool);
-
+        String convertClass = query.get("document.convertor.class");
         //这里是并行搜索, 搜索并直接返回结果
         for (int i = 0; i < shardsCount; i++) {
-            QueryCall call = new QueryCall(shards[i], limit, timeout, luceneQuery, fields);
+            QueryCall call = new QueryCall(shards[i], offset, limit, timeout, luceneQuery, sort, fields);
             if(StringUtils.isNotBlank(convertClass)) {
                 DocumentConvertor convertor = (DocumentConvertor)cache.getIfPresent(convertClass);
                 if(convertor == null) {
@@ -895,9 +919,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         //查询到的总数, numFount
         AtomicInteger totalHits = new AtomicInteger(0);
 
-        //结果，泛型
+        //处理搜索结果，泛型
         List docs = new LinkedList<Serializable>();
-
         for (int i = 0; i < shardsCount; i++) {
             try {
                 Result queryResult = csSearch.take().get();
@@ -983,7 +1006,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                 Group<Writable> groupResult = csSearch.take().get();
                 response.setMaxScore(groupResult.getMaxScore());
                 response.addTotalHitCount(groupResult.getTotalHitCount());
-                response.addAll(groupResult.groupResult);
+                response.addAll(groupResult.getGroupResult());
             } catch (InterruptedException e) {
                 throw new IOException("Multithread shard search interrupted:", e);
             } catch (ExecutionException e) {
@@ -1057,7 +1080,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         for (int i = 0; i < shardsCount; i++) {
             try {
                 Facet<Writable> facetResult = csSearch.take().get();
-                response.addAll(facetResult.facetResult);
+                response.addAll(facetResult.getFacetResult());
                 response.setMaxScore(facetResult.getMaxScore());
                 response.addTotalHitCount(facetResult.getTotalHitCount());
                 response.addTotalGroupedHitCount(facetResult.getTotalGroupedHitCount());
@@ -1205,7 +1228,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         for (int i = 0; i < shardsCount; i++) {
             try {
                 Facet<Writable> facetResult = csSearch.take().get();
-                response.addAll(facetResult.facetResult);
+                response.addAll(facetResult.getFacetResult());
             } catch (InterruptedException e) {
                 throw new IOException("Multithread shard search interrupted:", e);
             } catch (ExecutionException e) {
@@ -1391,6 +1414,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
     protected class SearchCall implements Callable<SearchResult> {
 
         protected String shardName;
+        protected int offset;
         protected int limit;
         protected long timeout;
         protected int callIndex;
@@ -1401,18 +1425,22 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         protected Filter filter;
 
         public SearchCall(String shardName,
-                          int limit,
-                          long timeout,
-                          int callIndex,
-                          Query query) {
+                         int offset,
+                         int limit,
+                         long timeout,
+                         int callIndex,
+                         Query query,
+                         Sort sort) {
             this.shardName = shardName;
+            this.offset = offset;
             this.limit = limit;
-            //_sort = sort;
+            this.sort = sort;
             this.timeout = timeout;
             this.callIndex = callIndex;
             this.query = query;
             //_filter = filter;
         }
+
 
         @Override
         public SearchResult call() throws Exception {
@@ -1479,6 +1507,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
     protected class QueryCall implements Callable<Result> {
 
         protected String shardName;
+        protected int offset;
         protected int limit;
         protected long timeout;
         protected Query query;
@@ -1490,12 +1519,16 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         protected DocumentConvertor convertor;
 
         public QueryCall(String shardName,
-                          int limit,
-                          long timeout,
-                          Query query, Set<String> fields) {
+                         int offset,
+                         int limit,
+                         long timeout,
+                         Query query,
+                         Sort sort,
+                         Set<String> fields) {
             this.shardName = shardName;
+            this.offset = offset;
             this.limit = limit;
-            //this.sort = sort;
+            this.sort = sort;
             this.timeout = timeout;
             this.query = query;
             this.fields = fields;
@@ -1520,16 +1553,23 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                 //这里搜索，并且携带结果返回
                 long time = System.currentTimeMillis();
 
-                FetchDocumentCollector documentCollector = new FetchDocumentCollector(fields, limit, 0);
-                TopScoreDocCollector topDocsCollector = TopScoreDocCollector.create(1, true);
+                FetchDocumentCollector documentCollector = new FetchDocumentCollector(fields, limit, offset);
+                TopDocsCollector topDocsCollector;
+                if(sort == null) {
+                    //不需要排序
+                    topDocsCollector = TopScoreDocCollector.create(limit, true);
+                } else {
+                    //需要排序
+                    topDocsCollector = TopFieldCollector.create(sort, limit, true, false, false, false);
+                }
 
                 if(convertor != null) {
                     documentCollector.setConvertor(convertor);
                 }
 
-                searcher.search(query, MultiCollector.wrap(wrapInTimeoutCollector(documentCollector), topDocsCollector));
+                searcher.search(query, MultiCollector.wrap(topDocsCollector, wrapInTimeoutCollector(documentCollector)));
 
-                return new Result(documentCollector.getTotalHits(),
+                return new Result(topDocsCollector.getTotalHits(),
                         documentCollector.getDocs(),
                         System.currentTimeMillis() - time,
                         topDocsCollector.topDocs().getMaxScore());

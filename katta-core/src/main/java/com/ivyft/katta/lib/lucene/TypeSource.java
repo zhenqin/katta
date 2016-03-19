@@ -3,6 +3,7 @@ package com.ivyft.katta.lib.lucene;
 import com.ivyft.katta.lib.lucene.group.GroupCollectorFactory;
 import org.apache.hadoop.io.Writable;
 import org.apache.lucene.queries.function.valuesource.FieldCacheSource;
+import org.apache.lucene.search.SortField;
 import org.apache.solr.schema.SchemaField;
 
 import java.io.Serializable;
@@ -52,6 +53,13 @@ public class TypeSource implements Serializable {
      */
     protected SchemaField schemaField;
 
+
+    /**
+     * 字段排序类型
+     */
+    protected SortField.Type fieldType;
+
+
     /**
      *
      * 构造方法
@@ -62,10 +70,12 @@ public class TypeSource implements Serializable {
      */
     public TypeSource(FieldCacheSource fieldCacheSource,
                       SchemaField schemaField,
+                      SortField.Type fieldType,
                       GroupCollectorFactory collectorFactory,
                       Writable simpleValue) {
         this.fieldCacheSource = fieldCacheSource;
         this.simpleValue = simpleValue;
+        this.fieldType = fieldType;
         this.schemaField = schemaField;
         this.collectorFactory = collectorFactory;
     }
@@ -91,5 +101,10 @@ public class TypeSource implements Serializable {
 
     public SchemaField getSchemaField() {
         return schemaField;
+    }
+
+
+    public SortField.Type getFieldType() {
+        return fieldType;
     }
 }

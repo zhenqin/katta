@@ -8,6 +8,7 @@ import org.apache.lucene.queries.function.valuesource.DoubleFieldSource;
 import org.apache.lucene.queries.function.valuesource.FloatFieldSource;
 import org.apache.lucene.queries.function.valuesource.IntFieldSource;
 import org.apache.lucene.queries.function.valuesource.LongFieldSource;
+import org.apache.lucene.search.SortField;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.core.CoreContainer;
@@ -155,24 +156,34 @@ public class SolrHandler {
 
         FieldType.NumericType numericType = schemaField.getType().getNumericType();
         if(numericType != null) {
-            if(StringUtils.equals(numericType.name(), "INT")) {
-                return new TypeSource(new IntFieldSource(field),schemaField,
+            if(numericType == FieldType.NumericType.INT) {
+                return new TypeSource(new IntFieldSource(field),
+                        schemaField,
+                        SortField.Type.INT,
                         new GroupCollectorFactory.IntCollectorFactory(),
                         new IntWritable());
-            } else if(StringUtils.equals(numericType.name(), "LONG")) {
-                return new TypeSource(new LongFieldSource(field), schemaField,
+            } else if(numericType == FieldType.NumericType.LONG) {
+                return new TypeSource(new LongFieldSource(field),
+                        schemaField,
+                        SortField.Type.LONG,
                         new GroupCollectorFactory.LongCollectorFactory(),
                         new LongWritable());
-            } else if(StringUtils.equals(numericType.name(), "FLOAT")){
-                return new TypeSource(new FloatFieldSource(field), schemaField,
+            } else if(numericType == FieldType.NumericType.FLOAT){
+                return new TypeSource(new FloatFieldSource(field),
+                        schemaField,
+                        SortField.Type.FLOAT,
                         new GroupCollectorFactory.FloatCollectorFactory(),
                         new FloatWritable());
-            } else if(StringUtils.equals(numericType.name(), "DOUBLE")){
-                return new TypeSource(new DoubleFieldSource(field), schemaField,
+            } else if(numericType == FieldType.NumericType.DOUBLE){
+                return new TypeSource(new DoubleFieldSource(field),
+                        schemaField,
+                        SortField.Type.DOUBLE,
                         new GroupCollectorFactory.DoubleCollectorFactory(),
                         new DoubleWritable());
             } else if(StringUtils.equals(numericType.name(), "DATE")){
-                return new TypeSource(new LongFieldSource(field), schemaField,
+                return new TypeSource(new LongFieldSource(field),
+                        schemaField,
+                        SortField.Type.LONG,
                         new GroupCollectorFactory.LongCollectorFactory(),
                         new LongWritable());
             }
@@ -180,31 +191,45 @@ public class SolrHandler {
         }
         String typeString = schemaField.getType().getTypeName();
         if(StringUtils.equals(typeString, "string")) {
-            return new TypeSource(new StrFieldSource(field), schemaField,
+            return new TypeSource(new StrFieldSource(field),
+                    schemaField,
+                    SortField.Type.STRING,
                     new GroupCollectorFactory.TextCollectorFactory(),
                     new Text());
         } else if(StringUtils.equals(typeString, "int")) {
-            return new TypeSource(new IntFieldSource(field), schemaField,
+            return new TypeSource(new IntFieldSource(field),
+                    schemaField,
+                    SortField.Type.INT,
                     new GroupCollectorFactory.IntCollectorFactory(),
                     new IntWritable());
         } else if(StringUtils.equals(typeString, "long")) {
-            return new TypeSource(new LongFieldSource(field), schemaField,
+            return new TypeSource(new LongFieldSource(field),
+                    schemaField,
+                    SortField.Type.LONG,
                     new GroupCollectorFactory.LongCollectorFactory(),
                     new LongWritable());
         } else if(StringUtils.equals(typeString, "tdate")) {
-            return new TypeSource(new LongFieldSource(field), schemaField,
+            return new TypeSource(new LongFieldSource(field),
+                    schemaField,
+                    SortField.Type.LONG,
                     new GroupCollectorFactory.LongCollectorFactory(),
                     new LongWritable());
         } else if(StringUtils.equals(typeString, "date")) {
-            return new TypeSource(new LongFieldSource(field), schemaField,
+            return new TypeSource(new LongFieldSource(field),
+                    schemaField,
+                    SortField.Type.LONG,
                     new GroupCollectorFactory.LongCollectorFactory(),
                     new LongWritable());
         } else if(StringUtils.equals(typeString, "double")) {
-            return new TypeSource(new DoubleFieldSource(field), schemaField,
+            return new TypeSource(new DoubleFieldSource(field),
+                    schemaField,
+                    SortField.Type.DOUBLE,
                     new GroupCollectorFactory.DoubleCollectorFactory(),
                     new DoubleWritable());
         } else if(StringUtils.equals(typeString, "float")) {
-            return new TypeSource(new FloatFieldSource(field), schemaField,
+            return new TypeSource(new FloatFieldSource(field),
+                    schemaField,
+                    SortField.Type.FLOAT,
                     new GroupCollectorFactory.FloatCollectorFactory(),
                     new FloatWritable());
         }

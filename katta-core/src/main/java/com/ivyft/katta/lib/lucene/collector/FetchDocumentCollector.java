@@ -3,7 +3,6 @@ package com.ivyft.katta.lib.lucene.collector;
 import com.ivyft.katta.lib.lucene.convertor.DocumentConvertor;
 import com.ivyft.katta.lib.lucene.convertor.SolrDocumentConvertor;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TotalHitCountCollector;
 
 import java.io.IOException;
@@ -85,7 +84,7 @@ public class FetchDocumentCollector extends TotalHitCountCollector {
     @Override
     public void collect(int doc) {
         super.collect(doc);
-        if(docs.size() < limit && getTotalHits() >= offset) {
+        if(getTotalHits() > offset && docs.size() < limit) {
             if(fields != null) {
                 try {
                     docs.add(convertor.convert(context.reader().document(doc, fields)));
@@ -100,12 +99,6 @@ public class FetchDocumentCollector extends TotalHitCountCollector {
                 }
             }
         }
-    }
-
-
-    @Override
-    public void setScorer(Scorer scorer) {
-        super.setScorer(scorer);
     }
 
 
