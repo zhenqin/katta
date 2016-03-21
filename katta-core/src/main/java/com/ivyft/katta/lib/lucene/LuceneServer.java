@@ -17,8 +17,8 @@ package com.ivyft.katta.lib.lucene;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.ivyft.katta.lib.lucene.collector.FetchDocumentCollector;
 import com.ivyft.katta.lib.lucene.convertor.DocumentConvertor;
+import com.ivyft.katta.lib.lucene.convertor.SolrDocumentConvertor;
 import com.ivyft.katta.node.IContentServer;
 import com.ivyft.katta.node.SerialSocketServer;
 import com.ivyft.katta.util.ClassUtil;
@@ -860,7 +860,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         String fieldString = query.getFields();
         Set<String> fields = null;
         if(StringUtils.isNotBlank(fieldString)) {
-            fields = new HashSet<String>(Arrays.asList(fieldString));
+            fields = new HashSet<String>(Arrays.asList(fieldString.split(",")));
         }
 
         int offset = query.getStart() == null ? 0 : query.getStart();
@@ -893,6 +893,10 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                         sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
                 m++;
             }
+
+            sort.setSort(sortFields);
+
+
         }
 
 
@@ -1553,24 +1557,44 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                 //这里搜索，并且携带结果返回
                 long time = System.currentTimeMillis();
 
-                FetchDocumentCollector documentCollector = new FetchDocumentCollector(fields, limit, offset);
+                //FetchDocumentCollector documentCollector = new FetchDocumentCollector(fields, limit, offset);
                 TopDocsCollector topDocsCollector;
                 if(sort == null) {
                     //不需要排序
-                    topDocsCollector = TopScoreDocCollector.create(limit, true);
+                    topDocsCollector = TopScoreDocCollector.create(offset + limit, true);
                 } else {
                     //需要排序
-                    topDocsCollector = TopFieldCollector.create(sort, limit, true, false, false, false);
+                    LOG.info(sort.toString());
+                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, false, false, false);
                 }
 
-                if(convertor != null) {
-                    documentCollector.setConvertor(convertor);
+
+                /*
+                 * 稳定集合
+                 */
+                List<Object> docs = new LinkedList<Object>();
+
+                /*
+                 * Lucene Document Convertor，默认转换成Solr Input Document
+                 */
+                if(convertor == null) {
+                    convertor = new SolrDocumentConvertor();
                 }
 
-                searcher.search(query, MultiCollector.wrap(topDocsCollector, wrapInTimeoutCollector(documentCollector)));
+
+                searcher.search(query, wrapInTimeoutCollector(topDocsCollector));
+
+                TopDocs topDocs = topDocsCollector.topDocs(offset, limit);
+                for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+                    if (fields != null) {
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc, fields)));
+                    } else {
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc)));
+                    }
+                }
 
                 return new Result(topDocsCollector.getTotalHits(),
-                        documentCollector.getDocs(),
+                        docs,
                         System.currentTimeMillis() - time,
                         topDocsCollector.topDocs().getMaxScore());
             } finally {

@@ -84,7 +84,7 @@ public class FetchDocumentCollector extends TotalHitCountCollector {
     @Override
     public void collect(int doc) {
         super.collect(doc);
-        if(getTotalHits() > offset && docs.size() < limit) {
+        if(docs.size() < limit && getTotalHits() > offset) {
             if(fields != null) {
                 try {
                     docs.add(convertor.convert(context.reader().document(doc, fields)));
