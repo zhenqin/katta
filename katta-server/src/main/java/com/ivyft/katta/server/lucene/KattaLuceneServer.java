@@ -1509,17 +1509,26 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
 
                 //TODO 这里搜索，不携带结果。但是Filter，Sort没有使用
                 long time = System.currentTimeMillis();
-                TopScoreDocCollector docCollector = TopScoreDocCollector.create(limit, true);
+                TopDocsCollector topDocsCollector;
+                if(sort == null) {
+                    //不需要排序
+                    topDocsCollector = TopScoreDocCollector.create(offset + limit, true);
+                } else {
+                    //需要排序
+                    LOG.info(sort.toString());
+                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, false, false, false);
+                }
+
                 if(filter == null) {
-                    searcher.search(query, wrapInTimeoutCollector(docCollector));
-                    return new SearchResult(docCollector.getTotalHits(),
-                            docCollector.topDocs().scoreDocs,
+                    searcher.search(query, wrapInTimeoutCollector(topDocsCollector));
+                    return new SearchResult(topDocsCollector.getTotalHits(),
+                            topDocsCollector.topDocs(offset, limit).scoreDocs,
                             callIndex,
                             System.currentTimeMillis() - time);
                 } else {
-                    searcher.search(query, filter, wrapInTimeoutCollector(docCollector));
-                    return new SearchResult(docCollector.getTotalHits(),
-                            docCollector.topDocs().scoreDocs,
+                    searcher.search(query, filter, wrapInTimeoutCollector(topDocsCollector));
+                    return new SearchResult(topDocsCollector.getTotalHits(),
+                            topDocsCollector.topDocs(offset, limit).scoreDocs,
                             callIndex,
                             System.currentTimeMillis() - time);
                 }
