@@ -738,6 +738,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
     public MapWritable getDetail(String[] shards,
                                   int docId,
                                   String[] fieldNames) throws IOException {
+        getSearcherHandleByShard(shards[0]);
         //所有的结果都要存放在result变量中
         MapWritable result = new MapWritable();
 
@@ -897,6 +898,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
                                 String[] shards,
                                 QueryResponse response,
                                 long timeout) throws IOException {
+        getSearcherHandleByShard(shards[0]);
         timeout = getCollectorTiemout(timeout);
         Query luceneQuery;
 

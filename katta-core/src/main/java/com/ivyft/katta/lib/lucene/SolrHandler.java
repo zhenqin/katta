@@ -4,10 +4,7 @@ import com.ivyft.katta.lib.lucene.group.GroupCollectorFactory;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.io.*;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.queries.function.valuesource.DoubleFieldSource;
-import org.apache.lucene.queries.function.valuesource.FloatFieldSource;
-import org.apache.lucene.queries.function.valuesource.IntFieldSource;
-import org.apache.lucene.queries.function.valuesource.LongFieldSource;
+import org.apache.lucene.queries.function.valuesource.*;
 import org.apache.lucene.search.SortField;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.params.FacetParams;
@@ -232,9 +229,13 @@ public class SolrHandler {
                     SortField.Type.FLOAT,
                     new GroupCollectorFactory.FloatCollectorFactory(),
                     new FloatWritable());
+        } else {
+            return new TypeSource(new StrFieldSource(field),
+                    schemaField,
+                    SortField.Type.DOC,
+                    new GroupCollectorFactory.TextCollectorFactory(),
+                    new Text());
         }
-        throw new IllegalStateException(field + " type " +
-                typeString + ", it's not a group(facet) type.");
     }
 
 
