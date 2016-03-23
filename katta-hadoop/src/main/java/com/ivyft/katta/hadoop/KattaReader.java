@@ -1,9 +1,11 @@
 package com.ivyft.katta.hadoop;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.SolrDocument;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -44,40 +46,29 @@ public class KattaReader {
     }
 
 
-    /**
-     * Katta export socket port
-     */
-    protected int port = 5880;
-
-
-    /**
-     * Hadoop Reader 返回的keyField
-     */
-    protected String keyField;
-
-
-    /**
-     * Reader一次性取出的数量
-     */
-    protected int limit = 200;
-
 
     /**
      * Solr Query
      */
-    protected SolrQuery query;
+    protected final SolrQuery query;
 
 
     /**
      * 导出查询的Index Name
      */
-    protected String[] indexNames;
+    protected final String[] indexNames;
+
+
 
 
     /**
      * 多线程的线程池，建议大小为最少Shard的数量
      */
-    protected ExecutorService executor;
+    protected final ExecutorService executor;
+
+
+
+    protected final List<KattaInputSplit> splits;
 
 
     /**
@@ -90,14 +81,60 @@ public class KattaReader {
      */
     public static KattaReader getInstance(String[] indexNames,
                                           SolrQuery query,
+                                          Configuration conf,
                                           ExecutorService executor) throws Exception {
-        return new KattaReader(indexNames, query, executor);
+        /*
+        KattaInputFormat.setInputKey(conf, keyField);
+        KattaInputFormat.setLimit(configuration, limit);
+        KattaInputFormat.setSocketPort(configuration, port);
+        */
+
+        String inputKey = KattaInputFormat.getInputKey(conf);
+        if(StringUtils.isBlank(inputKey)) {
+            throw new IllegalArgumentException("input key must not be blank.");
+        }
+
+
+        KattaInputFormat.setInputQuery(conf, query);
+        KattaInputFormat.setIndexNames(conf, indexNames);
+        List<KattaInputSplit> splits = KattaSpliter.calculateSplits(conf);
+        return new KattaReader(indexNames, query, splits, executor);
     }
 
 
-    protected KattaReader(String[] indexNames, SolrQuery query, ExecutorService executor) {
+
+
+
+    /**
+     * Solr Cloud Reader
+     * @param indexNames
+     * @param query
+     * @param executor
+     * @return
+     * @throws Exception
+     */
+    public static KattaReader getSingleKattaInstance(String[] indexNames,
+                                                     SolrQuery query,
+                                                     String host,
+                                                     int port,
+                                                     String inputKey,
+                                                     int limit,
+                                                     ExecutorService executor) throws Exception {
+        List<KattaInputSplit> splits = new ArrayList<KattaInputSplit>(indexNames.length);
+        for (String name : indexNames) {
+            splits.add(new KattaInputSplit(host, port, name, query, inputKey, limit));
+        }
+
+        return new KattaReader(indexNames, query, splits, executor);
+    }
+
+
+    protected KattaReader(String[] indexNames, SolrQuery query,
+                          List<KattaInputSplit> splits,
+                          ExecutorService executor) {
         this.indexNames = indexNames;
         this.query = query;
+        this.splits = splits;
         this.executor = executor;
     }
 
@@ -110,14 +147,6 @@ public class KattaReader {
         if(executor == null) {
             throw new IllegalStateException("executor must not null");
         }
-        Configuration configuration = new Configuration(false);
-        KattaInputFormat.setInputKey(configuration, keyField);
-        KattaInputFormat.setLimit(configuration, limit);
-        KattaInputFormat.setSocketPort(configuration, port);
-        KattaInputFormat.setInputQuery(configuration, query);
-        KattaInputFormat.setIndexNames(configuration, indexNames);
-
-        List<KattaInputSplit> splits = KattaSpliter.calculateSplits(configuration);
 
         if(splits.isEmpty()) {
             return;
@@ -176,36 +205,4 @@ public class KattaReader {
         callback.progress(1.0f);
     }
 
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public String getKeyField() {
-        return keyField;
-    }
-
-    public void setKeyField(String keyField) {
-        this.keyField = keyField;
-    }
-
-    public int getLimit() {
-        return limit;
-    }
-
-    public void setLimit(int limit) {
-        this.limit = limit;
-    }
-
-    public SolrQuery getQuery() {
-        return query;
-    }
-
-    public void setQuery(SolrQuery query) {
-        this.query = query;
-    }
 }
