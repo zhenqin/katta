@@ -17,8 +17,8 @@ package com.ivyft.katta.server.lucene;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.ivyft.katta.lib.lucene.TextFieldComparatorSource;
 import com.ivyft.katta.lib.lucene.*;
-import com.ivyft.katta.lib.lucene.collector.FetchDocumentCollector;
 import com.ivyft.katta.lib.lucene.convertor.DocumentConvertor;
 import com.ivyft.katta.lib.lucene.convertor.SolrDocumentConvertor;
 import com.ivyft.katta.node.IContentServer;
@@ -934,9 +934,18 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
             for (SolrQuery.SortClause sortClause : sorts) {
                 TypeSource typeSource = handler.getFieldGroup(sortClause.getItem());
 
-                sortFields[m] = new SortField(sortClause.getItem(),
-                        typeSource.getFieldType(),
-                        sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
+                SortField.Type fieldType = typeSource.getFieldType();
+
+                if(fieldType == SortField.Type.DOC) {
+                    sortFields[m] = new SortField(sortClause.getItem(),
+                            new TextFieldComparatorSource(),
+                            sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
+                } else {
+                    sortFields[m] = new SortField(sortClause.getItem(),
+                            fieldType,
+                            sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
+                }
+
                 m++;
             }
 
