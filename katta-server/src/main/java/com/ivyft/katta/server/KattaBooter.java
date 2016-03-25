@@ -122,15 +122,13 @@ public class KattaBooter {
         final ShardManager shardManager;
         if (throttleInKbPerSec > 0) {
             LOG.info("throtteling of shard deployment to " + throttleInKbPerSec + " kilo-bytes per second");
-            shardManager = new ShardManager(shardsFolder,
+            shardManager = new ShardManager(
+                    _nodeConf,
+                    shardsFolder,
                     new ThrottledInputStream.ThrottleSemaphore(throttleInKbPerSec * 1024));
         } else {
-            shardManager = new ShardManager(shardsFolder);
+            shardManager = new ShardManager(_nodeConf, shardsFolder);
         }
-
-        shardManager.setAnalyzerClass(
-                _nodeConf.getString("lucene.index.writer.analyzer.class", StandardAnalyzer.class.getName())
-        );
 
         luceneServer.setShardManager(shardManager);
 

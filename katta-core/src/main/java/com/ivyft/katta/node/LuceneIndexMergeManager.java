@@ -4,6 +4,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
@@ -74,6 +75,11 @@ public class LuceneIndexMergeManager implements Closeable {
         }
     }
 
+
+
+    public void delete(String id) {
+        //indexWriter.deleteDocuments(new Term());
+    }
 
 
 

@@ -22,11 +22,21 @@ import java.util.List;
 public interface DocumentFactory<T> {
 
 
-
+    /**
+     * 反序列化
+     *
+     * @param context 序列化上下文
+     * @param buffer 一个数据 byte
+     * @return 返回 byte 可以反序列化的对象 List
+     */
     public Collection<T> deserial(SerdeContext context, ByteBuffer buffer);
 
 
-
-
+    /**
+     * 从 List 对象中返回 Document
+     * @param context 序列化
+     * @param list 对象 List
+     * @return 返回 Lucene Document
+     */
     public Collection<Document> get(SerdeContext context, Collection<T> list);
 }

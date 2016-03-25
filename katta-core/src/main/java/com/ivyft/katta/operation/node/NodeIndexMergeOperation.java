@@ -1,10 +1,7 @@
 package com.ivyft.katta.operation.node;
 
 import com.ivyft.katta.codec.Serializer;
-import com.ivyft.katta.lib.writer.SerdeContext;
-import com.ivyft.katta.lib.writer.Serialization;
-import com.ivyft.katta.lib.writer.SerializationReader;
-import com.ivyft.katta.lib.writer.ShardRange;
+import com.ivyft.katta.lib.writer.*;
 import com.ivyft.katta.node.NodeContext;
 import com.ivyft.katta.node.ShardManager;
 import com.ivyft.katta.protocol.IntLengthHeaderFile;
@@ -86,6 +83,7 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
         //String shardPath = getShardPath(shardName);
         log.info("merge lucene index. index name {} shard {}", indexName, shardName);
         ShardManager shardManager = context.getShardManager();
+        MergeDocument mergeDocument = null;
         for (ShardRange commit : commits) {
             Path shardPath = new Path(commit.getShardPath());
             List<Path> paths = shardManager.getDataPaths(shardPath);
@@ -98,26 +96,36 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
                     log.info("serde context {}", serdeContext.toString());
 
                     Class<Serialization> aClass = (Class<Serialization>) Class.forName(serdeContext.getSerClass());
-                    Serializer serializer = aClass.newInstance().serialize();
-
-                    int count = 1;
+                    Serialization serialization = aClass.newInstance();
+                    if(mergeDocument == null) {
+                        SerialFactory.registry(serialization);
+                        mergeDocument = shardManager.getMergeDocument(serialization.getContentType(), indexName, shardName);
+                    }
+                    int count = 0;
                     ByteBuffer byteBuffer = r.nextByteBuffer();
                     while (byteBuffer != null) {
-                        log.info(count + "   " + serializer.deserialize(byteBuffer.array()));
+                        mergeDocument.add(byteBuffer);
                         count++;
 
                         byteBuffer = r.nextByteBuffer();
+
+                        if(count % 1000 == 0) {
+                            log.info("add lucene document count {}", count);
+                        }
                     }
+
+                    log.info("add last lucene document count {}", count);
                 } finally {
                     reader.close();
                 }
             }
 
-            //HadoopUtil.getFileSystem().delete(shardPath, true);
-            log.info("merge index success");
 //            */
 
         }
+
+        mergeDocument.merge();
+        log.info("merge index success");
 
         //IndexWriter indexWriter = shardManager.getShardIndexWriter(shardName, shardPath);
         //URI localShardFolder = context.getShardManager().installShard(shardName, shardPath);

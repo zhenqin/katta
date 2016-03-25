@@ -184,11 +184,10 @@ public class SerdeContext {
             this.serClass = in.readUTF();
             this.size = in.readInt();
         } else if(version.getVersion() == Version.Version_2.getVersion()) {
-            ByteBuffer buffer = ByteBuffer.allocate(version.getMetaSize());
             byte[] bytes = new byte[version.getMetaSize()];
             in.readFully(bytes);
-            buffer.put(bytes);
-            buffer.flip();
+
+            ByteBuffer buffer = ByteBuffer.wrap(bytes);
 
             int anInt = buffer.getInt();
             bytes = new byte[anInt];

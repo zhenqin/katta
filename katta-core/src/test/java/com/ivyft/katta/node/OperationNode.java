@@ -55,10 +55,11 @@ public class OperationNode {
         final ShardManager shardManager;
         if (throttleInKbPerSec > 0) {
             LOG.info("throtteling of shard deployment to " + throttleInKbPerSec + " kilo-bytes per second");
-            shardManager = new ShardManager(shardsFolder,
+            shardManager = new ShardManager(nodeConfiguration,
+                    shardsFolder,
                     new ThrottledInputStream.ThrottleSemaphore(throttleInKbPerSec * 1024));
         } else {
-            shardManager = new ShardManager(shardsFolder);
+            shardManager = new ShardManager(nodeConfiguration, shardsFolder);
         }
 
 
