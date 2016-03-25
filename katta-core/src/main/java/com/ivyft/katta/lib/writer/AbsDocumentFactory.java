@@ -3,10 +3,7 @@ package com.ivyft.katta.lib.writer;
 import com.ivyft.katta.codec.Serializer;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * <pre>
@@ -28,7 +25,7 @@ public abstract class AbsDocumentFactory<T> implements DocumentFactory<T> {
 
 
     @Override
-    public List<T> deserial(SerdeContext context, ByteBuffer buffer) {
+    public Collection<T> deserial(SerdeContext context, ByteBuffer buffer) {
         Serializer<T> serializer = serializerMap.get(context.getSerClass());
         if(serializer == null){
             try {
@@ -41,8 +38,8 @@ public abstract class AbsDocumentFactory<T> implements DocumentFactory<T> {
             }
         }
         T obj = serializer.deserialize(buffer.array());
-        if(obj instanceof List) {
-            return (List)obj;
+        if(obj instanceof Collection) {
+            return (Collection)obj;
         }
         return Arrays.asList(obj);
     }

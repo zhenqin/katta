@@ -6,6 +6,7 @@ import org.apache.lucene.document.Document;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -26,14 +27,14 @@ public class JdkSerialFactory<T> implements DocumentFactory<T> {
 
 
     @Override
-    public List<T> deserial(SerdeContext context, ByteBuffer buffer) {
+    public Collection<T> deserial(SerdeContext context, ByteBuffer buffer) {
         Serializer<Object> serializer = SerialFactory.get(context.getSerdeName());
         T deserialize = (T) serializer.deserialize(buffer.array());
         return Arrays.asList(deserialize);
     }
 
     @Override
-    public List<Document> get(SerdeContext context, List<T> list) {
+    public Collection<Document> get(SerdeContext context, Collection<T> list) {
         List<Document> docs = new ArrayList<Document>(list.size());
         for (Object o : list) {
 

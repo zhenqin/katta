@@ -220,7 +220,7 @@ public class OperationWatchdog implements ConnectedComponent, Serializable {
                 operationResults.add(operationResult);// we add null ones
             }
 
-            //TODO 发布事件,这里才是重要的
+            //完成该次事件,这里才是重要的
             _masterOperation.nodeOperationsComplete(_context, operationResults);
         } catch (Exception e) {
             LOG.info("operation complete action of " + _masterOperation + " failed", e);

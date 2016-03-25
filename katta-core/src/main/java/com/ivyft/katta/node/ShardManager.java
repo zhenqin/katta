@@ -15,6 +15,8 @@
  */
 package com.ivyft.katta.node;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.ivyft.katta.util.FileUtil;
 import com.ivyft.katta.util.HadoopUtil;
 import com.ivyft.katta.util.KattaException;
@@ -22,8 +24,10 @@ import com.ivyft.katta.util.ThrottledInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
@@ -34,10 +38,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
+import java.util.*;
 
 
 /**
@@ -513,6 +514,34 @@ public class ShardManager {
                     " no Default Constructor() or  Constructor(Version);");
         }
     }
+
+
+    public List<Path> getDataPaths(Path shardPath) {
+        try {
+            final FileSystem fileSystem = HadoopUtil.getFileSystem(shardPath);
+            if (fileSystem.isDirectory(shardPath)) {
+                FileStatus[] statuses = fileSystem.listStatus(shardPath, new PathFilter() {
+                    @Override
+                    public boolean accept(Path path) {
+                        return !path.getName().startsWith(".") && path.getName().endsWith(".dat");
+                    }
+                });
+
+                if(statuses != null) {
+                    List<Path> paths = new ArrayList<Path>(statuses.length);
+                    for (FileStatus status : statuses) {
+                        paths.add(status.getPath());
+                    }
+
+                    return paths;
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        return ImmutableList.of();
+    }
+
 
 
 

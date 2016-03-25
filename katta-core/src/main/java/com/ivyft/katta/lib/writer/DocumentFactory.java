@@ -3,6 +3,7 @@ package com.ivyft.katta.lib.writer;
 import org.apache.lucene.document.Document;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -22,10 +23,10 @@ public interface DocumentFactory<T> {
 
 
 
-    public List<T> deserial(SerdeContext context, ByteBuffer buffer);
+    public Collection<T> deserial(SerdeContext context, ByteBuffer buffer);
 
 
 
 
-    public List<Document> get(SerdeContext context, List<T> list);
+    public Collection<Document> get(SerdeContext context, Collection<T> list);
 }

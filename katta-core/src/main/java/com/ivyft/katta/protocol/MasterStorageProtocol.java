@@ -2,6 +2,7 @@ package com.ivyft.katta.protocol;
 
 import com.ivyft.katta.lib.writer.DataWriter;
 import com.ivyft.katta.lib.writer.ShardRange;
+import com.ivyft.katta.operation.master.IndexMergeOperation;
 import com.ivyft.katta.util.MasterConfiguration;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.apache.avro.AvroRemoteException;
@@ -27,32 +28,54 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComponent {
 
+
+    /**
+     * Protocol
+     */
     protected final InteractionProtocol protocol;
 
 
+    /**
+     * Master Conf
+     */
     protected final MasterConfiguration conf;
 
 
+    /**
+     * Data Writer Cache
+     */
     protected final Map<String, DataWriter> CACHED_INDEX_DATAWRITER_MAP = new ConcurrentHashMap<String, DataWriter>(3);
 
 
-
+    /**
+     * 当前正在 Commit 的 shard
+     */
     protected final Map<String, CommitShards> COMMIT_TIMELINE_MAP = new ConcurrentHashMap<String, CommitShards>(3);
 
 
-
+    /**
+     * DataWriter Class
+     */
     protected final Class<? extends DataWriter> aClass;
 
 
-
+    /**
+     * 当前可以写入的 Index Name
+     */
     protected final Set<String> indices = new HashSet<String>(3);
 
 
-
-
+    /**
+     * Log
+     */
     private static Logger LOG = LoggerFactory.getLogger(MasterStorageProtocol.class);
 
 
+    /**
+     * 构造方法
+     * @param conf Hadoop Conf
+     * @param protocol protocol
+     */
     public MasterStorageProtocol(MasterConfiguration conf, InteractionProtocol protocol) {
         this.conf = conf;
         this.protocol = protocol;
@@ -180,13 +203,16 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
             if(commitShards != null) {
                 //do something
 
-                //可以提交创建索引了.
+                //TODO 可以提交创建索引了.
                 LOG.info("finished index: "+ indexId + " commit: " + commitId);
-
-                throw new IllegalStateException("unsupport finish option.");
+                protocol.addMasterOperation(new IndexMergeOperation(commitShards));
+                //throw new IllegalStateException("unsupport finish option.");
             }
 
-            COMMIT_TIMELINE_MAP.remove(commitId.toString());
+            CommitShards remove = COMMIT_TIMELINE_MAP.remove(commitId.toString());
+            if(remove != null) {
+                LOG.info("finish commitid: " + commitId + " COMMIT_TIMELINE_MAP size " + COMMIT_TIMELINE_MAP.size());
+            }
         } catch (Exception e) {
             throw new AvroRemoteException(e);
         }

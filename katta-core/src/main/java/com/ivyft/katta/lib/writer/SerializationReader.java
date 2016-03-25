@@ -76,7 +76,7 @@ public class SerializationReader {
 
 
     public static void main(String[] args) throws Exception {
-        Path p = new Path("/user/katta/data/hello/4Nx6WBy6nO6QsMr1Hok/commit-20151220205414/dfbc784bfd7e-20151220205410-data.dat");
+        Path p = new Path("/user/katta/data/hello/QLnNuUhgC9Mf4q0p74C/commit-20160325155835/8e5f26fa13be-20160325155835-data.dat");
         IntLengthHeaderFile.Reader reader = new IntLengthHeaderFile.Reader(HadoopUtil.getFileSystem(p), p);
         SerializationReader r = new SerializationReader(reader);
         SerdeContext context = r.getSerdeContext();

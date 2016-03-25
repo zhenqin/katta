@@ -21,7 +21,7 @@ import com.ivyft.katta.node.NodeContext;
 import java.io.Serializable;
 
 /**
- * An operation executed by an {@link net.sf.katta.node.Node}.
+ * An operation executed by an {@link com.ivyft.katta.node.Node}.
  *
  *
  * <pre>

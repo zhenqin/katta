@@ -124,10 +124,22 @@ public abstract class AbstractShardOperation implements NodeOperation {
         return result;
     }
 
+
+    /**
+     * 如何操作
+     * @return 返回 Operation
+     */
     protected abstract String getOperationName();
 
     protected abstract void execute(NodeContext context, String shardName, DeployResult result) throws Exception;
 
+
+    /**
+     * 异常后如何处理
+     * @param context Node Context
+     * @param shardName ShardName
+     * @param e 异常
+     */
     protected abstract void onException(NodeContext context, String shardName, Exception e);
 
 
