@@ -97,12 +97,6 @@ public class CreateIndex extends ProtocolCommand {
             throw new IllegalArgumentException("Index with name " + name + " isn't allowed.");
         }
 
-        //用于判断当前是否已经部署过这个shardName的shard
-        IDeployClient deployClient = new DeployClient(protocol);
-        if (deployClient.existsIndex(name)) {
-            throw new IllegalArgumentException("Index with name " + name + " already exists.");
-        }
-
         NewIndexMetaData newIndex = protocol.getNewIndex(name);
         if(newIndex != null) {
             throw new IllegalArgumentException("Index: " + name + " was exists zookeeper.");
@@ -118,6 +112,13 @@ public class CreateIndex extends ProtocolCommand {
             throw new IllegalStateException(e);
         }
 
+        //用于判断当前是否已经部署过这个shardName的shard
+        IDeployClient deployClient = new DeployClient(protocol);
+        /*
+        if (deployClient.existsIndex(name)) {
+            throw new IllegalArgumentException("Index with name " + name + " already exists.");
+        }
+        */
         try {
             long startTime = System.currentTimeMillis();
             IIndexDeployFuture deployFuture = deployClient.createIndex(name, path, shardNum, shardStep);

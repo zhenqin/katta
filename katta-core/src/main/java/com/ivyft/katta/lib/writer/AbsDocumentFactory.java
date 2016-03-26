@@ -24,7 +24,6 @@ public abstract class AbsDocumentFactory<T> implements DocumentFactory<T> {
     protected Map<String, Serializer> serializerMap = new HashMap<String, Serializer>(3);
 
 
-    @Override
     public Collection<T> deserial(SerdeContext context, ByteBuffer buffer) {
         Serializer<T> serializer = serializerMap.get(context.getSerClass());
         if(serializer == null){

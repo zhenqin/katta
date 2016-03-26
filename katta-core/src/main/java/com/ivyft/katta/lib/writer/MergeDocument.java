@@ -4,12 +4,14 @@ import com.ivyft.katta.codec.Serializer;
 import com.ivyft.katta.node.LuceneIndexMergeManager;
 import com.ivyft.katta.util.FileUtil;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 
 /**
  * <pre>
@@ -53,6 +55,13 @@ public class MergeDocument {
 
     public void add(ByteBuffer buffer) {
         Object deserialize = serializer.deserialize(buffer.array());
+        Collection<Document> docs = documentFactory.get(deserialize);
+
+        /*
+        for (Document doc : docs) {
+
+        }
+        */
         LOG.info(deserialize.toString());
     }
 

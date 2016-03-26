@@ -1,6 +1,5 @@
 package com.ivyft.katta.operation.node;
 
-import com.ivyft.katta.codec.Serializer;
 import com.ivyft.katta.lib.writer.*;
 import com.ivyft.katta.node.NodeContext;
 import com.ivyft.katta.node.ShardManager;
@@ -140,5 +139,18 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
     @Override
     protected void onException(NodeContext context, String shardName, Exception e) {
 
+    }
+
+
+    public String getIndexName() {
+        return indexName;
+    }
+
+    public String getCommitId() {
+        return commitId;
+    }
+
+    public Set<ShardRange> getCommits() {
+        return commits;
     }
 }
