@@ -2,7 +2,7 @@ package com.ivyft.katta.client;
 
 
 import com.ivyft.katta.codec.Serializer;
-import com.ivyft.katta.codec.jdkserializer.JdkSerializer;
+import com.ivyft.katta.lib.writer.Serialization;
 import com.ivyft.katta.protocol.KattaClientProtocol;
 import com.ivyft.katta.protocol.Message;
 import org.apache.avro.AvroRemoteException;
@@ -17,7 +17,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ServiceLoader;
 
 
 /**
@@ -47,7 +49,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     private final Transceiver t;
 
 
-    protected Serializer serializer = new JdkSerializer();
+    protected final Serializer serializer;
 
 
     private final String indexName;
@@ -74,7 +76,13 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
         if(StringUtils.isBlank(index)) {
             throw new IllegalArgumentException("index must not be blank.");
         }
+
+        Iterator iterator = ServiceLoader.load(Serialization.class).iterator();
+        Serialization serialization = (Serialization)iterator.next();
+
+        LOG.info("Serialization class: " + serialization.getClass().getName());
         try {
+            serializer = serialization.serialize();
             this.t = new NettyTransceiver(new InetSocketAddress(host, port));
             this.kattaClientProtocol = SpecificRequestor.getClient(KattaClientProtocol.class,
                     new SpecificRequestor(KattaClientProtocol.class, t));
