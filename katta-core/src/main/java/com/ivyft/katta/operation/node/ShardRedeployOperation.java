@@ -109,12 +109,20 @@ public class ShardRedeployOperation extends AbstractShardOperation {
         URI shardFolder = new URI(shardPath);
         String scheme = shardFolder.getScheme();
         if(StringUtils.equals(ShardManager.HDFS, scheme)) {
-            //HDFS, 不需要安装, 这里尝试安装, 创建本地目录
-            shardFolder = context.getShardManager().installShard(shardName, shardPath);
+            //TODO HDFS, 不需要安装, 这里尝试安装, 创建本地目录
+            File file = new File(localShardFolder, ".ns.info");
+            //判断是否有这个文件,有这个文件则表示索引被更改过,不能重新安装
+            if(file.exists()) {
+                //索引已经改变过,也就是 Katta 写过数据
+            } else {
+                //没有写过
+                shardFolder = context.getShardManager().installShard(shardName, shardPath);
+            }
+
         } else {
             //如果是本地文件, 走本地文件系统
             //检验是否需要重新安装
-            if(context.getShardManager().validChanges(shardName, shardPath)){
+            if(context.getShardManager().validChanges(shardName, shardPath, localShardFolder)){
                 log.info(shardName + " 不是最新的，將會刪除本地索引並且重新安裝。");
                 //首先删除Shard占用的文件
                 context.getShardManager().uninstallShard(shardName);

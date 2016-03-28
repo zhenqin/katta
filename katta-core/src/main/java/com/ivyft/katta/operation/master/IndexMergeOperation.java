@@ -11,6 +11,7 @@ import com.ivyft.katta.protocol.metadata.IndexDeployError;
 import com.ivyft.katta.protocol.metadata.IndexMetaData;
 import com.ivyft.katta.protocol.metadata.Shard;
 import com.ivyft.katta.util.HadoopUtil;
+import org.apache.commons.lang.builder.ReflectionToStringBuilder;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,24 +96,6 @@ public class IndexMergeOperation extends AbstractIndexOperation {
         Set<ShardRange> commits = commitShards.getCommits();
 
 
-        LOG.info("index {} deploy nodes {}", commitShards.getIndexName(), liveNodes.toString());
-
-        List<OperationId> operationIds = new ArrayList<OperationId>(liveNodes.size());
-        for (String node : liveNodes) {
-            NodeIndexMergeOperation mergeOperation =
-                    new NodeIndexMergeOperation(
-                            commitShards.getIndexName(),
-                            commitId,
-                            commits);
-
-            OperationId operationId = protocol.addNodeOperation(node, mergeOperation);
-            operationIds.add(operationId);
-        }
-
-        return operationIds;
-
-        /*
-
         IndexMetaData indexMD = protocol.getIndexMD(commitShards.getIndexName());
 
         if (indexMD == null) {
@@ -121,8 +104,7 @@ public class IndexMergeOperation extends AbstractIndexOperation {
 
         LOG.info(indexMD.toString());
         // can be removed already
-        if ((indexMD.hasDeployError() && isRecoverable(indexMD.getDeployError(), liveNodes.size()))
-                || canAndShouldRegulateReplication(protocol, indexMD)) {
+        if (!indexMD.hasDeployError()) {
             Set<Shard> shards = indexMD.getShards();
 
             //这一步检验每个Shard被几个Node所加载
@@ -130,27 +112,42 @@ public class IndexMergeOperation extends AbstractIndexOperation {
                     .getShard2NodesMap(Shard.getShardNames(shards));
             //{shard1=[node1, node2], shard2=[node2, node3]}
 
-            Set<String> nodes = new HashSet<String>(3);
-            for (List<String> list : currentIndexShard2NodesMap.values()) {
-                nodes.addAll(list);
+            Map<String, Set<String>> nodeInstalledShards = new HashMap<String, Set<String>>(3);
+            for (Map.Entry<String, List<String>> entry : currentIndexShard2NodesMap.entrySet()) {
+                List<String> nodeList = entry.getValue();
+                for (String s : nodeList) {
+                    Set<String> shardSet = nodeInstalledShards.get(s);
+                    if(shardSet == null) {
+                        shardSet = new HashSet<String>();
+                        shardSet.add(entry.getKey());
+
+                        nodeInstalledShards.put(s, shardSet);
+                    } else {
+                        shardSet.add(entry.getKey());
+                    }
+                }
             }
 
-            LOG.info("index {} deploy nodes {}", commitShards.getIndexName(), nodes.toString());
+            LOG.info("index {} deploy nodes {}", commitShards.getIndexName(), nodeInstalledShards.toString());
 
-            List<OperationId> operationIds = new ArrayList<OperationId>(nodes.size());
-            for (String node : nodes) {
+            List<OperationId> operationIds = new ArrayList<OperationId>(nodeInstalledShards.size());
+            for (String node : nodeInstalledShards.keySet()) {
                 NodeIndexMergeOperation mergeOperation =
                         new NodeIndexMergeOperation(
+                                node,
                                 commitShards.getIndexName(),
                                 commitId,
-                                commits);
+                                commits,
+                                nodeInstalledShards.get(node)
+                                );
                 OperationId operationId = protocol.addNodeOperation(node, mergeOperation);
                 operationIds.add(operationId);
             }
 
             return operationIds;
-
         }
+
+        LOG.warn(ReflectionToStringBuilder.toString(indexMD));
         return null;
 //        */
 

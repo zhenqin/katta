@@ -1,10 +1,9 @@
 package com.ivyft.katta.lib.writer;
 
+import com.ivyft.katta.util.NodeConfiguration;
 import org.apache.lucene.document.Document;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
-import java.util.List;
 
 /**
  * <pre>
@@ -23,7 +22,14 @@ public interface DocumentFactory<T> {
 
 
     /**
-     * 从 List 对象中返回 Document
+     * 初始化一些信息.
+     * @param conf Node Conf
+     */
+    public void init(NodeConfiguration conf);
+
+
+    /**
+     * 从 obj 对象中返回 Document
      * @param obj 对象
      * @return 返回 Lucene Document
      */

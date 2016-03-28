@@ -983,7 +983,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                 Group<Writable> groupResult = csSearch.take().get();
                 response.setMaxScore(groupResult.getMaxScore());
                 response.addTotalHitCount(groupResult.getTotalHitCount());
-                response.addAll(groupResult.groupResult);
+                response.addAll(groupResult.getGroupResult());
             } catch (InterruptedException e) {
                 throw new IOException("Multithread shard search interrupted:", e);
             } catch (ExecutionException e) {
@@ -1057,7 +1057,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         for (int i = 0; i < shardsCount; i++) {
             try {
                 Facet<Writable> facetResult = csSearch.take().get();
-                response.addAll(facetResult.facetResult);
+                response.addAll(facetResult.getFacetResult());
                 response.setMaxScore(facetResult.getMaxScore());
                 response.addTotalHitCount(facetResult.getTotalHitCount());
                 response.addTotalGroupedHitCount(facetResult.getTotalGroupedHitCount());
@@ -1205,7 +1205,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         for (int i = 0; i < shardsCount; i++) {
             try {
                 Facet<Writable> facetResult = csSearch.take().get();
-                response.addAll(facetResult.facetResult);
+                response.addAll(facetResult.getFacetResult());
             } catch (InterruptedException e) {
                 throw new IOException("Multithread shard search interrupted:", e);
             } catch (ExecutionException e) {

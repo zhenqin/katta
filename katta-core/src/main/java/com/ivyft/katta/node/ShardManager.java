@@ -17,7 +17,8 @@ package com.ivyft.katta.node;
 
 import com.google.common.collect.ImmutableList;
 import com.ivyft.katta.codec.Serializer;
-import com.ivyft.katta.lib.writer.MergeDocument;
+import com.ivyft.katta.lib.writer.DocumentFactory;
+import com.ivyft.katta.lib.writer.LuceneDocumentMerger;
 import com.ivyft.katta.lib.writer.SerialFactory;
 import com.ivyft.katta.util.*;
 import org.apache.commons.io.FileUtils;
@@ -72,6 +73,13 @@ public class ShardManager {
     private final File shardsFolder;
 
 
+    protected final Class<? extends DocumentFactory> documentFactoryClass;
+
+
+
+    protected final Class<? extends LuceneDocumentMerger> mergeDocumentClass;
+
+
     /**
      * Merge Index Analyzer
      */
@@ -118,7 +126,19 @@ public class ShardManager {
 
         setAnalyzerClass(conf.getString("lucene.index.writer.analyzer.class", StandardAnalyzer.class.getName()));
 
+        try {
+            documentFactoryClass = (Class<? extends DocumentFactory>) conf.getClass("lucene.index.document.factory.class");
+            documentFactoryClass.newInstance();
 
+            mergeDocumentClass = (Class<? extends LuceneDocumentMerger>) conf.getClass("lucene.document.merger.class");
+            Constructor<?> constructor = mergeDocumentClass.getConstructor(Serializer.class,
+                    Analyzer.class,
+                    File.class,
+                    DocumentFactory.class,
+                    LuceneIndexMergeManager.class);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
 
     }
 
@@ -318,8 +338,7 @@ public class ShardManager {
      * @param shardPath Shard在遠程路徑
      * @return 返回true則重新安裝
      */
-    public boolean validChanges(String shardName, String shardPath) {
-        File localShardFolder = getShardFolder(shardName);
+    public boolean validChanges(String shardName, String shardPath, File localShardFolder) {
         URI uri;
         try {
             uri = new URI(shardPath);
@@ -511,14 +530,32 @@ public class ShardManager {
     }
 
 
-
-    public MergeDocument getMergeDocument(String contentType, String indexName, String shardName) {
+    /**
+     * 返回一个合并索引的 Merger
+     * @param contentType 序列化类型
+     * @param indexName 索引名称
+     * @param shardName 索引 Shard Name
+     * @return 返回一个合并策略
+     */
+    public LuceneDocumentMerger getMergeDocument(String contentType, String indexName, String shardName) {
         Serializer<Object> serializer = SerialFactory.get(contentType);
-        File localShardFolder = getShardFolder(indexName + "#" + shardName);
+        File localShardFolder = getShardFolder(shardName);
         File shardIndexPath = getShardTmpPath(shardName);
         LuceneIndexMergeManager mergeManager = new LuceneIndexMergeManager(localShardFolder, getAnalyzer());
 
-        return new MergeDocument(serializer, getAnalyzer(), shardIndexPath, null, mergeManager);
+        try {
+            DocumentFactory documentFactory = documentFactoryClass.newInstance();
+            Constructor<LuceneDocumentMerger> constructor = (Constructor<LuceneDocumentMerger>) mergeDocumentClass.getConstructor(Serializer.class,
+                    Analyzer.class,
+                    File.class,
+                    DocumentFactory.class,
+                    LuceneIndexMergeManager.class);
+
+            LuceneDocumentMerger luceneDocumentMerger = constructor.newInstance(serializer, getAnalyzer(), shardIndexPath, documentFactory, mergeManager);
+            return luceneDocumentMerger;
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /**

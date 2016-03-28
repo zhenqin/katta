@@ -1,6 +1,7 @@
 package com.ivyft.katta.lib.writer;
 
 import com.ivyft.katta.codec.Serializer;
+import com.ivyft.katta.util.NodeConfiguration;
 import org.apache.lucene.document.Document;
 
 import java.lang.reflect.Array;
@@ -26,6 +27,11 @@ import java.util.List;
 public class JdkSerialFactory<T> implements DocumentFactory<T> {
 
 
+
+    @Override
+    public void init(NodeConfiguration conf) {
+
+    }
 
     public Collection<T> deserial(SerdeContext context, ByteBuffer buffer) {
         Serializer<Object> serializer = SerialFactory.get(context.getSerdeName());

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * <pre>
@@ -34,6 +35,10 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
      * 序列化
      */
     private static final long serialVersionUID = 1L;
+
+
+
+    protected final String nodeName;
 
 
     /**
@@ -59,16 +64,14 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
      */
     private static Logger log = LoggerFactory.getLogger(NodeIndexMergeOperation.class);
 
-    public NodeIndexMergeOperation() {
-    }
-
-    public NodeIndexMergeOperation(String indexName, String commitId, Set<ShardRange> commits) {
+    public NodeIndexMergeOperation(String node, String indexName, String commitId, Set<ShardRange> commits, Set<String> shards) {
+        this.nodeName = node;
         this.indexName = indexName;
         this.commitId = commitId;
         this.commits = commits;
 
-        for (ShardRange commit : commits) {
-            this.addShard(commit.getShardName());
+        for (String shard : shards) {
+            addShard(shard);
         }
     }
 
@@ -82,11 +85,13 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
         //String shardPath = getShardPath(shardName);
         log.info("merge lucene index. index name {} shard {}", indexName, shardName);
         ShardManager shardManager = context.getShardManager();
-        MergeDocument mergeDocument = null;
+        LuceneDocumentMerger luceneDocumentMerger = null;
         for (ShardRange commit : commits) {
+            AtomicLong addCount = new AtomicLong(0);
+
+            log.info("start merge commit {} path {}", commit.getShardName(), commit.getShardPath());
             Path shardPath = new Path(commit.getShardPath());
             List<Path> paths = shardManager.getDataPaths(shardPath);
-
             for (Path path : paths) {
                 IntLengthHeaderFile.Reader reader = new IntLengthHeaderFile.Reader(HadoopUtil.getFileSystem(), path);
                 try {
@@ -96,14 +101,17 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
 
                     Class<Serialization> aClass = (Class<Serialization>) Class.forName(serdeContext.getSerClass());
                     Serialization serialization = aClass.newInstance();
-                    if(mergeDocument == null) {
+                    if(luceneDocumentMerger == null) {
                         SerialFactory.registry(serialization);
-                        mergeDocument = shardManager.getMergeDocument(serialization.getContentType(), indexName, shardName);
+                        luceneDocumentMerger = shardManager.getMergeDocument(serialization.getContentType(), indexName, shardName);
                     }
                     int count = 0;
                     ByteBuffer byteBuffer = r.nextByteBuffer();
                     while (byteBuffer != null) {
-                        mergeDocument.add(byteBuffer);
+                        int add = luceneDocumentMerger.add(byteBuffer);
+                        if(add > 0) {
+                            addCount.addAndGet(add);
+                        }
                         count++;
 
                         byteBuffer = r.nextByteBuffer();
@@ -119,11 +127,13 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
                 }
             }
 
+            //end shard commit
+
 //            */
 
         }
 
-        mergeDocument.merge();
+        luceneDocumentMerger.merge();
         log.info("merge index success");
 
         //IndexWriter indexWriter = shardManager.getShardIndexWriter(shardName, shardPath);
