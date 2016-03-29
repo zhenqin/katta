@@ -25,6 +25,25 @@ import org.apache.lucene.document.Document;
 public class LuceneDocumentOutputFormat<K> extends FileOutputFormat<K, Document> {
 
 
+
+    public final static String LUCENE_INDEXWRITER_ANALYZER = "lucene.index.writer.analyzer.class";
+
+
+
+    public final static String LUCENE_INDEX_TEMP_DIR = "lucene.index.tmp.dir";
+
+
+
+    public final static String LUCENE_MAX_BUFFERED_DOCS = "lucene.max.buffered.docs";
+
+
+
+    public final static String LUCENE_MAX_BUFFERED_SIZE_MB = "lucene.max.buffered.size.mb";
+
+
+    public final static String LUCENE_COMMIT_COUNTER = "lucene.commit.counter";
+
+
     public LuceneDocumentOutputFormat() {
 
     }

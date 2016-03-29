@@ -3,6 +3,7 @@ package com.ivyft.katta.lib.writer;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 /**
  * <pre>
@@ -153,19 +154,22 @@ public class SerdeContext {
         } else if(version.getVersion() == Version.Version_2.getVersion()) {
             ByteBuffer buffer = ByteBuffer.allocate(version.getMetaSize());
 
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            DataOutputStream s = new DataOutputStream(outputStream);
-            s.writeUTF(this.getSerdeName());
-            s.writeUTF(this.getSerClass());
-            s.writeLong(this.size);
+            byte[] bytes = this.getSerdeName().getBytes("UTF-8");
+            buffer.putInt(bytes.length);
+            buffer.put(bytes);
 
+            bytes = this.getSerClass().getBytes("UTF-8");
+            buffer.putInt(bytes.length);
+            buffer.put(bytes);
 
-            buffer.position();
-            buffer.limit();
-            buffer.capacity();
+            buffer.putLong(size);
 
-            s.flush();
-            out.write(outputStream.toByteArray());
+            while (buffer.position() < buffer.capacity()) {
+                buffer.put((byte)0);
+            }
+
+            buffer.flip();
+            out.write(buffer.array());
         }
 
     }
@@ -180,12 +184,22 @@ public class SerdeContext {
             this.serClass = in.readUTF();
             this.size = in.readInt();
         } else if(version.getVersion() == Version.Version_2.getVersion()) {
-            ByteBuffer buffer = ByteBuffer.allocate(version.getMetaSize());
             byte[] bytes = new byte[version.getMetaSize()];
             in.readFully(bytes);
-            buffer.put(bytes);
-            buffer.flip();
 
+            ByteBuffer buffer = ByteBuffer.wrap(bytes);
+
+            int anInt = buffer.getInt();
+            bytes = new byte[anInt];
+            buffer.get(bytes);
+            this.serdeName = new String(bytes, "UTF-8");
+
+            anInt = buffer.getInt();
+            bytes = new byte[anInt];
+            buffer.get(bytes);
+            this.serClass = new String(bytes, "UTF-8");
+
+            this.size = buffer.getLong();
         }
 
     }
@@ -200,4 +214,25 @@ public class SerdeContext {
                 ", size=" + size +
                 '}';
     }
+
+
+    public static void main(String[] args) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        DataOutputStream outputStream = new DataOutputStream(out);
+        SerdeContext context = new SerdeContext("JDK", "Hello", 1000);
+
+        context.write(outputStream);
+        outputStream.flush();
+
+
+        System.out.println(out.toByteArray().length);
+
+        ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+        DataInputStream inputStream = new DataInputStream(in);
+        SerdeContext serdeContext = new SerdeContext();
+        serdeContext.readFields(inputStream);
+
+        System.out.println(serdeContext);
+    }
+
 }

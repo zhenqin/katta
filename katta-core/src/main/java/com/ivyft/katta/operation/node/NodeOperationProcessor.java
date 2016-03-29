@@ -43,6 +43,9 @@ public class NodeOperationProcessor  implements Runnable {
 
 
 
+    protected final String nodeName;
+
+
     /**
      * log
      */
@@ -57,12 +60,13 @@ public class NodeOperationProcessor  implements Runnable {
     public NodeOperationProcessor(NodeQueue queue, NodeContext nodeContext) {
         this.queue = queue;
         this.nodeContext = nodeContext;
+        this.nodeName = this.nodeContext.getNode().getName();
     }
 
     @Override
     public void run() {
         try {
-            while (this.nodeContext.getNode().isRunning()) {
+            while (nodeContext.getNode().isRunning()) {
                 try {
                     //TODO 一直在ZooKeeper上读取数据，如果取不到，会进入死循环，直到取到数据。
                     NodeOperation operation = this.queue.peek();
@@ -75,8 +79,8 @@ public class NodeOperationProcessor  implements Runnable {
                             operationResult = operation.execute(this.nodeContext);
                             LOG.info("executed " + operation + " use time: " + (System.currentTimeMillis() - time));
                         } catch (Exception e) {
-                            LOG.error(this.nodeContext.getNode().getName() + ": failed to execute " + operation, e);
-                            operationResult = new OperationResult(this.nodeContext.getNode().getName(), e);
+                            LOG.error(nodeName + ": failed to execute " + operation, e);
+                            operationResult = new OperationResult(nodeName, e);
                         }
                         //如果执行异常，会传入null
                         this.queue.complete(operationResult);// only remove after finish
@@ -85,7 +89,7 @@ public class NodeOperationProcessor  implements Runnable {
                     break;
                 } catch (Exception e) {
                     LOG.error(ExceptionUtils.getFullStackTrace(e));
-                    LOG.trace(this.nodeContext.getNode().getName() + ": operation failure ", e);
+                    LOG.trace(nodeName + ": operation failure ", e);
                 }
             }
         } catch (ZkInterruptedException e) {
@@ -93,6 +97,6 @@ public class NodeOperationProcessor  implements Runnable {
         } catch (Exception e) {
             LOG.error(ExceptionUtils.getFullStackTrace(e));
         }
-        LOG.info("node operation processor for " + this.nodeContext.getNode().getName() + " stopped");
+        LOG.info("node operation processor for " + nodeName + " stopped");
     }
 }

@@ -43,11 +43,15 @@ public class DeployResult extends OperationResult {
     private static final long serialVersionUID = 1L;
 
 
-
+    /**
+     * Shard Name, 和异常的 Map
+     */
     private Map<String, Exception> exceptionByShard = new HashMap<String, Exception>(3);
 
 
-
+    /**
+     * Shard Meta 信息
+     */
     private Map<String, Map<String, String>> metadataMapByShard = new HashMap<String, Map<String, String>>(3);
 
 

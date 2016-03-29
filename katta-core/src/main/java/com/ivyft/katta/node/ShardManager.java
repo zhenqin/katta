@@ -15,16 +15,21 @@
  */
 package com.ivyft.katta.node;
 
-import com.ivyft.katta.util.FileUtil;
-import com.ivyft.katta.util.HadoopUtil;
-import com.ivyft.katta.util.KattaException;
-import com.ivyft.katta.util.ThrottledInputStream;
+import com.google.common.collect.ImmutableList;
+import com.ivyft.katta.codec.Serializer;
+import com.ivyft.katta.lib.writer.DocumentFactory;
+import com.ivyft.katta.lib.writer.LuceneDocumentMerger;
+import com.ivyft.katta.lib.writer.SerialFactory;
+import com.ivyft.katta.util.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +39,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
+import java.util.*;
 
 
 /**
@@ -71,6 +73,13 @@ public class ShardManager {
     private final File shardsFolder;
 
 
+    protected final Class<? extends DocumentFactory> documentFactoryClass;
+
+
+
+    protected final Class<? extends LuceneDocumentMerger> mergeDocumentClass;
+
+
     /**
      * Merge Index Analyzer
      */
@@ -94,8 +103,8 @@ public class ShardManager {
      *
      * @param shardsFolder
      */
-    public ShardManager(File shardsFolder) {
-        this(shardsFolder, null);
+    public ShardManager(NodeConfiguration conf, File shardsFolder) {
+        this(conf, shardsFolder, null);
     }
 
 
@@ -104,7 +113,7 @@ public class ShardManager {
      * @param shardsFolder
      * @param throttleSemaphore
      */
-    public ShardManager(File shardsFolder, ThrottledInputStream.ThrottleSemaphore throttleSemaphore) {
+    public ShardManager(NodeConfiguration conf, File shardsFolder, ThrottledInputStream.ThrottleSemaphore throttleSemaphore) {
         this.shardsFolder = shardsFolder;
         this.throttleSemaphore = throttleSemaphore;
         if (!this.shardsFolder.exists()) {
@@ -114,6 +123,23 @@ public class ShardManager {
             throw new IllegalStateException("could not create local shard folder '" +
                     this.shardsFolder.getAbsolutePath() + "'");
         }
+
+        setAnalyzerClass(conf.getString("lucene.index.writer.analyzer.class", StandardAnalyzer.class.getName()));
+
+        try {
+            documentFactoryClass = (Class<? extends DocumentFactory>) conf.getClass("lucene.index.document.factory.class");
+            documentFactoryClass.newInstance();
+
+            mergeDocumentClass = (Class<? extends LuceneDocumentMerger>) conf.getClass("lucene.document.merger.class");
+            Constructor<?> constructor = mergeDocumentClass.getConstructor(Serializer.class,
+                    Analyzer.class,
+                    File.class,
+                    DocumentFactory.class,
+                    LuceneIndexMergeManager.class);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+
     }
 
 
@@ -243,6 +269,20 @@ public class ShardManager {
     }
 
 
+
+    /**
+     * 返回 shardName 的合并索引目录
+     * @param shardName 索引 Name
+     * @return 返回本地合并索引目录
+     *
+     */
+    public File getShardTmpPath(String shardName) {
+        return new File(this.shardsFolder, shardName + "_index");
+    }
+
+
+
+
     /**
      *
      * 返回本地所有Shard索引的路径
@@ -298,8 +338,7 @@ public class ShardManager {
      * @param shardPath Shard在遠程路徑
      * @return 返回true則重新安裝
      */
-    public boolean validChanges(String shardName, String shardPath) {
-        File localShardFolder = getShardFolder(shardName);
+    public boolean validChanges(String shardName, String shardPath, File localShardFolder) {
         URI uri;
         try {
             uri = new URI(shardPath);
@@ -453,8 +492,7 @@ public class ShardManager {
                     fileSystem.copyToLocalFile(false, path, new Path(shardTmpFolder.getAbsolutePath()), true);
                 }
 
-                Analyzer analyzer = getAnalyzer((Class<? extends Analyzer>) Class.forName(this.analyzerClass));
-                LuceneIndexMergeManager mergeManager = new LuceneIndexMergeManager(localShardFolder, analyzer);
+                LuceneIndexMergeManager mergeManager = new LuceneIndexMergeManager(localShardFolder, getAnalyzer());
                 try {
                     LOG.info(localShardFolder.getAbsolutePath() + " add index path " + shardTmpFolder.getName());
                     mergeManager.mergeIndex(shardTmpFolder);
@@ -493,9 +531,52 @@ public class ShardManager {
 
 
     /**
+     * 返回一个合并索引的 Merger
+     * @param contentType 序列化类型
+     * @param indexName 索引名称
+     * @param shardName 索引 Shard Name
+     * @return 返回一个合并策略
+     */
+    public LuceneDocumentMerger getMergeDocument(String contentType, String indexName, String shardName) {
+        Serializer<Object> serializer = SerialFactory.get(contentType);
+        File localShardFolder = getShardFolder(shardName);
+        File shardIndexPath = getShardTmpPath(shardName);
+        LuceneIndexMergeManager mergeManager = new LuceneIndexMergeManager(localShardFolder, getAnalyzer());
+
+        try {
+            DocumentFactory documentFactory = documentFactoryClass.newInstance();
+            Constructor<LuceneDocumentMerger> constructor = (Constructor<LuceneDocumentMerger>) mergeDocumentClass.getConstructor(Serializer.class,
+                    Analyzer.class,
+                    File.class,
+                    DocumentFactory.class,
+                    LuceneIndexMergeManager.class);
+
+            LuceneDocumentMerger luceneDocumentMerger = constructor.newInstance(serializer, getAnalyzer(), shardIndexPath, documentFactory, mergeManager);
+            return luceneDocumentMerger;
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * 获取内部配置的 Analyzer
+     *
+     * @return Lucene Analyzer
+     */
+    protected Analyzer getAnalyzer() {
+        try {
+            return getAnalyzer((Class<? extends Analyzer>) Class.forName(this.analyzerClass));
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+
+
+    /**
      * 根据 Analyzer Class，反射获取 Analyzer
      * @param analysisClass class
-     * @return
+     * @return 返回 Analyzer 实例对象
      */
     protected Analyzer getAnalyzer(Class<? extends Analyzer> analysisClass) {
         Constructor<? extends Analyzer> constructor;
@@ -515,10 +596,45 @@ public class ShardManager {
     }
 
 
+    /**
+     * 返回 shardPath 下 *.dat 文件, 且文件不为 . 开头
+     *
+     *
+     * @param shardPath Path
+     * @return 返回文件 List
+     */
+    public List<Path> getDataPaths(Path shardPath) {
+        try {
+            final FileSystem fileSystem = HadoopUtil.getFileSystem(shardPath);
+            if (fileSystem.isDirectory(shardPath)) {
+                FileStatus[] statuses = fileSystem.listStatus(shardPath, new PathFilter() {
+                    @Override
+                    public boolean accept(Path path) {
+                        return !path.getName().startsWith(".") && path.getName().endsWith(".dat");
+                    }
+                });
+
+                if(statuses != null) {
+                    List<Path> paths = new ArrayList<Path>(statuses.length);
+                    for (FileStatus status : statuses) {
+                        paths.add(status.getPath());
+                    }
+
+                    return paths;
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        return ImmutableList.of();
+    }
+
+
+
 
     public static void main(String[] args) throws Exception {
         File local = new File("./data/test");
-        ShardManager shardManager = new ShardManager(local);
+        ShardManager shardManager = new ShardManager(null, local);
 
         shardManager.installShard2("2gj3oTQbG5TV0XJfWDJ", "hdfs:///user/katta/luce200/2gj3oTQbG5TV0XJfWDJ", true);
     }

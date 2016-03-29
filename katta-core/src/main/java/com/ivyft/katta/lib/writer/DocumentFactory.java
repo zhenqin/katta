@@ -1,9 +1,9 @@
 package com.ivyft.katta.lib.writer;
 
+import com.ivyft.katta.util.NodeConfiguration;
 import org.apache.lucene.document.Document;
 
-import java.nio.ByteBuffer;
-import java.util.List;
+import java.util.Collection;
 
 /**
  * <pre>
@@ -21,11 +21,17 @@ import java.util.List;
 public interface DocumentFactory<T> {
 
 
+    /**
+     * 初始化一些信息.
+     * @param conf Node Conf
+     */
+    public void init(NodeConfiguration conf);
 
-    public List<T> deserial(SerdeContext context, ByteBuffer buffer);
 
-
-
-
-    public List<Document> get(SerdeContext context, List<T> list);
+    /**
+     * 从 obj 对象中返回 Document
+     * @param obj 对象
+     * @return 返回 Lucene Document
+     */
+    public Collection<Document> get(T obj);
 }

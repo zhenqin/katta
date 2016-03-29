@@ -1,11 +1,14 @@
 package com.ivyft.katta.lib.writer;
 
 import com.ivyft.katta.codec.Serializer;
+import com.ivyft.katta.util.NodeConfiguration;
 import org.apache.lucene.document.Document;
 
+import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -26,18 +29,30 @@ public class JdkSerialFactory<T> implements DocumentFactory<T> {
 
 
     @Override
-    public List<T> deserial(SerdeContext context, ByteBuffer buffer) {
+    public void init(NodeConfiguration conf) {
+
+    }
+
+    public Collection<T> deserial(SerdeContext context, ByteBuffer buffer) {
         Serializer<Object> serializer = SerialFactory.get(context.getSerdeName());
         T deserialize = (T) serializer.deserialize(buffer.array());
         return Arrays.asList(deserialize);
     }
 
     @Override
-    public List<Document> get(SerdeContext context, List<T> list) {
-        List<Document> docs = new ArrayList<Document>(list.size());
-        for (Object o : list) {
+    public Collection<Document> get(T obj) {
+        //集合,List,Set
+        if(obj instanceof Collection) {
+            return null;
+        }
+
+        //数组
+        if(obj instanceof Array) {
 
         }
+
+        //单个对象
+        List<Document> docs = new ArrayList<Document>();
         return docs;
     }
 }

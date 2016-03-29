@@ -31,6 +31,9 @@ public class SerialFactory {
     }
 
     public static void registry(Serialization serialization) {
+        if(SERIALIZER_MAP.containsKey(serialization.getContentType())) {
+            return;
+        }
         SERIALIZER_MAP.put(serialization.getContentType(), serialization);
     }
 
