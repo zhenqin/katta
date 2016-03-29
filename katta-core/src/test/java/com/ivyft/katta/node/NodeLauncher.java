@@ -34,7 +34,7 @@ public class NodeLauncher {
 
 
         InteractionProtocol protocol = new InteractionProtocol(zkClient, zkConf);
-        NodeConfiguration nodeConfiguration = new NodeConfiguration();;
+        NodeConfiguration nodeConfiguration = new NodeConfiguration();
         SolrHandler.init(nodeConfiguration.getFile("node.solrhome.folder"));
 
         LuceneServer server = new LuceneServer();
