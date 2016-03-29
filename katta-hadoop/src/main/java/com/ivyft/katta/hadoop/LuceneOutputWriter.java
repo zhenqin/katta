@@ -3,6 +3,7 @@ package com.ivyft.katta.hadoop;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -11,18 +12,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ivyft.katta.util.UUIDCreator;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Date;
 
 
 /**
@@ -47,27 +51,81 @@ public class LuceneOutputWriter {
     private final AtomicInteger commitInt = new AtomicInteger(0);
 
 
+    /**
+     * Lucene Index Writer
+     */
     private IndexWriter indexWriter;
 
 
+    /**
+     * add 多少个 doc commit 一次
+     */
+    protected int commitCount = 10000;
+
+
+    /**
+     * Hadoop Conf
+     */
     protected Configuration configuration;
 
+
+    /**
+     * Lucene Index Output Path
+     */
     private Path outputPath;
+
+
+    /**
+     * Lucene Index On Node Path
+     */
     private File temp;
+
+
+    /**
+     * Hadoop HDFS
+     */
     private FileSystem fs;
 
 
     private static Logger LOG = LoggerFactory.getLogger(LuceneOutputWriter.class);
 
 
+    /**
+     * 构造方法
+     */
     public LuceneOutputWriter() {
 
     }
 
+
+
+    protected Analyzer getAnalyzer(Class<? extends Analyzer> analysisClass) {
+        Constructor<? extends Analyzer> constructor;
+        try {
+            constructor = analysisClass.getDeclaredConstructor();
+            return constructor.newInstance();
+        } catch (Exception e) {
+            try {
+                constructor = analysisClass.getDeclaredConstructor(Version.class);
+                return constructor.newInstance(Version.LUCENE_CURRENT);
+            } catch (Exception e1) {
+
+            }
+            throw new IllegalStateException("analyzer class: " + analysisClass.getName() +
+                    " no Default Constructor() or  Constructor(Version);");
+        }
+    }
+
+
+
+
     public void open(JobContext job) throws IOException {
         this.configuration = job.getConfiguration();
         this.fs = FileSystem.get(this.configuration);
-        temp = new File(this.configuration.get("lucene.index.tmp.dir", "/tmp"), UUIDCreator.uuid());
+        this.commitCount = this.configuration.getInt(LuceneDocumentOutputFormat.LUCENE_COMMIT_COUNTER, 10000);
+
+        temp = new File(this.configuration.get(LuceneDocumentOutputFormat.LUCENE_INDEX_TEMP_DIR, "/tmp"), UUIDCreator.uuid());
+        LOG.info("task, lucene.index.tmp.dir " + temp.getAbsolutePath());
         if(temp.exists() && temp.isDirectory()) {
             FileUtils.deleteDirectory(temp);
         }
@@ -77,11 +135,20 @@ public class LuceneOutputWriter {
         }
 
         outputPath = FileOutputFormat.getOutputPath(job);
+        LOG.info("output path " + outputPath);
+
+
+        if(StringUtils.isBlank(configuration.get(LuceneDocumentOutputFormat.LUCENE_INDEXWRITER_ANALYZER))) {
+            throw new IllegalArgumentException("lucene.index.writer.analyzer.class is blank.");
+        }
 
         try {
+            Class<? extends Analyzer> analyzerClass =
+                    (Class<? extends Analyzer>) configuration.getClass(LuceneDocumentOutputFormat.LUCENE_INDEXWRITER_ANALYZER, null);
+
             IndexWriterConfig indexWriterConfig = new IndexWriterConfig(
                     Version.LUCENE_46,
-                    new StandardAnalyzer(Version.LUCENE_46));
+                    getAnalyzer(analyzerClass));
 
             TieredMergePolicy mergePolicy = new TieredMergePolicy();
 
@@ -123,16 +190,16 @@ public class LuceneOutputWriter {
             mergePolicy.setSegmentsPerTier(10.0);
 
 
-            SerialMergeScheduler mergeScheduler = new SerialMergeScheduler();
+            ConcurrentMergeScheduler mergeScheduler = new ConcurrentMergeScheduler();
 
             //当add的文档超过该值, 则刷新索引, 注意,他不是commit,只是把内存的数据刷写到磁盘
-            indexWriterConfig.setMaxBufferedDocs(this.configuration.getInt("lucene.max.buffered.docs", 5000));
+            indexWriterConfig.setMaxBufferedDocs(this.configuration.getInt(LuceneDocumentOutputFormat.LUCENE_MAX_BUFFERED_DOCS, 5000));
             indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
 
             //当add的文档在内润超过该值,则强制刷新索引, 如:setMaxBufferedDocs
             //这个方法一般用于比较大的文档.
             //该值和setMaxBufferedDocs一起起作用.达到任何一个要求则进行刷写
-            indexWriterConfig.setRAMBufferSizeMB(this.configuration.getInt("lucene.max.buffered.size.mb", 32));
+            indexWriterConfig.setRAMBufferSizeMB(this.configuration.getInt(LuceneDocumentOutputFormat.LUCENE_MAX_BUFFERED_SIZE_MB, 32));
 
             //当删除文档数超过这个值,立即刷写. 默认-1(禁用这个功能)
             indexWriterConfig.setMaxBufferedDeleteTerms(-1);
@@ -159,9 +226,11 @@ public class LuceneOutputWriter {
 
         indexWriter.addDocument(luceneDoc);
 
-        commitInt.incrementAndGet();
-        if (commitInt.get() >= this.configuration.getInt("lucene.commit.counter", 10000)) {
+        if (commitInt.incrementAndGet() >= commitCount) {
+            long start = System.currentTimeMillis();
+            LOG.info("index writer commit, now " + new Date().toString());
             indexWriter.commit();
+            LOG.info("one commit, commit cost " + (System.currentTimeMillis() - start) + " ms");
             commitInt.set(0);
         }
     }
@@ -180,28 +249,61 @@ public class LuceneOutputWriter {
                         public Object call() throws Exception {
                             try {
                                 // 索引优化和IndexWriter对象关闭
+                                long start = System.currentTimeMillis();
+                                LOG.info("finally commit start.");
                                 indexWriter.commit();
+                                LOG.info("finally commit, commit cost " + (System.currentTimeMillis() - start) + " ms");
                             } catch (Exception e) {
-                                LOG.warn(e.getMessage(), e);
+                                LOG.warn(e.getMessage());
                             }
                             return new Object();
                         }
                     });
 
             try {
-                r.get(this.configuration.getInt("lucene.shutdown.commit.timeout", 60 * 5), TimeUnit.SECONDS);
+                r.get(this.configuration.getInt("lucene.shutdown.commit.timeout.sec", 60 * 3), TimeUnit.SECONDS);
             } catch (Exception e) {
-                LOG.warn(e.getMessage(), e);
+                LOG.warn(e.getMessage());
             }
 
-            try {
-                indexWriter.close();
-            } catch (Exception e) {
-                LOG.warn(e.getMessage(), e);
-            }
         }
 
+         LOG.info("index writer will close");
+
+         try {
+             indexWriter.close();
+         } catch (Exception e) {
+             LOG.warn(e.getMessage());
+         }
+
         // 将本地索引结果拷贝到HDFS上
-        fs.completeLocalOutput(outputPath, new Path("file://" + temp.getAbsolutePath()));
+        LOG.info("copy file://" + temp.getAbsolutePath() + " to " + outputPath);
+        fs.copyFromLocalFile(false, true, new Path("file://" + temp.getAbsolutePath()), outputPath);
+
+        try {
+            Path f = new Path(new Path(outputPath, temp.getName()), "index.done");
+            LOG.info("index.done, path " + f.toString());
+            fs.createNewFile(f);
+        } catch (Exception e) {
+
+        }
+    }
+
+
+    public static void main(String[] args) throws ClassNotFoundException {
+        LuceneOutputWriter writer = new LuceneOutputWriter();
+        System.out.println(writer.getAnalyzer(org.apache.lucene.analysis.standard.StandardAnalyzer.class));
+
+        Configuration conf = new Configuration();
+
+
+        conf.setClass(LuceneDocumentOutputFormat.LUCENE_INDEXWRITER_ANALYZER, org.apache.lucene.analysis.standard.StandardAnalyzer.class, Analyzer.class);
+
+        System.out.println(conf.getClass(LuceneDocumentOutputFormat.LUCENE_INDEXWRITER_ANALYZER, null));
+        System.out.println(writer.getAnalyzer(
+                conf.getClass(LuceneDocumentOutputFormat.LUCENE_INDEXWRITER_ANALYZER,
+                        org.apache.lucene.analysis.standard.StandardAnalyzer.class,
+                        Analyzer.class)
+        ));
     }
 }
