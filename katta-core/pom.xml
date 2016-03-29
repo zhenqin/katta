@@ -4,7 +4,7 @@
 
     <groupId>com.ivyft.katta</groupId>
     <artifactId>katta-core</artifactId>
-    <version>1.6.0</version>
+    <version>${katta.build.version}</version>
     <packaging>jar</packaging>
 
     <name>Katta Core</name>
@@ -14,8 +14,13 @@
     <parent>
         <groupId>com.ivyft.katta</groupId>
         <artifactId>katta</artifactId>
-        <version>1.6.0</version>
+        <version>${katta.build.version}</version>
     </parent>
+
+
+    <properties>
+        <katta.build.version>1.6.1</katta.build.version>
+    </properties>
 
     <build>
         <finalName>${project.artifactId}</finalName>
