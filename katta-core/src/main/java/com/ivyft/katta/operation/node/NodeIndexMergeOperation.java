@@ -10,7 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -86,8 +88,9 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
         log.info("merge lucene index. index name {} shard {}", indexName, shardName);
         ShardManager shardManager = context.getShardManager();
         LuceneDocumentMerger luceneDocumentMerger = null;
+        AtomicLong addCount = new AtomicLong(0);
+
         for (ShardRange commit : commits) {
-            AtomicLong addCount = new AtomicLong(0);
 
             log.info("start merge commit {} path {}", commit.getShardName(), commit.getShardPath());
             Path shardPath = new Path(commit.getShardPath());
@@ -133,16 +136,13 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
 
         }
 
+        Map<String, String> meta = new HashMap<String, String>(3);
+        meta.put("addCount", String.valueOf(addCount.get()));
+
+        result.addShardMetaDataMap(shardName, meta);
+
         luceneDocumentMerger.merge();
         log.info("merge index success");
-
-        //IndexWriter indexWriter = shardManager.getShardIndexWriter(shardName, shardPath);
-        //URI localShardFolder = context.getShardManager().installShard(shardName, shardPath);
-        //log.info("copy shard " + shardName + " success. local: " + localShardFolder);
-
-        //IContentServer contentServer = context.getContentServer();
-
-
         log.info("index {} commitid {}", indexName, commitId);
     }
 

@@ -101,8 +101,10 @@ public class MasterQueue extends BlockingQueue<MasterOperation> {
         OperationWatchdog watchdog = new OperationWatchdog(element.getName(), masterOperation, nodeOperationIds);
 
 
-        zkClient.createPersistent(getWatchdogPath(element.getName()), watchdog);
-        zkClient.delete(getElementPath(element.getName()));
+        String watchdogPath = getWatchdogPath(element.getName());
+        zkClient.createPersistent(watchdogPath, watchdog);
+        String elementPath = getElementPath(element.getName());
+        zkClient.delete(elementPath);
         return watchdog;
     }
 
