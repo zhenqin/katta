@@ -34,13 +34,21 @@ import java.util.concurrent.atomic.AtomicLong;
 public class LuceneIndexMergeManager implements Closeable {
 
 
+    /**
+     * 如果一个索引已经被改变，需要写入一个文件，不能再被更改了
+     */
+    public final static String WRITED_DATA_FILE = ".ns.info";
 
 
+    /**
+     * Lucene 索引
+     */
     protected final File indexPath;
 
 
-
-
+    /**
+     * Lucene 主索引库的 IndexWriter
+     */
     protected final IndexWriter indexWriter;
 
 
@@ -95,6 +103,10 @@ public class LuceneIndexMergeManager implements Closeable {
         LOG.info("merge index {} to {}", shardFolder.getName(), indexPath.getName());
         indexWriter.addIndexes(FSDirectory.open(shardFolder));
         LOG.info("merged success, {} max docs num {}", indexPath.getName(), indexWriter.maxDoc());
+
+        //写一个标志文件，表示索引已经被改变了。
+        File file = new File(indexPath, WRITED_DATA_FILE);
+        file.createNewFile();
     }
 
 
@@ -131,12 +143,20 @@ public class LuceneIndexMergeManager implements Closeable {
     }
 
 
-
+    /**
+     * Commit Lucene Index
+     * @throws IOException
+     */
     public void commit() throws IOException {
         indexWriter.commit();
     }
 
 
+    /**
+     * 优化 Lucene 索引，到指定的段数量
+     * @param seg
+     * @throws IOException
+     */
     public void optimize(int seg) throws IOException {
         //30W 以下5个段，以上每加 30W 增加一个段
         int num = indexWriter.maxDoc();
@@ -146,8 +166,10 @@ public class LuceneIndexMergeManager implements Closeable {
     }
 
 
-
-
+    /**
+     * 关闭 Lucene 索引
+     * @throws IOException
+     */
     @Override
     public void close() throws IOException {
         try {

@@ -160,11 +160,15 @@ public class ShardManager {
             try {
                 LOG.info("hdfs use local dir: " + localShardFolder.getAbsolutePath());
                 if (!localShardFolder.exists()) {
+                    installShard(shardName, shardPath, localShardFolder);
+
+                    /*
                     if(!localShardFolder.mkdirs()) {
                         throw new IOException("can't mkdir: " + localShardFolder);
                     }
 
                     LOG.info("mkdir: " + localShardFolder.getAbsolutePath());
+                    */
                 }
                 return path;
             } catch (Exception e) {
@@ -261,7 +265,9 @@ public class ShardManager {
         File localShardFolder = getShardFolder(shardName);
         try {
             if (localShardFolder.exists()) {
+                LOG.info("正在卸载索引：{}", shardName);
                 FileUtils.deleteDirectory(localShardFolder);
+                LOG.info("卸载索引：{} 成功。", shardName);
             }
         } catch (IOException e) {
             throw new RuntimeException("could not delete folder '" + localShardFolder + "'");
