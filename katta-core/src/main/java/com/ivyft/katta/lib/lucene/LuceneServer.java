@@ -17,8 +17,8 @@ package com.ivyft.katta.lib.lucene;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.ivyft.katta.lib.lucene.collector.FetchDocumentCollector;
 import com.ivyft.katta.lib.lucene.convertor.DocumentConvertor;
+import com.ivyft.katta.lib.lucene.convertor.SolrDocumentConvertor;
 import com.ivyft.katta.node.IContentServer;
 import com.ivyft.katta.node.SerialSocketServer;
 import com.ivyft.katta.util.ClassUtil;
@@ -775,13 +775,15 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         }
 
         int shardsCount = shards.length;
+        int offset = query.getStart() == null ? 0 : query.getStart();
+
 
         // Run the search in parallel on the shards with a thread pool.
         CompletionService<SearchResult> csSearch = new ExecutorCompletionService<SearchResult>(threadPool);
 
         //这里是并行搜索
         for (int i = 0; i < shardsCount; i++) {
-            SearchCall call = new SearchCall(shards[i], max, timeout, i, luceneQuery);
+            SearchCall call = new SearchCall(shards[i], offset, max, timeout, i, luceneQuery, null);
             csSearch.submit(call);
         }
 
@@ -854,32 +856,67 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         timeout = getCollectorTiemout(timeout);
         Query luceneQuery;
 
+        //处理搜索时，包含的返回字段
         String fieldString = query.getFields();
-        String convertClass = query.get("document.convertor.class");
-
         Set<String> fields = null;
         if(StringUtils.isNotBlank(fieldString)) {
-            fields = new HashSet<String>(Arrays.asList(fieldString));
+            fields = new HashSet<String>(Arrays.asList(fieldString.split(",")));
         }
-
 
         int offset = query.getStart() == null ? 0 : query.getStart();
         int limit = query.getRows() == null ? LuceneServer.DEFAULT_QUERY.getRows() : query.getRows();
 
+
+        //解析 SolrQuery 为 Lucene 的 Query 对象
         try {
             luceneQuery = parse(query, shards[0]);
         } catch (Exception e) {
             throw new IOException(e);
         }
 
-        int shardsCount = shards.length;
 
+        //排序策略
+        List<SolrQuery.SortClause> sorts = query.getSorts();
+        Sort sort = null;
+        if(sorts.size() > 0) {
+            SolrHandler handler = shardBySolrPath.get(shards[0]);
+
+
+            sort = new Sort();
+            SortField[] sortFields = new SortField[sorts.size()];
+            int m = 0;
+            for (SolrQuery.SortClause sortClause : sorts) {
+                TypeSource typeSource = handler.getFieldGroup(sortClause.getItem());
+
+                SortField.Type fieldType = typeSource.getFieldType();
+
+                if(fieldType == SortField.Type.DOC) {
+                    sortFields[m] = new SortField(sortClause.getItem(),
+                            new TextFieldComparatorSource(),
+                            sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
+                } else {
+                    sortFields[m] = new SortField(sortClause.getItem(),
+                            fieldType,
+                            sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
+                }
+
+                m++;
+            }
+
+            sort.setSort(sortFields);
+
+
+        }
+
+
+        //多线程搜素
+        int shardsCount = shards.length;
         // Run the search in parallel on the shards with a thread pool.
         CompletionService<Result> csSearch = new ExecutorCompletionService<Result>(threadPool);
-
+        String convertClass = query.get("document.convertor.class");
         //这里是并行搜索, 搜索并直接返回结果
         for (int i = 0; i < shardsCount; i++) {
-            QueryCall call = new QueryCall(shards[i], limit, timeout, luceneQuery, fields);
+            QueryCall call = new QueryCall(shards[i], offset, limit, timeout, luceneQuery, sort, fields);
             if(StringUtils.isNotBlank(convertClass)) {
                 DocumentConvertor convertor = (DocumentConvertor)cache.getIfPresent(convertClass);
                 if(convertor == null) {
@@ -895,9 +932,8 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         //查询到的总数, numFount
         AtomicInteger totalHits = new AtomicInteger(0);
 
-        //结果，泛型
+        //处理搜索结果，泛型
         List docs = new LinkedList<Serializable>();
-
         for (int i = 0; i < shardsCount; i++) {
             try {
                 Result queryResult = csSearch.take().get();
@@ -1391,6 +1427,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
     protected class SearchCall implements Callable<SearchResult> {
 
         protected String shardName;
+        protected int offset;
         protected int limit;
         protected long timeout;
         protected int callIndex;
@@ -1401,18 +1438,22 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         protected Filter filter;
 
         public SearchCall(String shardName,
-                          int limit,
-                          long timeout,
-                          int callIndex,
-                          Query query) {
+                         int offset,
+                         int limit,
+                         long timeout,
+                         int callIndex,
+                         Query query,
+                         Sort sort) {
             this.shardName = shardName;
+            this.offset = offset;
             this.limit = limit;
-            //_sort = sort;
+            this.sort = sort;
             this.timeout = timeout;
             this.callIndex = callIndex;
             this.query = query;
             //_filter = filter;
         }
+
 
         @Override
         public SearchResult call() throws Exception {
@@ -1432,17 +1473,26 @@ public class LuceneServer implements IContentServer, ILuceneServer {
 
                 //TODO 这里搜索，不携带结果。但是Filter，Sort没有使用
                 long time = System.currentTimeMillis();
-                TopScoreDocCollector docCollector = TopScoreDocCollector.create(limit, true);
+                TopDocsCollector topDocsCollector;
+                if(sort == null) {
+                    //不需要排序
+                    topDocsCollector = TopScoreDocCollector.create(offset + limit, true);
+                } else {
+                    //需要排序
+                    LOG.info(sort.toString());
+                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, false, false, false);
+                }
+
                 if(filter == null) {
-                    searcher.search(query, wrapInTimeoutCollector(docCollector));
-                    return new SearchResult(docCollector.getTotalHits(),
-                            docCollector.topDocs().scoreDocs,
+                    searcher.search(query, wrapInTimeoutCollector(topDocsCollector));
+                    return new SearchResult(topDocsCollector.getTotalHits(),
+                            topDocsCollector.topDocs(offset, limit).scoreDocs,
                             callIndex,
                             System.currentTimeMillis() - time);
                 } else {
-                    searcher.search(query, filter, wrapInTimeoutCollector(docCollector));
-                    return new SearchResult(docCollector.getTotalHits(),
-                            docCollector.topDocs().scoreDocs,
+                    searcher.search(query, filter, wrapInTimeoutCollector(topDocsCollector));
+                    return new SearchResult(topDocsCollector.getTotalHits(),
+                            topDocsCollector.topDocs(offset, limit).scoreDocs,
                             callIndex,
                             System.currentTimeMillis() - time);
                 }
@@ -1479,6 +1529,7 @@ public class LuceneServer implements IContentServer, ILuceneServer {
     protected class QueryCall implements Callable<Result> {
 
         protected String shardName;
+        protected int offset;
         protected int limit;
         protected long timeout;
         protected Query query;
@@ -1490,12 +1541,16 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         protected DocumentConvertor convertor;
 
         public QueryCall(String shardName,
-                          int limit,
-                          long timeout,
-                          Query query, Set<String> fields) {
+                         int offset,
+                         int limit,
+                         long timeout,
+                         Query query,
+                         Sort sort,
+                         Set<String> fields) {
             this.shardName = shardName;
+            this.offset = offset;
             this.limit = limit;
-            //this.sort = sort;
+            this.sort = sort;
             this.timeout = timeout;
             this.query = query;
             this.fields = fields;
@@ -1520,17 +1575,44 @@ public class LuceneServer implements IContentServer, ILuceneServer {
                 //这里搜索，并且携带结果返回
                 long time = System.currentTimeMillis();
 
-                FetchDocumentCollector documentCollector = new FetchDocumentCollector(fields, limit, 0);
-                TopScoreDocCollector topDocsCollector = TopScoreDocCollector.create(1, true);
-
-                if(convertor != null) {
-                    documentCollector.setConvertor(convertor);
+                //FetchDocumentCollector documentCollector = new FetchDocumentCollector(fields, limit, offset);
+                TopDocsCollector topDocsCollector;
+                if(sort == null) {
+                    //不需要排序
+                    topDocsCollector = TopScoreDocCollector.create(offset + limit, true);
+                } else {
+                    //需要排序
+                    LOG.info(sort.toString());
+                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, false, false, false);
                 }
 
-                searcher.search(query, MultiCollector.wrap(wrapInTimeoutCollector(documentCollector), topDocsCollector));
 
-                return new Result(documentCollector.getTotalHits(),
-                        documentCollector.getDocs(),
+                /*
+                 * 稳定集合
+                 */
+                List<Object> docs = new LinkedList<Object>();
+
+                /*
+                 * Lucene Document Convertor，默认转换成Solr Input Document
+                 */
+                if(convertor == null) {
+                    convertor = new SolrDocumentConvertor();
+                }
+
+
+                searcher.search(query, wrapInTimeoutCollector(topDocsCollector));
+
+                TopDocs topDocs = topDocsCollector.topDocs(offset, limit);
+                for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+                    if (fields != null) {
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc, fields)));
+                    } else {
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc)));
+                    }
+                }
+
+                return new Result(topDocsCollector.getTotalHits(),
+                        docs,
                         System.currentTimeMillis() - time,
                         topDocsCollector.topDocs().getMaxScore());
             } finally {
