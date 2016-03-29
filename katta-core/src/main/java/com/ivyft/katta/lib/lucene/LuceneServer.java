@@ -888,9 +888,18 @@ public class LuceneServer implements IContentServer, ILuceneServer {
             for (SolrQuery.SortClause sortClause : sorts) {
                 TypeSource typeSource = handler.getFieldGroup(sortClause.getItem());
 
-                sortFields[m] = new SortField(sortClause.getItem(),
-                        typeSource.getFieldType(),
-                        sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
+                SortField.Type fieldType = typeSource.getFieldType();
+
+                if(fieldType == SortField.Type.DOC) {
+                    sortFields[m] = new SortField(sortClause.getItem(),
+                            new TextFieldComparatorSource(),
+                            sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
+                } else {
+                    sortFields[m] = new SortField(sortClause.getItem(),
+                            fieldType,
+                            sortClause.getOrder() == SolrQuery.ORDER.desc ? true : false);
+                }
+
                 m++;
             }
 
