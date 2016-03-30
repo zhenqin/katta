@@ -141,6 +141,7 @@ public class Katta {
             Options options = new Options();
             options.addOption("e", false, "embedded zk-server (overriding configuration).");
             options.addOption("ne", false, "non-embedded zk-server (overriding configuration).");
+            options.addOption("config", "config", true, "node server class, ? implements ILuceneServer");
             options.addOption("s", false, "print exception");
             return options;
         }

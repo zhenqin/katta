@@ -25,7 +25,7 @@ bin=`cd "$bin"; pwd`
 . "$bin"/katta-config.sh
 
 # start master daemons
-"$bin"/katta-daemons.sh start master --config $KATTA_CONF_DIR
+"$bin"/katta-daemon.sh start master --config $KATTA_CONF_DIR
 
 sleep 10
 
