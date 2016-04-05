@@ -1,6 +1,7 @@
 package com.ivyft.katta.lib.lucene;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,6 +149,20 @@ public class SearcherHandle {
                 return null;
             }
         }
+
+        DirectoryReader reader = null;
+        try {
+            reader = DirectoryReader.openIfChanged((DirectoryReader) indexSearcher.getIndexReader());
+            if(reader != null) {
+                indexSearcher.getIndexReader().close();
+
+                LOG.info("self load index searcher, shard {}", this.getShardName());
+                indexSearcher = new IndexSearcher(reader);
+            }
+        } catch (IOException e) {
+            LOG.warn(e.getMessage());
+        }
+
         _refCount.incrementAndGet();
         this.lastVisited = System.currentTimeMillis();
         return this.indexSearcher;

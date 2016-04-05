@@ -154,9 +154,9 @@ public class ShardManager {
                              String shardPath) throws Exception {
         URI path = new URI(shardPath);
         String scheme = path.getScheme();
+        File localShardFolder = getShardFolder(shardName);
+
         if(StringUtils.equals(ShardManager.HDFS, scheme)) {
-            //本地文件系统 copy 文件
-            File localShardFolder = getShardFolder(shardName);
             try {
                 LOG.info("hdfs use local dir: " + localShardFolder.getAbsolutePath());
                 if (!localShardFolder.exists()) {
@@ -170,14 +170,13 @@ public class ShardManager {
                     LOG.info("mkdir: " + localShardFolder.getAbsolutePath());
                     */
                 }
-                return path;
+                return localShardFolder.toURI();
             } catch (Exception e) {
                 FileUtil.deleteFolder(localShardFolder);
                 throw e;
             }
         } else {
             //本地文件系统 copy 文件
-            File localShardFolder = getShardFolder(shardName);
             try {
                 if (!localShardFolder.exists()) {
                     installShard(shardName, shardPath, localShardFolder);

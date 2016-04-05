@@ -5,7 +5,10 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.*;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.junit.After;
@@ -27,10 +30,11 @@ import java.io.File;
  *
  * @author zhenqin
  */
-public class TermDeleteTest {
+public class IndexDeleteTest {
 
 
     protected String indexPath = "../data/test/1OgAEMwPu0snaXcdOhe";
+
 
 
     protected IndexWriter indexWriter;
@@ -41,7 +45,7 @@ public class TermDeleteTest {
 
     IndexSearcher indexSearcher;
 
-    public TermDeleteTest() {
+    public IndexDeleteTest() {
     }
 
 
@@ -86,33 +90,26 @@ public class TermDeleteTest {
     @Test
     public void testDelete() throws Exception {
         System.out.println(indexWriter.numDocs());
-        indexWriter.deleteDocuments(new Term("ID", "654321"));
+        indexWriter.deleteDocuments(new Term("ID", "123456"));
         indexWriter.commit();
         indexWriter.forceMergeDeletes(true);
-        System.out.println(indexWriter.numDocs());
-
 
         testSelfLoadSearch();
+
+
+        System.out.println("=============");
+
+
+        Document document = new Document();
+        document.add(new StringField("ID", "123456", Field.Store.YES));
+        document.add(new StringField("NAME", "Python", Field.Store.YES));
+
+        indexWriter.addDocument(document);
+        indexWriter.commit();
+
+        testSearch();
+        testSelfLoadSearch();
     }
-
-    @Test
-    public void testReloadSearch() throws Exception {
-        indexReader = DirectoryReader.open(indexWriter, true);
-        indexSearcher = new IndexSearcher(indexReader);
-
-        System.out.println(indexSearcher.getIndexReader().numDocs());
-        System.out.println(indexSearcher.getIndexReader().maxDoc());
-
-
-        TopDocs word = indexSearcher.search(new MatchAllDocsQuery(), 10);
-        System.out.println(word.totalHits);
-
-        ScoreDoc[] scoreDocs = word.scoreDocs;
-        for (ScoreDoc scoreDoc : scoreDocs) {
-            System.out.println(indexSearcher.doc(scoreDoc.doc));
-        }
-    }
-
 
 
 
@@ -138,7 +135,6 @@ public class TermDeleteTest {
 
     @Test
     public void testSearch() throws Exception {
-        testSelfLoadSearch();
         System.out.println(indexSearcher.getIndexReader().numDocs());
         System.out.println(indexSearcher.getIndexReader().maxDoc());
 

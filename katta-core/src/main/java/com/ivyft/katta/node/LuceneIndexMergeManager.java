@@ -2,6 +2,7 @@ package com.ivyft.katta.node;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -49,7 +51,7 @@ public class LuceneIndexMergeManager implements Closeable {
     /**
      * Lucene 主索引库的 IndexWriter
      */
-    protected final IndexWriter indexWriter;
+    protected final IndexWriter masterIndexWriter;
 
 
     /**
@@ -57,10 +59,19 @@ public class LuceneIndexMergeManager implements Closeable {
      */
     protected final IndexSearcher indexSearcher;
 
+
     /**
      * 删除索引的计数器
      */
-    protected final AtomicLong deleteDocs = new AtomicLong(0);
+    protected final AtomicLong deleteDocsCouter = new AtomicLong(0);
+
+
+
+
+    /**
+     * ADD Doc 的计数器
+     */
+    protected final AtomicLong addDocsCouter = new AtomicLong(0);
 
 
     protected static Logger LOG = LoggerFactory.getLogger(LuceneIndexMergeManager.class);
@@ -78,9 +89,9 @@ public class LuceneIndexMergeManager implements Closeable {
         try {
             FSDirectory open = FSDirectory.open(indexPath);
 
-            indexWriter = new IndexWriter(open, new IndexWriterConfig(Version.LUCENE_46, analyzer));
+            masterIndexWriter = new IndexWriter(open, new IndexWriterConfig(Version.LUCENE_46, analyzer));
 
-            indexSearcher = new IndexSearcher(DirectoryReader.open(indexWriter, true));
+            indexSearcher = new IndexSearcher(DirectoryReader.open(masterIndexWriter, true));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
@@ -93,50 +104,94 @@ public class LuceneIndexMergeManager implements Closeable {
      * @throws IOException
      */
     public void mergeIndex(File shardFolder) throws IOException {
-        if(deleteDocs.get() > 0) {
-            LOG.info("delete docs {}", deleteDocs.get());
-            indexWriter.commit();
-        }
-
-
-        LOG.info("{} max docs count {}", indexPath.getName(), indexWriter.maxDoc());
+        LOG.info("deleted success, {} docs count {}", indexPath.getName(), masterIndexWriter.numDocs());
         LOG.info("merge index {} to {}", shardFolder.getName(), indexPath.getName());
-        indexWriter.addIndexes(FSDirectory.open(shardFolder));
-        LOG.info("merged success, {} max docs num {}", indexPath.getName(), indexWriter.maxDoc());
+        FSDirectory open = FSDirectory.open(shardFolder);
+        try {
+            masterIndexWriter.addIndexes(open);
+            LOG.info("merged success, {} num docs {}", indexPath.getName(), masterIndexWriter.numDocs());
+        } finally {
+            open.close();
+        }
 
         //写一个标志文件，表示索引已经被改变了。
         File file = new File(indexPath, WRITED_DATA_FILE);
-        file.createNewFile();
+        if(!file.exists()) {
+            file.createNewFile();
+        }
+
+        file.setLastModified(System.currentTimeMillis());
+    }
+
+
+
+
+    /**
+     * 把 doc ADD到主索引库
+     *
+     * @param doc Lucene Doc
+     * @throws IOException
+     */
+    public void addDoc(Document doc) throws IOException {
+        masterIndexWriter.addDocument(doc);
+        addDocsCouter.incrementAndGet();
+    }
+
+
+
+    /**
+     * 把 doc ADD到主索引库
+     *
+     * @param docs Lucene Docs
+     * @throws IOException
+     */
+    public void addDocs(Collection<Document> docs) throws IOException {
+        for (Document doc : docs) {
+            masterIndexWriter.addDocument(doc);
+            addDocsCouter.incrementAndGet();
+        }
     }
 
 
     /**
+     * 修改 Doc
+     * @param term
+     * @param doc
+     * @throws IOException
+     */
+    public void updateDocs(Term term, Document doc) throws IOException {
+        masterIndexWriter.updateDocument(term, doc);
+        addDocsCouter.incrementAndGet();
+    }
+
+
+
+    /**
      * 删除旧数据,索引
+     *
      * @param field
+     *
      * @param id
      * @throws IOException
      */
     public int delete(String field, String id) throws IOException {
         Term term = new Term(field, id);
-        TopDocs topDocs = indexSearcher.search(new TermQuery(term), 1);
-        if(topDocs.totalHits > 0) {
-            indexWriter.deleteDocuments(term);
-            deleteDocs.incrementAndGet();
-        }
-        return topDocs.totalHits;
+        return delete(new TermQuery(term));
     }
 
 
     /**
      * 删除旧数据索引.
+     *
      * @param query
+     *
      * @throws IOException
      */
     public int delete(Query query) throws IOException {
         TopDocs topDocs = indexSearcher.search(query, 1);
         if(topDocs.totalHits > 0) {
-            indexWriter.deleteDocuments(query);
-            deleteDocs.incrementAndGet();
+            masterIndexWriter.deleteDocuments(query);
+            deleteDocsCouter.incrementAndGet();
         }
         return topDocs.totalHits;
 
@@ -147,8 +202,25 @@ public class LuceneIndexMergeManager implements Closeable {
      * Commit Lucene Index
      * @throws IOException
      */
-    public void commit() throws IOException {
-        indexWriter.commit();
+    public void commitAndDelete() throws IOException {
+        LOG.info("{} docs count {}", indexPath.getName(), masterIndexWriter.numDocs());
+        if(deleteDocsCouter.get() > 0 || addDocsCouter.get() > 0) {
+            LOG.info("delete num docs {}, add num doc {}, and commit.", deleteDocsCouter.get(), addDocsCouter.get());
+            masterIndexWriter.commit();
+        }
+
+
+        if(deleteDocsCouter.get() > 0) {
+            masterIndexWriter.forceMergeDeletes(true);
+        }
+
+        //写一个标志文件，表示索引已经被改变了。
+        File file = new File(indexPath, WRITED_DATA_FILE);
+        if(!file.exists()) {
+            file.createNewFile();
+        }
+
+        file.setLastModified(System.currentTimeMillis());
     }
 
 
@@ -159,10 +231,10 @@ public class LuceneIndexMergeManager implements Closeable {
      */
     public void optimize(int seg) throws IOException {
         //30W 以下5个段，以上每加 30W 增加一个段
-        int num = indexWriter.maxDoc();
+        int num = masterIndexWriter.numDocs();
         seg = seg + (num / 300000);
 
-        indexWriter.forceMerge(seg, false);
+        masterIndexWriter.forceMerge(seg, false);
     }
 
 
@@ -180,9 +252,9 @@ public class LuceneIndexMergeManager implements Closeable {
             LOG.warn(e.getMessage());
         }
 
-        if(indexWriter != null) {
+        if(masterIndexWriter != null) {
             LOG.info("close index writer " + indexPath.getName());
-            indexWriter.close(true);
+            masterIndexWriter.close(true);
         }
 
     }

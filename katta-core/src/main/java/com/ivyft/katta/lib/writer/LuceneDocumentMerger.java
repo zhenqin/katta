@@ -115,15 +115,14 @@ public abstract class LuceneDocumentMerger {
      */
     public void merge() throws IOException {
         try {
-            int addDocs = indexWriter.maxDoc();
+            int addDocs = indexWriter.numDocs();
             indexWriter.commit();
             indexWriter.close(true);
 
-            if(addDocs > 0) {
-                LOG.info("merge max docs {}", addDocs);
-                mergeManager.mergeIndex(path);
-                mergeManager.optimize(5);
-            }
+            LOG.info("merge max docs {}", addDocs);
+            //mergeManager.mergeIndex(path);
+            mergeManager.commitAndDelete();
+            mergeManager.optimize(5);
         } finally {
             try {
                 mergeManager.close();
