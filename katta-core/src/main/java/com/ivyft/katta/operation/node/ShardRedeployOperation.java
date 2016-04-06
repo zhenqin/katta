@@ -116,11 +116,15 @@ public class ShardRedeployOperation extends AbstractShardOperation {
             if(nsRefreshedFile.exists() && localShardFolder.exists()) {
                 //索引已经改变过,也就是 Katta 写过数据
                 log.info(shardName + "  索引已改变，不需要重新同步。");
-                shardFolder = localShardFolder.toURI();
+
+                if(context.getShardManager().isCopyIndexToLocal()) {
+                    shardFolder = localShardFolder.toURI();
+                }
             } else {
                 //没有写过
-                //检验是否需要重新安装
-                if(context.getShardManager().validChanges(shardName, shardPath, localShardFolder)){
+                //检验是否需要重新安装,只有安装索引到本地才检验，否则不检验
+                if(context.getShardManager().isCopyIndexToLocal() &&
+                        context.getShardManager().validChanges(shardName, shardPath, localShardFolder)){
                     log.info(shardName + " 不是最新的，將會刪除本地索引並且重新安裝。");
                     //首先删除Shard占用的文件
                     context.getShardManager().uninstallShard(shardName);
@@ -129,14 +133,16 @@ public class ShardRedeployOperation extends AbstractShardOperation {
                     shardFolder = context.getShardManager().installShard(shardName, shardPath);
                 } else {
                     log.info(shardName + "  path: " + shardPath + " 索引是最新的。");
-
-                    shardFolder = localShardFolder.toURI();
+                    if(context.getShardManager().isCopyIndexToLocal()) {
+                        shardFolder = localShardFolder.toURI();
+                    }
                 }
             }
         } else {
             //如果是本地文件, 走本地文件系统
-            //检验是否需要重新安装
-            if(context.getShardManager().validChanges(shardName, shardPath, localShardFolder)){
+            //检验是否需要重新安装,只有安装索引到本地才检验，否则不检验
+            if(context.getShardManager().isCopyIndexToLocal() &&
+                    context.getShardManager().validChanges(shardName, shardPath, localShardFolder)){
                 log.info(shardName + " 不是最新的，將會刪除本地索引並且重新安裝。");
                 //首先删除Shard占用的文件
                 context.getShardManager().uninstallShard(shardName);
@@ -145,7 +151,9 @@ public class ShardRedeployOperation extends AbstractShardOperation {
                 shardFolder = context.getShardManager().installShard(shardName, shardPath);
             } else {
                 log.info(shardName + "  path: " + shardPath + " 索引是最新的。");
-                shardFolder = localShardFolder.toURI();
+                if(context.getShardManager().isCopyIndexToLocal()) {
+                    shardFolder = localShardFolder.toURI();
+                }
             }
         }
 

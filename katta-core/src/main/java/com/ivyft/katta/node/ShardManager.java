@@ -88,6 +88,13 @@ public class ShardManager {
 
 
     /**
+     *
+     * Copy Index to Local
+     */
+    protected final boolean copyIndexToLocal;
+
+
+    /**
      * 复制数据的文件系统
      */
     private final ThrottledInputStream.ThrottleSemaphore throttleSemaphore;
@@ -125,6 +132,7 @@ public class ShardManager {
         }
 
         setAnalyzerClass(conf.getString("lucene.index.writer.analyzer.class", StandardAnalyzer.class.getName()));
+        this.copyIndexToLocal = conf.getBoolean("lucene.index.copyTo.local", true);
 
         try {
             documentFactoryClass = (Class<? extends DocumentFactory>) conf.getClass("lucene.index.document.factory.class");
@@ -160,17 +168,18 @@ public class ShardManager {
             try {
                 LOG.info("hdfs use local dir: " + localShardFolder.getAbsolutePath());
                 if (!localShardFolder.exists()) {
-                    installShard(shardName, shardPath, localShardFolder);
+                    //把索引 copy 到本地
+                    if(copyIndexToLocal) {
+                        installShard(shardName, shardPath, localShardFolder);
+                    } else {
+                        if(!localShardFolder.mkdirs()) {
+                            throw new IOException("can't mkdir: " + localShardFolder);
+                        }
 
-                    /*
-                    if(!localShardFolder.mkdirs()) {
-                        throw new IOException("can't mkdir: " + localShardFolder);
+                        LOG.info("mkdir: " + localShardFolder.getAbsolutePath());
                     }
-
-                    LOG.info("mkdir: " + localShardFolder.getAbsolutePath());
-                    */
                 }
-                return localShardFolder.toURI();
+                return copyIndexToLocal ? localShardFolder.toURI() : path;
             } catch (Exception e) {
                 FileUtil.deleteFolder(localShardFolder);
                 throw e;
@@ -324,6 +333,11 @@ public class ShardManager {
         } catch (ClassNotFoundException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+
+    public boolean isCopyIndexToLocal() {
+        return copyIndexToLocal;
     }
 
     /**
