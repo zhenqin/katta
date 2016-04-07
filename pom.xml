@@ -4,7 +4,7 @@
 
   <groupId>com.ivyft.katta</groupId>
   <artifactId>katta</artifactId>
-  <version>${katta.build.version}</version>
+  <version>1.6.1</version>
   <packaging>pom</packaging>
 
   <name>Katta Distributed Search Engine</name>
