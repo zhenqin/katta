@@ -107,6 +107,15 @@ public class ZkConfiguration extends KattaConfiguration {
         NEW_INDICES("new index, created index path", true, "new-indices"),
 
 
+
+
+        /**
+         * 添加数据到 Index, Commit 到仓库
+         */
+        COMMIT("Add Index, Commit Data", true, "commits"),
+
+
+
         /**
          * 存储Version信息
          */

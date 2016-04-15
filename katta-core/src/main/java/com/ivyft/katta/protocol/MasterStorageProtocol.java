@@ -2,6 +2,7 @@ package com.ivyft.katta.protocol;
 
 import com.ivyft.katta.lib.writer.DataWriter;
 import com.ivyft.katta.lib.writer.ShardRange;
+import com.ivyft.katta.operation.master.CommitIndexFuture;
 import com.ivyft.katta.operation.master.IndexMergeOperation;
 import com.ivyft.katta.util.MasterConfiguration;
 import com.ivyft.katta.util.ZkConfiguration;
@@ -197,15 +198,25 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
 
     /** 提交成功, 启动创建索引进程 */
     @Override
-    public java.lang.Void fsh(java.lang.CharSequence indexId, java.lang.CharSequence commitId) throws org.apache.avro.AvroRemoteException {
+    public java.lang.Void fsh(java.lang.CharSequence indexId, java.lang.CharSequence commitId, long timeout) throws org.apache.avro.AvroRemoteException {
         try {
             CommitShards commitShards = COMMIT_TIMELINE_MAP.get(commitId.toString());
             if(commitShards != null) {
                 //do something
 
                 //TODO 可以提交创建索引了.
-                LOG.info("finished index: "+ indexId + " commit: " + commitId);
-                protocol.addMasterOperation(new IndexMergeOperation(commitShards));
+                LOG.info("finished index: " + indexId + " commit: " + commitId);
+                protocol.addMasterOperation(new IndexMergeOperation(commitId.toString(), commitShards, timeout > 0));
+
+                if(timeout > 0) {
+                    CommitIndexFuture commitIndexFuture = null;
+                    try {
+                        commitIndexFuture = new CommitIndexFuture(commitId.toString(), protocol);
+                        commitIndexFuture.joinDeployment(timeout);
+                    } finally {
+                        commitIndexFuture.disposable();
+                    }
+                }
                 //throw new IllegalStateException("unsupport finish option.");
             }
 

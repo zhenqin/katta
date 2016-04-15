@@ -165,6 +165,9 @@ public class Master implements ConnectedComponent {
         //向ZooKeeper注册服务器
         protocol.registerComponent(this);
 
+        //创建 ZooKeeper /katta/commits 节点
+        protocol.getCommitData("start");
+
         //去的配置的IDeployPolicy实例
         final String deployPolicyClassName = masterConfiguration.getDeployPolicy();
         try {
@@ -236,6 +239,7 @@ public class Master implements ConnectedComponent {
         if (isShutdown()) {
             return;
         }
+
 
         //发布当前为Master的主节点
         MasterQueue queue = this.protocol.publishMaster(this);

@@ -37,6 +37,6 @@ public class OperationMaster {
         MasterConfiguration conf = new MasterConfiguration();;
 
         CommitShards commitShards = new CommitShards("userindex", "hello", new HashSet<ShardRange>());
-        protocol.addMasterOperation(new IndexMergeOperation(commitShards));
+        protocol.addMasterOperation(new IndexMergeOperation("id", commitShards, true));
     }
 }

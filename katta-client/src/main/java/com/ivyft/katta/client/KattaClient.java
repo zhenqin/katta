@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -142,12 +143,12 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
 
 
     @Override
-    public void finish() {
+    public void finish(int timeout, TimeUnit unit) {
         if(currentCommitId == null) {
             throw new IllegalArgumentException("currentCommitId is null, please commit first.");
         }
         try {
-             kattaClientProtocol.fsh(indexName, currentCommitId);
+             kattaClientProtocol.fsh(indexName, currentCommitId, unit.toMillis(timeout));
             currentCommitId = null;
         } catch (AvroRemoteException e) {
             throw new IllegalStateException(e);
@@ -175,8 +176,8 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     }
 
     @Override
-    public Void fsh(CharSequence indexId, CharSequence commitId) throws AvroRemoteException {
-        return kattaClientProtocol.fsh(indexId, commitId);
+    public Void fsh(CharSequence indexId, CharSequence commitId, long timeout) throws AvroRemoteException {
+        return kattaClientProtocol.fsh(indexId, commitId, timeout);
     }
 
     @Override
