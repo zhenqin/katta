@@ -5,7 +5,10 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.*;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.junit.After;
@@ -27,26 +30,33 @@ import java.io.File;
  *
  * @author zhenqin
  */
-public class TermDeleteTest {
+public class CopyDocTest {
 
 
     protected String indexPath = "../data/test/1OgAEMwPu0snaXcdOhe";
 
+    protected String indexPathx = "../data/test/1OgAEMwPu0snaXcdOhex";
+
 
     protected IndexWriter indexWriter;
 
+
+    protected IndexWriter indexWriterx;
 
     IndexReader indexReader;
 
 
     IndexSearcher indexSearcher;
 
-    public TermDeleteTest() {
+    public CopyDocTest() {
     }
 
 
     @Before
     public void setUp() throws Exception {
+        FSDirectory directoryx = FSDirectory.open(new File(indexPathx));
+        indexWriterx = new IndexWriter(directoryx, new IndexWriterConfig(Version.LUCENE_46, new StandardAnalyzer(Version.LUCENE_46)));
+
         FSDirectory directory = FSDirectory.open(new File(indexPath));
         indexWriter = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_46, new StandardAnalyzer(Version.LUCENE_46)));
 
@@ -86,33 +96,28 @@ public class TermDeleteTest {
     @Test
     public void testDelete() throws Exception {
         System.out.println(indexWriter.numDocs());
-        indexWriter.deleteDocuments(new Term("ID", "654321"));
+        indexWriter.deleteDocuments(new Term("ID", "123456"));
         indexWriter.commit();
         indexWriter.forceMergeDeletes(true);
-        System.out.println(indexWriter.numDocs());
-
 
         testSelfLoadSearch();
+
+
+        System.out.println("=============");
+
+
+        Document document = new Document();
+        document.add(new StringField("ID", "123456", Field.Store.YES));
+        document.add(new StringField("NAME", "Java", Field.Store.YES));
+
+        indexWriterx.addDocument(document);
+        indexWriterx.commit();
+        indexWriterx.close();
+
+        indexWriter.addIndexes(FSDirectory.open(new File(indexPathx)));
+        testSearch();
+        testSelfLoadSearch();
     }
-
-    @Test
-    public void testReloadSearch() throws Exception {
-        indexReader = DirectoryReader.open(indexWriter, true);
-        indexSearcher = new IndexSearcher(indexReader);
-
-        System.out.println(indexSearcher.getIndexReader().numDocs());
-        System.out.println(indexSearcher.getIndexReader().maxDoc());
-
-
-        TopDocs word = indexSearcher.search(new MatchAllDocsQuery(), 10);
-        System.out.println(word.totalHits);
-
-        ScoreDoc[] scoreDocs = word.scoreDocs;
-        for (ScoreDoc scoreDoc : scoreDocs) {
-            System.out.println(indexSearcher.doc(scoreDoc.doc));
-        }
-    }
-
 
 
 

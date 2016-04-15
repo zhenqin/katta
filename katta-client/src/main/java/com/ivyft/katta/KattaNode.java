@@ -90,6 +90,7 @@ public class KattaNode extends ProtocolCommand {
     public Options getOpts() {
         Options options = new Options();
         options.addOption("c", true, "node server class, ? implements ILuceneServer");
+        options.addOption("config", "config", true, "node server class, ? implements ILuceneServer");
         options.addOption("p", true, "port number");
         options.addOption("s", false, "print exception");
         return options;

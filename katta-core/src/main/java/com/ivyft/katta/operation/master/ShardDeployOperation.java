@@ -210,7 +210,7 @@ public class ShardDeployOperation extends AbstractIndexOperation {
         }
         FileSystem fileSystem;
         try {
-            fileSystem = HadoopUtil.getFileSystem(new Path(uri.toString()));
+            fileSystem = HadoopUtil.getFileSystem(new Path(uri));
         } catch (final IOException e) {
             throw new IndexDeployException(ErrorType.INDEX_NOT_ACCESSIBLE,
                     "unable to retrive file system for index path '"
@@ -218,7 +218,7 @@ public class ShardDeployOperation extends AbstractIndexOperation {
                             "', make sure your path starts with hadoop support prefix like file:// or hdfs://", e);
         }
         try {
-            final Path shardPath = new Path(shardPathString);
+            final Path shardPath = new Path(uri);
             if (!fileSystem.exists(shardPath)) {
                 throw new IndexDeployException(ErrorType.INDEX_NOT_ACCESSIBLE,
                         "shard path '" + uri + "' does not exists");

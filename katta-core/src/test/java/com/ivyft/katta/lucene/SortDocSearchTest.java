@@ -95,6 +95,8 @@ class TextComparator extends FieldComparator<String> {
         this.field = field;
         this.missingValue = missingValue;
         values = new String[numHits];
+
+        System.out.println(numHits);
     }
 
     @Override

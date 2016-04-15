@@ -155,12 +155,15 @@ public class IndexMergeOperation extends AbstractIndexOperation {
 
     @Override
     public void nodeOperationsComplete(MasterContext context, List<OperationResult> results) throws Exception {
-        LOG.info("index {} merge result {}", this.getIndexName(), results.toString());
+        LOG.info("index {} merge Complete.", this.getIndexName());
+        for (OperationResult result : results) {
+            LOG.info("node {} merge result {}", result.getNodeName(), result);
+        }
 
         Set<ShardRange> commits = getCommits();
         for (ShardRange commit : commits) {
             HadoopUtil.getFileSystem().delete(new Path(commit.getShardPath()), true);
-            LOG.info("delete index {} commitId {} path {}", getIndexName(), getCommitId(), commit.getShardPath());
+            LOG.warn("delete index {} commitId {} path {}", getIndexName(), getCommitId(), commit.getShardPath());
         }
 
     }

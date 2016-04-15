@@ -4,24 +4,28 @@
 
     <groupId>com.ivyft.katta</groupId>
     <artifactId>katta-hadoop</artifactId>
-    <version>1.6.0</version>
+    <version>${project.parent.version}</version>
     <packaging>jar</packaging>
 
     <name>Katta Hadoop Adapter</name>
     <url>http://www.ivyft.com</url>
 
 
+    <properties>
+        <katta.build.version>${project.parent.version}</katta.build.version>
+    </properties>
+
     <parent>
         <groupId>com.ivyft.katta</groupId>
         <artifactId>katta</artifactId>
-        <version>1.6.0</version>
+        <version>1.6.1</version>
     </parent>
 
     <dependencies>
         <dependency>
             <groupId>com.ivyft.katta</groupId>
             <artifactId>katta-core</artifactId>
-            <version>1.6.0</version>
+            <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
 
