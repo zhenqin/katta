@@ -673,6 +673,43 @@ public class InteractionProtocol {
     }
 
 
+    public void getNewCommit(String commitId, CommitShards commitShards, Map<String, Map<String, Map<String, Object>>> nodeCommitMeta) {
+        String commitsPath = this.zkConf.getZkPath(PathDef.COMMIT);
+        if(!_zkClient.exists(commitsPath)){
+            _zkClient.createPersistent(commitsPath);
+            LOG.info("create commit path: " + commitsPath);
+        }
+        String path = this.zkConf.getZkPath(PathDef.COMMIT, commitId);
+        _zkClient.createPersistent(path, nodeCommitMeta);
+        LOG.info("create commitId path: " + path);
+    }
+
+
+
+    public Map<String, Object> getCommitData(String commitId) {
+        String commitsPath = this.zkConf.getZkPath(PathDef.COMMIT);
+        if(!_zkClient.exists(commitsPath)){
+            _zkClient.createPersistent(commitsPath);
+            LOG.info("create commit path: " + commitsPath);
+        }
+
+        String path = this.zkConf.getZkPath(PathDef.COMMIT, commitId);
+        if(_zkClient.exists(path)) {
+            return _zkClient.readData(path);
+        }
+        return null;
+    }
+
+
+
+    public void deleteZkPath(String commitId) {
+        String path = this.zkConf.getZkPath(PathDef.COMMIT, commitId);
+        if(_zkClient.exists(path)) {
+            _zkClient.delete(path);
+            LOG.info("delete commitId path: " + path);
+        }
+    }
+
 
     public NewIndexMetaData getNewIndex(String newIndexName) {
         String newIndex = this.zkConf.getZkPath(PathDef.NEW_INDICES);

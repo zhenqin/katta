@@ -3,6 +3,7 @@ package com.ivyft.katta.operation.master;
 import com.ivyft.katta.lib.writer.ShardRange;
 import com.ivyft.katta.master.MasterContext;
 import com.ivyft.katta.operation.OperationId;
+import com.ivyft.katta.operation.node.DeployResult;
 import com.ivyft.katta.operation.node.NodeIndexMergeOperation;
 import com.ivyft.katta.operation.node.OperationResult;
 import com.ivyft.katta.protocol.CommitShards;
@@ -11,7 +12,9 @@ import com.ivyft.katta.protocol.metadata.IndexDeployError;
 import com.ivyft.katta.protocol.metadata.IndexMetaData;
 import com.ivyft.katta.protocol.metadata.Shard;
 import com.ivyft.katta.util.HadoopUtil;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +45,17 @@ public class IndexMergeOperation extends AbstractIndexOperation {
 
 
     /**
+     * 把结果写进 Zookeeper 中
+     */
+    protected final boolean createZkCommitId;
+
+
+    /**
+     * 当前 Commit 的 ID
+     */
+    protected final String commitId;
+
+    /**
      * Commit Shards
      */
     protected final CommitShards commitShards;
@@ -54,9 +68,21 @@ public class IndexMergeOperation extends AbstractIndexOperation {
 
     /**
      * 构造方法
+     *
+     *
+     * @param commitId Commit Id, 每次 Commit 唯一
      * @param commitShards Commit Shards
+     * @param createZkCommitId 完成后是否把信息写入到 Zookeeper 中
+     *
      */
-    public IndexMergeOperation(CommitShards commitShards) {
+    public IndexMergeOperation(String commitId, CommitShards commitShards, boolean createZkCommitId) {
+        this.createZkCommitId = createZkCommitId;
+        if(StringUtils.isBlank(commitId)) {
+            this.commitId = commitShards.getCommitId();
+        } else {
+            this.commitId = commitId;
+        }
+
         this.commitShards = commitShards;
     }
 
@@ -156,15 +182,50 @@ public class IndexMergeOperation extends AbstractIndexOperation {
     @Override
     public void nodeOperationsComplete(MasterContext context, List<OperationResult> results) throws Exception {
         LOG.info("index {} merge Complete.", this.getIndexName());
+
+        Exception exception = null;
+
         for (OperationResult result : results) {
             LOG.info("node {} merge result {}", result.getNodeName(), result);
+
+            if(result.getUnhandledException() != null) {
+                LOG.error(ExceptionUtils.getFullStackTrace(result.getUnhandledException()));
+                exception = result.getUnhandledException();
+            }
         }
 
         Set<ShardRange> commits = getCommits();
         for (ShardRange commit : commits) {
-            HadoopUtil.getFileSystem().delete(new Path(commit.getShardPath()), true);
             LOG.warn("delete index {} commitId {} path {}", getIndexName(), getCommitId(), commit.getShardPath());
+            try {
+                HadoopUtil.getFileSystem().delete(new Path(commit.getShardPath()), true);
+            } catch (Exception e) {
+                LOG.warn("", e);
+            }
         }
+
+        if(createZkCommitId) {
+            Map<String, Map<String, Map<String, Object>>> nodeCommitMeta = new HashMap<String, Map<String, Map<String, Object>>>();
+            //没有异常，则提交成功
+            if (exception == null) {
+                for (OperationResult result : results) {
+                    if (result instanceof DeployResult) {
+                        DeployResult r = (DeployResult) result;
+                        Map<String, Map<String, String>> shardMetaDataMaps = r.getShardMetaDataMaps();
+                        String nodeName = r.getNodeName();
+
+                        nodeCommitMeta.put(nodeName, (Map) shardMetaDataMaps);
+                    }
+                }
+            }
+
+            try {
+                context.getProtocol().getNewCommit(commitId, commitShards, nodeCommitMeta);
+            } catch (Exception e) {
+                LOG.warn("", e);
+            }
+        }
+
 
     }
 
@@ -196,5 +257,10 @@ public class IndexMergeOperation extends AbstractIndexOperation {
 
     public String getIndexName() {
         return commitShards.getIndexName();
+    }
+
+
+    public boolean isCreateZkCommitId() {
+        return createZkCommitId;
     }
 }

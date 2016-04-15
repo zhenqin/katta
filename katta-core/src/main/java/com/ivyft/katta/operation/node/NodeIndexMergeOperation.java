@@ -5,6 +5,7 @@ import com.ivyft.katta.node.NodeContext;
 import com.ivyft.katta.node.ShardManager;
 import com.ivyft.katta.protocol.IntLengthHeaderFile;
 import com.ivyft.katta.util.HadoopUtil;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,10 +139,18 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
 
         Map<String, String> meta = new HashMap<String, String>(3);
         meta.put("addCount", String.valueOf(addCount.get()));
+        meta.put("shardName", shardName);
+        meta.put("indexName", this.getIndexName());
+        meta.put("nodeName", this.nodeName);
+        meta.put("commitId", this.getCommitId());
 
         result.addShardMetaDataMap(shardName, meta);
 
-        luceneDocumentMerger.merge();
+        try {
+            luceneDocumentMerger.merge();
+        } catch (Exception e) {
+            log.error(ExceptionUtils.getFullStackTrace(e));
+        }
         log.info("merge index success");
         log.info("index {} commitid {}", indexName, commitId);
     }

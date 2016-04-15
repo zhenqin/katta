@@ -3,6 +3,8 @@ package com.ivyft.katta.node;
 import com.ivyft.katta.Katta;
 import org.junit.Test;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * <pre>
  *
@@ -22,6 +24,13 @@ public class KattaTest {
     public KattaTest() {
     }
 
+
+    @Test
+    public void testTimeUnit() throws Exception {
+        System.out.println(System.currentTimeMillis());
+        System.out.println(TimeUnit.SECONDS.toMillis(2));
+
+    }
 
     @Test
     public void testCreateIndex() throws Exception {

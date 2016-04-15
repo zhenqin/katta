@@ -12,6 +12,7 @@ import org.apache.hadoop.fs.PathFilter;
 import org.junit.Test;
 
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <pre>
@@ -37,15 +38,17 @@ public class KattaLoaderTest {
     @Test
     public void testCreatedLoaderByMaster() throws Exception {
         LuceneClient client = new LuceneClient(new ZkConfiguration());
-        KattaLoader<Object> test = client.getKattaLoader("hello");
+        KattaLoader<Object> test = client.getKattaLoader("userindex");
 
         for (int i = 0; i < 10000; i++) {
             System.out.println(test.addBean("java" + i, "hello" + new Random().nextInt()));
         }
-        test.commit();
 
-        for (int i = 0; i < 10000; i++) {
-            System.out.println(test.addBean("java" + i, "hello" + new Random().nextInt()));
+        try {
+            test.commit();
+            test.finish(1, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            test.rollback();
         }
 
         test.close();

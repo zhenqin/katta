@@ -2,6 +2,7 @@ package com.ivyft.katta.client;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <pre>
@@ -32,7 +33,7 @@ public interface KattaLoader<T> {
 
 
 
-    public void finish();
+    public void finish(int timeout, TimeUnit unit);
 
 
 
