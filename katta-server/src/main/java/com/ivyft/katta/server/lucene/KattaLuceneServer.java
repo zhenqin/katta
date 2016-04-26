@@ -22,6 +22,7 @@ import com.ivyft.katta.lib.lucene.*;
 import com.ivyft.katta.lib.lucene.convertor.DocumentConvertor;
 import com.ivyft.katta.lib.lucene.convertor.SolrDocumentConvertor;
 import com.ivyft.katta.node.IContentServer;
+import com.ivyft.katta.node.IndexUpdateListener;
 import com.ivyft.katta.node.ShardManager;
 import com.ivyft.katta.server.protocol.KattaServerProtocol;
 import com.ivyft.katta.util.ClassUtil;
@@ -96,7 +97,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author ZhenQin
  *
  */
-public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
+public class KattaLuceneServer implements IContentServer, KattaServerProtocol, IndexUpdateListener {
 
 
     /**
@@ -299,6 +300,16 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol {
         closeIndexSearcherThread = new CloseIndexSearcherThread("CloseIndexSearcherThread", minute);
         closeIndexSearcherThread.setDaemon(true);
         closeIndexSearcherThread.start();
+
+    }
+
+    @Override
+    public void onBeforeUpdate(String indexName, String shardName) {
+
+    }
+
+    @Override
+    public void onAfterUpdate(String indexName, String shardName) {
 
     }
 

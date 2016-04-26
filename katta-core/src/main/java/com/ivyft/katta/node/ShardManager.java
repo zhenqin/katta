@@ -73,17 +73,16 @@ public class ShardManager {
     private final File shardsFolder;
 
 
+    /**
+     * 把对象转 LuceneDocument Class
+     */
     protected final Class<? extends DocumentFactory> documentFactoryClass;
 
 
-
-    protected final Class<? extends LuceneDocumentMerger> mergeDocumentClass;
-
-
     /**
-     * Merge Index Analyzer
+     * 合并索引 Class
      */
-    protected String analyzerClass;
+    protected final Class<? extends LuceneDocumentMerger> mergeDocumentClass;
 
 
 
@@ -101,6 +100,19 @@ public class ShardManager {
 
 
     /**
+     * 索引被更新时回调
+     */
+    protected final IndexUpdateListener updateListener;
+
+
+
+    /**
+     * Merge Index Analyzer
+     */
+    protected String analyzerClass;
+
+
+    /**
      * Log
      */
     protected final static Logger LOG = LoggerFactory.getLogger(ShardManager.class);
@@ -110,8 +122,8 @@ public class ShardManager {
      *
      * @param shardsFolder
      */
-    public ShardManager(NodeConfiguration conf, File shardsFolder) {
-        this(conf, shardsFolder, null);
+    public ShardManager(NodeConfiguration conf, File shardsFolder, IndexUpdateListener updateListener) {
+        this(conf, shardsFolder, updateListener, null);
     }
 
 
@@ -120,9 +132,14 @@ public class ShardManager {
      * @param shardsFolder
      * @param throttleSemaphore
      */
-    public ShardManager(NodeConfiguration conf, File shardsFolder, ThrottledInputStream.ThrottleSemaphore throttleSemaphore) {
+    public ShardManager(NodeConfiguration conf,
+                        File shardsFolder,
+                        IndexUpdateListener updateListener,
+                        ThrottledInputStream.ThrottleSemaphore throttleSemaphore) {
         this.shardsFolder = shardsFolder;
         this.throttleSemaphore = throttleSemaphore;
+        this.updateListener = updateListener;
+
         if (!this.shardsFolder.exists()) {
             this.shardsFolder.mkdirs();
         }
@@ -491,6 +508,8 @@ public class ShardManager {
             throw new KattaException("Can not init file system " + uri, e);
         }
         int maxTries = 3;
+        updateListener.onBeforeUpdate(null, shardName);
+
         for (int i = 0; i < maxTries; i++) {
             try {
                 //原路径
@@ -511,7 +530,11 @@ public class ShardManager {
                     fileSystem.copyToLocalFile(false, path, new Path(shardTmpFolder.getAbsolutePath()), true);
                 }
 
-                LuceneIndexMergeManager mergeManager = new LuceneIndexMergeManager(localShardFolder, getAnalyzer());
+                LuceneIndexMergeManager mergeManager =
+                        new LuceneIndexMergeManager(localShardFolder,
+                                null,
+                                shardName,
+                                updateListener, getAnalyzer());
                 try {
                     LOG.info(localShardFolder.getAbsolutePath() + " add index path " + shardTmpFolder.getName());
                     mergeManager.mergeIndex(shardTmpFolder);
@@ -560,7 +583,8 @@ public class ShardManager {
         Serializer<Object> serializer = SerialFactory.get(contentType);
         File localShardFolder = getShardFolder(shardName);
         File shardIndexPath = getShardTmpPath(shardName);
-        LuceneIndexMergeManager mergeManager = new LuceneIndexMergeManager(localShardFolder, getAnalyzer());
+        LuceneIndexMergeManager mergeManager =
+                new LuceneIndexMergeManager(localShardFolder, indexName, shardName, updateListener, getAnalyzer());
 
         try {
             DocumentFactory documentFactory = documentFactoryClass.newInstance();
@@ -571,6 +595,7 @@ public class ShardManager {
                     LuceneIndexMergeManager.class);
 
             LuceneDocumentMerger luceneDocumentMerger = constructor.newInstance(serializer, getAnalyzer(), shardIndexPath, documentFactory, mergeManager);
+            updateListener.onBeforeUpdate(indexName, shardName);
             return luceneDocumentMerger;
         } catch (Exception e) {
             throw new IllegalStateException(e);
@@ -653,7 +678,7 @@ public class ShardManager {
 
     public static void main(String[] args) throws Exception {
         File local = new File("./data/test");
-        ShardManager shardManager = new ShardManager(null, local);
+        ShardManager shardManager = new ShardManager(null, local, null);
 
         shardManager.installShard2("2gj3oTQbG5TV0XJfWDJ", "hdfs:///user/katta/luce200/2gj3oTQbG5TV0XJfWDJ", true);
     }

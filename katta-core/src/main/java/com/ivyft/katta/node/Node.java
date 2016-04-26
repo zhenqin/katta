@@ -195,9 +195,10 @@ public class Node implements ConnectedComponent {
             shardManager = new ShardManager(
                     _nodeConf,
                     shardsFolder,
+                    (IndexUpdateListener)_contentServer,
                     new ThrottledInputStream.ThrottleSemaphore(throttleInKbPerSec * 1024));
         } else {
-            shardManager = new ShardManager(_nodeConf, shardsFolder);
+            shardManager = new ShardManager(_nodeConf, shardsFolder, (IndexUpdateListener)_contentServer);
         }
 
         //Node的上下文对象。保存着Node有用的实例

@@ -66,6 +66,12 @@ public class SearcherHandle {
 
 
     /**
+     * 当前索引是否发生改变
+     */
+    private boolean change = false;
+
+
+    /**
      *
      * 当前所有是否已经关闭
      *
@@ -125,6 +131,7 @@ public class SearcherHandle {
             LOG.info("createSearcher, shardDir: " + shardDir);
             this.lastVisited = System.currentTimeMillis();
             closed.set(false);
+            change = false;
             return this.indexSearcher;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -150,17 +157,21 @@ public class SearcherHandle {
             }
         }
 
-        DirectoryReader reader = null;
-        try {
-            reader = DirectoryReader.openIfChanged((DirectoryReader) indexSearcher.getIndexReader());
-            if(reader != null) {
-                indexSearcher.getIndexReader().close();
+        //当索引有变化，重新打开索引
+        if(change) {
+            DirectoryReader reader = null;
+            change = false;
+            try {
+                reader = DirectoryReader.openIfChanged((DirectoryReader) indexSearcher.getIndexReader());
+                if(reader != null) {
+                    indexSearcher.getIndexReader().close();
 
-                LOG.info("self load index searcher, shard {}", this.getShardName());
-                indexSearcher = new IndexSearcher(reader);
+                    LOG.info("self load index searcher, shard {}", this.getShardName());
+                    indexSearcher = new IndexSearcher(reader);
+                }
+            } catch (IOException e) {
+                LOG.warn(e.getMessage());
             }
-        } catch (IOException e) {
-            LOG.warn(e.getMessage());
         }
 
         _refCount.incrementAndGet();
@@ -168,6 +179,13 @@ public class SearcherHandle {
         return this.indexSearcher;
     }
 
+
+    /**
+     * 索引已经发生改变
+     */
+    public void indexChanged() {
+        change = true;
+    }
 
 
     /**

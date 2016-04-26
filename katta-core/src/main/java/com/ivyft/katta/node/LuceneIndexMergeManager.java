@@ -67,6 +67,24 @@ public class LuceneIndexMergeManager implements Closeable {
 
 
 
+    /**
+     * 索引被更新时回调
+     */
+    protected final IndexUpdateListener updateListener;
+
+
+
+    /**
+     * Merge Index  Name
+     */
+    protected final String indexName;
+
+
+    /**
+     * Merge Index-Shard Name
+     */
+    protected final String shardName;
+
 
     /**
      * ADD Doc 的计数器
@@ -78,14 +96,24 @@ public class LuceneIndexMergeManager implements Closeable {
 
 
 
-    public LuceneIndexMergeManager(File indexPath) {
-        this(indexPath, new StandardAnalyzer(Version.LUCENE_46));
+    public LuceneIndexMergeManager(File indexPath,
+                                   String indexName,
+                                   String shardName,
+                                   IndexUpdateListener updateListener) {
+        this(indexPath, indexName, shardName, updateListener, new StandardAnalyzer(Version.LUCENE_46));
     }
 
 
 
-    public LuceneIndexMergeManager(File indexPath, Analyzer analyzer) {
+    public LuceneIndexMergeManager(File indexPath,
+                                   String indexName,
+                                   String shardName,
+                                   IndexUpdateListener updateListener,
+                                   Analyzer analyzer) {
         this.indexPath = indexPath;
+        this.indexName = indexName;
+        this.shardName = shardName;
+        this.updateListener = updateListener;
         try {
             FSDirectory open = FSDirectory.open(indexPath);
 
@@ -244,6 +272,7 @@ public class LuceneIndexMergeManager implements Closeable {
      */
     @Override
     public void close() throws IOException {
+        updateListener.onAfterUpdate(indexName, shardName);
         try {
             if(indexSearcher != null) {
                 indexSearcher.getIndexReader().close();

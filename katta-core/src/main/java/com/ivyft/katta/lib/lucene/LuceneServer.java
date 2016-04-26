@@ -20,6 +20,7 @@ import com.google.common.cache.CacheBuilder;
 import com.ivyft.katta.lib.lucene.convertor.DocumentConvertor;
 import com.ivyft.katta.lib.lucene.convertor.SolrDocumentConvertor;
 import com.ivyft.katta.node.IContentServer;
+import com.ivyft.katta.node.IndexUpdateListener;
 import com.ivyft.katta.node.SerialSocketServer;
 import com.ivyft.katta.util.ClassUtil;
 import com.ivyft.katta.util.NodeConfiguration;
@@ -91,7 +92,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author ZhenQin
  *
  */
-public class LuceneServer implements IContentServer, ILuceneServer {
+public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateListener {
 
     /**
      * 配置的IndexSearcher Factory的工厂类
@@ -350,6 +351,20 @@ public class LuceneServer implements IContentServer, ILuceneServer {
         closeIndexSearcherThread.setDaemon(true);
         closeIndexSearcherThread.start();
 
+    }
+
+    @Override
+    public void onBeforeUpdate(String indexName, String shardName) {
+        LOG.info("before update {} shard {}", indexName, shardName);
+    }
+
+    @Override
+    public void onAfterUpdate(String indexName, String shardName) {
+        SearcherHandle searcherHandle = getSearcherHandleByShard(shardName);
+        if(searcherHandle != null) {
+            LOG.info("after update {} shard {}", indexName, shardName);
+            searcherHandle.indexChanged();
+        }
     }
 
 
