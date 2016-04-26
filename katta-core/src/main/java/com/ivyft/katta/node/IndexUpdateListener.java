@@ -17,11 +17,18 @@ package com.ivyft.katta.node;
 public interface IndexUpdateListener {
 
 
-
+    /**
+     * 当索引被修改前调用
+     * @param indexName 被修改的 Index
+     * @param shardName 被修改的 Index Shard
+     */
     public void onBeforeUpdate(String indexName, String shardName);
 
 
-
-
+    /**
+     * 索引修改完成后调用
+     * @param indexName 被修改的 Index
+     * @param shardName 被修改的 Index Shard
+     */
     public void onAfterUpdate(String indexName, String shardName);
 }

@@ -355,13 +355,14 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
 
     @Override
     public void onBeforeUpdate(String indexName, String shardName) {
-
+        LOG.info("before update {} shard {}", indexName, shardName);
     }
 
     @Override
     public void onAfterUpdate(String indexName, String shardName) {
         SearcherHandle searcherHandle = getSearcherHandleByShard(shardName);
         if(searcherHandle != null) {
+            LOG.info("after update {} shard {}", indexName, shardName);
             searcherHandle.indexChanged();
         }
     }
