@@ -16,6 +16,7 @@
 package com.ivyft.katta.lib.lucene;
 
 import com.ivyft.katta.util.NodeConfiguration;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 
 import java.io.IOException;
@@ -61,4 +62,17 @@ public interface ISeacherFactory {
      * @throws IOException
      */
     public IndexSearcher createSearcher(String shardName, URI shardPath) throws IOException;
+
+
+    /**
+     *
+     * 重新打开索引，Reader reopen，除非真的索引发生了改变，否则调用该方法，损耗搜索性能较大
+     *
+     * @param indexReader Old Index Reader
+     * @param shardName shardName
+     * @param shardPath shardPath
+     * @return 返回新的 IndexSearcher，否则返回 null
+     * @throws IOException
+     */
+    public IndexSearcher reopenIndex(IndexReader indexReader, String shardName, URI shardPath) throws IOException;
 }

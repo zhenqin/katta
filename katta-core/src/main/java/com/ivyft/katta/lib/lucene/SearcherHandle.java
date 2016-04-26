@@ -125,10 +125,35 @@ public class SearcherHandle {
      *
      * @return 初始化成功, 返回. 也可使用 context.this.IndexSearcher
      */
-    protected IndexSearcher initIndexSearch() {
+    protected IndexSearcher initIndexSearcher() {
         try {
             this.indexSearcher = this.seacherFactory.createSearcher(shardName, shardDir);
             LOG.info("createSearcher, shardDir: " + shardDir);
+            this.lastVisited = System.currentTimeMillis();
+            closed.set(false);
+            change = false;
+            return this.indexSearcher;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+
+
+
+    /**
+     *
+     * 初始化索引
+     *
+     * @return 初始化成功, 返回. 也可使用 context.this.IndexSearcher
+     */
+    protected synchronized IndexSearcher reopenIndexSearcher() {
+        try {
+            IndexSearcher newSearcher = this.seacherFactory.reopenIndex(this.indexSearcher.getIndexReader(), shardName, shardDir);
+            if(newSearcher != null) {
+                this.indexSearcher = newSearcher;
+            }
             this.lastVisited = System.currentTimeMillis();
             closed.set(false);
             change = false;
@@ -151,7 +176,7 @@ public class SearcherHandle {
         //_refCount 如果是0, 则表示长时间没有访问而关闭的, 如果是-1, 则代表 Node 将要 shutdown
         if(this.indexSearcher == null) {
             if(_refCount.get() >= 0) {
-                initIndexSearch();
+                initIndexSearcher();
             } else {
                 return null;
             }
@@ -159,17 +184,10 @@ public class SearcherHandle {
 
         //当索引有变化，重新打开索引
         if(change) {
-            DirectoryReader reader = null;
             change = false;
             try {
-                reader = DirectoryReader.openIfChanged((DirectoryReader) indexSearcher.getIndexReader());
-                if(reader != null) {
-                    indexSearcher.getIndexReader().close();
-
-                    LOG.info("self load index searcher, shard {}", this.getShardName());
-                    indexSearcher = new IndexSearcher(reader);
-                }
-            } catch (IOException e) {
+                reopenIndexSearcher();
+            } catch (Exception e) {
                 LOG.warn(e.getMessage());
             }
         }
