@@ -67,7 +67,7 @@ import java.util.*;
  */
 public class Katta {
 
-    protected static final Logger log = LoggerFactory.getLogger(Katta1.class);
+    protected static final Logger log = LoggerFactory.getLogger(Katta.class);
 
     protected final static HashMap<String, Command> commands = new HashMap<String, Command>();
 
@@ -1096,7 +1096,7 @@ public class Katta {
         if(command == null) {
             log.error("ERROR: " + commandName + " is not a supported command.");
             printHelpFor(null);
-            System.exit(1);
+            return;
         }
         Options opts = command.getOpts();
         if(!opts.hasOption("h")) {
@@ -1120,7 +1120,7 @@ public class Katta {
                         command.getHeaderDescription(),
                         command.getOpts(),
                         showStackTrace ? null : printUsageFooter());
-                System.exit(1);
+                return;
             }
         }
     }

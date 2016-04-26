@@ -94,12 +94,8 @@ public class CopyDocTest {
     }
 
     @Test
-    public void testDelete() throws Exception {
+    public void testAddIndex() throws Exception {
         System.out.println(indexWriter.numDocs());
-        indexWriter.deleteDocuments(new Term("ID", "123456"));
-        indexWriter.commit();
-        indexWriter.forceMergeDeletes(true);
-
         testSelfLoadSearch();
 
 
@@ -107,7 +103,7 @@ public class CopyDocTest {
 
 
         Document document = new Document();
-        document.add(new StringField("ID", "123456", Field.Store.YES));
+        document.add(new StringField("ID", "abcdef", Field.Store.YES));
         document.add(new StringField("NAME", "Java", Field.Store.YES));
 
         indexWriterx.addDocument(document);
@@ -117,6 +113,7 @@ public class CopyDocTest {
         indexWriter.addIndexes(FSDirectory.open(new File(indexPathx)));
         testSearch();
         testSelfLoadSearch();
+        testIndexWriterSearch();
     }
 
 
@@ -141,9 +138,33 @@ public class CopyDocTest {
         }
     }
 
+
+
+
+    @Test
+    public void testIndexWriterSearch() throws Exception {
+        IndexSearcher indexSearcher;
+
+        System.out.println("load by index writer.");
+        indexSearcher = new IndexSearcher(DirectoryReader.open(indexWriter, true));
+
+        System.out.println(indexSearcher.getIndexReader().numDocs());
+        System.out.println(indexSearcher.getIndexReader().maxDoc());
+
+
+        TopDocs word = indexSearcher.search(new MatchAllDocsQuery(), 10);
+        System.out.println(word.totalHits);
+
+        ScoreDoc[] scoreDocs = word.scoreDocs;
+        for (ScoreDoc scoreDoc : scoreDocs) {
+            System.out.println(indexSearcher.doc(scoreDoc.doc));
+        }
+    }
+
+
+
     @Test
     public void testSearch() throws Exception {
-        testSelfLoadSearch();
         System.out.println(indexSearcher.getIndexReader().numDocs());
         System.out.println(indexSearcher.getIndexReader().maxDoc());
 

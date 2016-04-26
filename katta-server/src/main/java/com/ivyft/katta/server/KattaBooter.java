@@ -125,9 +125,10 @@ public class KattaBooter {
             shardManager = new ShardManager(
                     _nodeConf,
                     shardsFolder,
+                    luceneServer,
                     new ThrottledInputStream.ThrottleSemaphore(throttleInKbPerSec * 1024));
         } else {
-            shardManager = new ShardManager(_nodeConf, shardsFolder);
+            shardManager = new ShardManager(_nodeConf, shardsFolder, luceneServer);
         }
 
         luceneServer.setShardManager(shardManager);
