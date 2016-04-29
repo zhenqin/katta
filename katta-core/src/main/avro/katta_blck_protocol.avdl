@@ -1,0 +1,52 @@
+@namespace("com.ivyft.katta.protocol")
+/**
+ Hello
+ */
+protocol KattaClientProtocol {
+
+    /**
+    传输的 Avro 消息, 序列化结果
+    */
+    record Message {
+        /**
+        Index ID
+        */
+        string indexId;
+
+        /**
+        Data Shard Key
+        */
+        string rowId;
+
+        /**
+        Data Bytes
+        */
+        bytes payload;
+    }
+
+    /**
+      插入单条数据
+     */
+    int add(Message message);
+
+    /**
+     批次插入(List)
+     */
+    int addList(array<Message> messages);
+
+    /**
+     提交
+     */
+    string comm(string indexId);
+
+    /**
+     提交成功, 启动创建索引进程
+     */
+    void fsh(string indexId, string commitId, long timeout);
+
+    /**
+     提交失败回滚
+     */
+    void roll(string indexId, string commitId);
+
+}
