@@ -6,10 +6,10 @@
 package com.ivyft.katta.protocol;
 
 @SuppressWarnings("all")
-/** Katta Process Interface */
+/** Hello */
 @org.apache.avro.specific.AvroGenerated
 public interface KattaClientProtocol {
-  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"KattaClientProtocol\",\"namespace\":\"com.ivyft.katta.protocol\",\"doc\":\"Katta Process Interface\",\"name\":\"KattaClient\",\"types\":[{\"type\":\"record\",\"name\":\"Message\",\"fields\":[{\"name\":\"indexId\",\"type\":\"string\"},{\"name\":\"rowId\",\"type\":\"string\"},{\"name\":\"payload\",\"type\":\"bytes\"}]}],\"messages\":{\"add\":{\"doc\":\"插入单条数据\",\"request\":[{\"name\":\"message\",\"type\":\"Message\"}],\"response\":\"int\"},\"addList\":{\"doc\":\"批次插入(List)\",\"request\":[{\"name\":\"messages\",\"type\":{\"type\":\"array\",\"items\":\"Message\"}}],\"response\":\"int\"},\"comm\":{\"doc\":\"提交\",\"request\":[{\"name\":\"indexId\",\"type\":\"string\"}],\"response\":\"string\"},\"fsh\":{\"doc\":\"提交成功, 启动创建索引进程\",\"request\":[{\"name\":\"indexId\",\"type\":\"string\"},{\"name\":\"commitId\",\"type\":\"string\"},{\"name\":\"timeout\",\"type\":\"long\"}],\"response\":\"null\"},\"roll\":{\"doc\":\"提交失败回滚\",\"request\":[{\"name\":\"indexId\",\"type\":\"string\"},{\"name\":\"commitId\",\"type\":[\"null\",\"string\"]}],\"response\":\"null\"}}}");
+  public static final org.apache.avro.Protocol PROTOCOL = org.apache.avro.Protocol.parse("{\"protocol\":\"KattaClientProtocol\",\"namespace\":\"com.ivyft.katta.protocol\",\"doc\":\"Hello\",\"types\":[{\"type\":\"record\",\"name\":\"Message\",\"doc\":\"传输的 Avro 消息, 序列化结果\",\"fields\":[{\"name\":\"indexId\",\"type\":\"string\",\"doc\":\"Index ID\"},{\"name\":\"rowId\",\"type\":\"string\",\"doc\":\"Data Shard Key\"},{\"name\":\"payload\",\"type\":\"bytes\",\"doc\":\"Data Bytes\"}]}],\"messages\":{\"add\":{\"doc\":\"插入单条数据\",\"request\":[{\"name\":\"message\",\"type\":\"Message\"}],\"response\":\"int\"},\"addList\":{\"doc\":\"批次插入(List)\",\"request\":[{\"name\":\"messages\",\"type\":{\"type\":\"array\",\"items\":\"Message\"}}],\"response\":\"int\"},\"comm\":{\"doc\":\"提交\",\"request\":[{\"name\":\"indexId\",\"type\":\"string\"}],\"response\":\"string\"},\"fsh\":{\"doc\":\"提交成功, 启动创建索引进程\",\"request\":[{\"name\":\"indexId\",\"type\":\"string\"},{\"name\":\"commitId\",\"type\":\"string\"},{\"name\":\"timeout\",\"type\":\"long\"}],\"response\":\"null\"},\"roll\":{\"doc\":\"提交失败回滚\",\"request\":[{\"name\":\"indexId\",\"type\":\"string\"},{\"name\":\"commitId\",\"type\":\"string\"}],\"response\":\"null\"}}}");
   /** 插入单条数据 */
   int add(com.ivyft.katta.protocol.Message message) throws org.apache.avro.AvroRemoteException;
   /** 批次插入(List) */
@@ -22,7 +22,7 @@ public interface KattaClientProtocol {
   java.lang.Void roll(java.lang.CharSequence indexId, java.lang.CharSequence commitId) throws org.apache.avro.AvroRemoteException;
 
   @SuppressWarnings("all")
-  /** Katta Process Interface */
+  /** Hello */
   public interface Callback extends KattaClientProtocol {
     public static final org.apache.avro.Protocol PROTOCOL = com.ivyft.katta.protocol.KattaClientProtocol.PROTOCOL;
     /** 插入单条数据 */

@@ -5,12 +5,16 @@
  */
 package com.ivyft.katta.protocol;  
 @SuppressWarnings("all")
+/** 传输的 Avro 消息, 序列化结果 */
 @org.apache.avro.specific.AvroGenerated
 public class Message extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"Message\",\"namespace\":\"com.ivyft.katta.protocol\",\"fields\":[{\"name\":\"indexId\",\"type\":\"string\"},{\"name\":\"rowId\",\"type\":\"string\"},{\"name\":\"payload\",\"type\":\"bytes\"}]}");
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"Message\",\"namespace\":\"com.ivyft.katta.protocol\",\"doc\":\"传输的 Avro 消息, 序列化结果\",\"fields\":[{\"name\":\"indexId\",\"type\":\"string\",\"doc\":\"Index ID\"},{\"name\":\"rowId\",\"type\":\"string\",\"doc\":\"Data Shard Key\"},{\"name\":\"payload\",\"type\":\"bytes\",\"doc\":\"Data Bytes\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
+  /** Index ID */
   @Deprecated public java.lang.CharSequence indexId;
+  /** Data Shard Key */
   @Deprecated public java.lang.CharSequence rowId;
+  /** Data Bytes */
   @Deprecated public java.nio.ByteBuffer payload;
 
   /**
@@ -52,14 +56,14 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
 
   /**
    * Gets the value of the 'indexId' field.
-   */
+   * Index ID   */
   public java.lang.CharSequence getIndexId() {
     return indexId;
   }
 
   /**
    * Sets the value of the 'indexId' field.
-   * @param value the value to set.
+   * Index ID   * @param value the value to set.
    */
   public void setIndexId(java.lang.CharSequence value) {
     this.indexId = value;
@@ -67,14 +71,14 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
 
   /**
    * Gets the value of the 'rowId' field.
-   */
+   * Data Shard Key   */
   public java.lang.CharSequence getRowId() {
     return rowId;
   }
 
   /**
    * Sets the value of the 'rowId' field.
-   * @param value the value to set.
+   * Data Shard Key   * @param value the value to set.
    */
   public void setRowId(java.lang.CharSequence value) {
     this.rowId = value;
@@ -82,14 +86,14 @@ public class Message extends org.apache.avro.specific.SpecificRecordBase impleme
 
   /**
    * Gets the value of the 'payload' field.
-   */
+   * Data Bytes   */
   public java.nio.ByteBuffer getPayload() {
     return payload;
   }
 
   /**
    * Sets the value of the 'payload' field.
-   * @param value the value to set.
+   * Data Bytes   * @param value the value to set.
    */
   public void setPayload(java.nio.ByteBuffer value) {
     this.payload = value;

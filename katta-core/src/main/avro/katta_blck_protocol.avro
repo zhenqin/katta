@@ -1,72 +1,77 @@
 {
-    "namespace":"com.ivyft.katta.protocol",
-    "doc":"Katta Process Interface",
-    "protocol":"KattaClientProtocol",
-    "name":"KattaClient",
-
-    "types":[
-            {
-                 "name":"Message",
-                 "type":"record",
-                 "fields":[
-                     {
-                         "name":"indexId",
-                         "type":"string"
-                     },
-                     {
-                         "name":"rowId",
-                         "type":"string"
-                     },
-                     {
-                         "name":"payload",
-                         "type": "bytes"
-                     }
-                 ]
-            }],
-
-    "messages":{
-        "add" :{
-            "doc":"插入单条数据",
-            "request": [{"name" : "message", "type" : "Message"}],
-            "response": "int"
-        },
-        "addList" :{
-             "doc":"批次插入(List)",
-             "request": [{"name" : "messages", "type":{"type": "array", "items": "Message"}}],
-             "response": "int"
-        },
-        "comm" :{
-             "doc":"提交",
-             "request": [{
-                 "name":"indexId",
-                 "type":"string"
-             }],
-             "response": "string"
-        },
-        "fsh" :{
-             "doc":"提交成功, 启动创建索引进程",
-             "request": [{
-                 "name":"indexId",
-                 "type":"string"
-             }, {
-                 "name":"commitId",
-                 "type": "string"
-             }, {
-                 "name":"timeout",
-                 "type": "long"
-             }],
-             "response": "null"
-        },
-        "roll" :{
-             "doc":"提交失败回滚",
-             "request": [{
-                 "name":"indexId",
-                 "type":"string"
-             }, {
-                 "name":"commitId",
-                 "type":["null", "string"]
-             }],
-             "response": "null"
+  "protocol" : "KattaClientProtocol",
+  "namespace" : "com.ivyft.katta.protocol",
+  "doc" : "Hello",
+  "types" : [ {
+    "type" : "record",
+    "name" : "Message",
+    "doc" : "传输的 Avro 消息, 序列化结果",
+    "fields" : [ {
+      "name" : "indexId",
+      "type" : "string",
+      "doc" : "Index ID"
+    }, {
+      "name" : "rowId",
+      "type" : "string",
+      "doc" : "Data Shard Key"
+    }, {
+      "name" : "payload",
+      "type" : "bytes",
+      "doc" : "Data Bytes"
+    } ]
+  } ],
+  "messages" : {
+    "add" : {
+      "doc" : "插入单条数据",
+      "request" : [ {
+        "name" : "message",
+        "type" : "Message"
+      } ],
+      "response" : "int"
+    },
+    "addList" : {
+      "doc" : "批次插入(List)",
+      "request" : [ {
+        "name" : "messages",
+        "type" : {
+          "type" : "array",
+          "items" : "Message"
         }
+      } ],
+      "response" : "int"
+    },
+    "comm" : {
+      "doc" : "提交",
+      "request" : [ {
+        "name" : "indexId",
+        "type" : "string"
+      } ],
+      "response" : "string"
+    },
+    "fsh" : {
+      "doc" : "提交成功, 启动创建索引进程",
+      "request" : [ {
+        "name" : "indexId",
+        "type" : "string"
+      }, {
+        "name" : "commitId",
+        "type" : "string"
+      }, {
+        "name" : "timeout",
+        "type" : "long"
+      } ],
+      "response" : "null"
+    },
+    "roll" : {
+      "doc" : "提交失败回滚",
+      "request" : [ {
+        "name" : "indexId",
+        "type" : "string"
+      }, {
+        "name" : "commitId",
+        "type" : "string"
+      } ],
+      "response" : "null"
     }
+  }
 }
