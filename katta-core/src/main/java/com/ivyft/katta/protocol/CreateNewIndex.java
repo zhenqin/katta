@@ -111,7 +111,7 @@ public class CreateNewIndex {
             shardProp.setProperty("total.partitions", String.valueOf(shardPartitions));
 
             String shardMetaFileName = indexId + ".shard." + shardId + ".meta.properties";
-            FSDataOutputStream out = fs.create(new Path(shardDataStoragePath, shardMetaFileName), true);
+            FSDataOutputStream out = fs.create(new Path(shardDataStoragePath.getParent(), shardMetaFileName), true);
 
             try {
                 shardProp.store(out, "UTF-8");

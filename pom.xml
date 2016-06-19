@@ -4,7 +4,7 @@
 
   <groupId>com.ivyft.katta</groupId>
   <artifactId>katta</artifactId>
-  <version>1.6.3</version>
+  <version>1.6.4</version>
   <packaging>pom</packaging>
 
   <name>Katta Distributed Search Engine</name>
@@ -179,6 +179,7 @@
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
             <version>1.1.35</version>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
@@ -392,9 +393,10 @@
 		</dependency>
 
         <dependency>
-            <groupId>com.github.sgroschupf</groupId>
+            <groupId>com.101tec</groupId>
             <artifactId>zkclient</artifactId>
-            <version>0.1</version>
+            <version>0.7</version>
+            <optional>true</optional>
         </dependency>
 
 		<dependency>
@@ -436,6 +438,7 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.17</version>
+            <optional>true</optional>
         </dependency>
 
 

@@ -260,7 +260,7 @@ public class SearcherHandle {
             throws IOException {
         boolean close = policy.close(name, this);
         closed.set(close);
-        LOG.info("close " + name + " index searcher result: " + close);
+        LOG.debug("close " + name + " index searcher result: " + close);
         //已经关闭了 IndexSearcher
         if(close) {
             _refCount.set(0);
