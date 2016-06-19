@@ -61,7 +61,7 @@ public class DefaultCloseIndexSearcherPolicy implements CloseIndexSearcherPolicy
     public boolean close(String name, SearcherHandle handle) throws IOException {
         //已关闭
         if(handle.isClosed()) {
-            LOG.info(name + " index searcher closed.");
+            LOG.debug(name + " index searcher closed.");
             return true;
         }
         long lastVisited = handle.getLastVisited();

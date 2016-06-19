@@ -135,7 +135,12 @@ public class DefaultDataWriter extends DataWriter implements Runnable {
                     Properties shardProp = new Properties();
 
                     String shardMetaFileName = indexId + ".shard." + statuse.getPath().getName() + ".meta.properties";
-                    Path shardPropPath = new Path(statuse.getPath(), "data/" + shardMetaFileName);
+                    Path shardPropPath = new Path(statuse.getPath(), shardMetaFileName);
+
+                    //和旧版本兼容
+                    if(!fileSystem.exists(shardPropPath)) {
+                        shardPropPath = new Path(statuse.getPath(), "data/" + shardMetaFileName);
+                    }
 
                     FSDataInputStream open = fileSystem.open(shardPropPath);
                     try {
@@ -338,12 +343,21 @@ public class DefaultDataWriter extends DataWriter implements Runnable {
 
                     //再次把 shard properties 文件 copy 到 data 目录下, 使 shard data 完整
                     String shardMetaFileName = this.indexName + ".shard." + shardRange.getShardName() + ".meta.properties";
-                    Path shardPropPath = new Path(shardDataPath, shardMetaFileName);
+                    Path shardPropPath = new Path(shardDataPath.getParent(), shardMetaFileName);
+                    Path copyTargetPath = new Path(commitTimeLinePath, shardMetaFileName);
 
-                    FSDataInputStream in = fs.open(new Path(commitTimeLinePath, shardMetaFileName));
+                    //旧版本的情况
+                    if(!fs.exists(shardDataPath)) {
+                        shardPropPath = copyTargetPath;
+                        copyTargetPath = new Path(shardDataPath.getParent(), shardMetaFileName);
+
+                        //copy new
+                    }
+
+                    FSDataInputStream in = fs.open(shardPropPath);
                     FSDataOutputStream out = null;
                     try {
-                        out = fs.create(shardPropPath, true);
+                        out = fs.create(copyTargetPath, true);
                         IOUtils.copy(in, out);
                         out.flush();
                     } finally {

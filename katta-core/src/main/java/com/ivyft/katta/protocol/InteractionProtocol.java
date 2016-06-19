@@ -783,7 +783,7 @@ public class InteractionProtocol {
         String shard2NodePath = this.zkConf.getZkPath(ZkConfiguration.PathDef.SHARD_TO_NODES, shardName, node.getName());
         if (_zkClient.exists(shard2NodePath)) {
             //delete path: /katta/shard-to-nodes/test#index1/nodename:port
-            LOG.warn("detected old shard-to-node entry" + shard2NodePath + " - deleting it..");
+            LOG.warn("detected old shard-to-node entry " + shard2NodePath + " - deleting it..");
             _zkClient.delete(shard2NodePath);
         }
 

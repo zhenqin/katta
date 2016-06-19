@@ -26,7 +26,11 @@ import java.util.Collection;
 public class DefaultLuceneDocumentMerger extends LuceneDocumentMerger {
 
 
-    public DefaultLuceneDocumentMerger(Serializer<Object> serializer, Analyzer analyzer, File tempIndexLocalPath, DocumentFactory documentFactory, LuceneIndexMergeManager mergeManager) {
+    public DefaultLuceneDocumentMerger(Serializer<Object> serializer,
+                                       Analyzer analyzer,
+                                       File tempIndexLocalPath,
+                                       DocumentFactory documentFactory,
+                                       LuceneIndexMergeManager mergeManager) {
         super(serializer, analyzer, tempIndexLocalPath, documentFactory, mergeManager);
     }
 
