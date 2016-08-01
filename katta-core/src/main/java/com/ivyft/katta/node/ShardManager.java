@@ -223,6 +223,12 @@ public class ShardManager {
     /**
      * 安装Shard，提供一个ShardName和一个Path, 如果该 Path 是 HDFS 索引, 则从 HDFS copy 到本地
      *
+     * <p>
+     *     该方法为 SingleServer 调用，用于安装多个 Index 到同一个目录下，
+     *     多个 HDFS 索引要写到 addIndex 到同一个目录下，
+     *     第一个 Merge 为 false，从第二个开始，Merge 为 true，以后都是合并索引
+     * </p>
+     *
      * @param shardName shardName
      * @param shardPath IndexFile Path
      * @param merge 是否覆盖
@@ -574,6 +580,8 @@ public class ShardManager {
 
     /**
      * 返回一个合并索引的 Merger
+     *
+     *
      * @param contentType 序列化类型
      * @param indexName 索引名称
      * @param shardName 索引 Shard Name

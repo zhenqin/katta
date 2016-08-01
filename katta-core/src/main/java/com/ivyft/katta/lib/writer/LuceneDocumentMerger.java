@@ -110,7 +110,9 @@ public abstract class LuceneDocumentMerger {
 
 
     /**
-     * 合并索引
+     *
+     * 合并索引，Lucene Server 在提交数据更新时，把数据反序列化为 Document，并 add 到 Index 中，后需要调用 merge 方法。
+     *
      * @throws IOException 合并索引时发生异常
      */
     public void merge() throws IOException {
