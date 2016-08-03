@@ -22,6 +22,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -85,6 +86,33 @@ public class DefaultSearcherFactory implements ISeacherFactory {
         } else {
             throw new IllegalStateException("unknow schema " + scheme + " and path: " + shardPath.toString());
         }
+    }
+
+
+    /**
+     *
+     * 重新打开索引，Reader reopen，除非真的索引发生了改变，否则调用该方法，损耗搜索性能较大
+     *
+     * @param indexReader Old Index Reader
+     * @param shardName shardName
+     * @param shardPath shardPath
+     * @return 返回新的 IndexSearcher，否则返回 null
+     * @throws IOException
+     */
+    @Override
+    public synchronized IndexSearcher reopenIndex(IndexReader indexReader, String shardName, URI shardPath) throws IOException {
+        IndexReader reader = DirectoryReader.openIfChanged((DirectoryReader) indexReader);
+        IndexSearcher newIndexSearcher = null;
+
+        if (reader != null) {
+            LOG.info("self load index searcher, shard {}", shardName);
+            newIndexSearcher = new IndexSearcher(reader);
+
+            indexReader.close();
+            return newIndexSearcher;
+        }
+
+        return newIndexSearcher;
     }
 
 

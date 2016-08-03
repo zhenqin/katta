@@ -67,7 +67,10 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
      */
     private static Logger log = LoggerFactory.getLogger(NodeIndexMergeOperation.class);
 
-    public NodeIndexMergeOperation(String node, String indexName, String commitId, Set<ShardRange> commits, Set<String> shards) {
+    public NodeIndexMergeOperation(String node, String indexName,
+                                   String commitId,
+                                   Set<ShardRange> commits,
+                                   Set<String> shards) {
         this.nodeName = node;
         this.indexName = indexName;
         this.commitId = commitId;
@@ -76,6 +79,8 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
         for (String shard : shards) {
             addShard(shard);
         }
+
+        log.info("node {} index {} commitId {} shards {}", node, indexName, commitId, shards);
     }
 
     @Override

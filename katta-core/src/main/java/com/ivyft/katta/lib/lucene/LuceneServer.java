@@ -503,6 +503,8 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
     /**
      * Returns the number of documents a shard has.
      *
+     * 默认 Katta 启动后打开索引，当加载大量的 Lucene 索引时，
+     *
      * @param shardName
      * @return the number of documents in the shard.
      */
@@ -547,7 +549,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
     @Override
     public Map<String, String> getShardMetaData(String shardName) throws Exception {
         Map<String, String> metaData = new HashMap<String, String>();
-        metaData.put(SHARD_SIZE_KEY, Integer.toString(shardSize(shardName)));
+        metaData.put(SHARD_SIZE_KEY, Integer.toString(0));
         return metaData;
     }
 
