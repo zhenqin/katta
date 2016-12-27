@@ -71,7 +71,8 @@ public abstract class LuceneDocumentMerger {
 
 
 
-    public LuceneDocumentMerger(Serializer<Object> serializer,
+    public LuceneDocumentMerger(String indexName,
+                                Serializer<Object> serializer,
                                 Analyzer analyzer,
                                 File tempIndexLocalPath,
                                 DocumentFactory documentFactory,

@@ -595,14 +595,20 @@ public class ShardManager {
                 new LuceneIndexMergeManager(localShardFolder, indexName, shardName, updateListener, getAnalyzer());
 
         try {
-            DocumentFactory documentFactory = documentFactoryClass.newInstance();
-            Constructor<LuceneDocumentMerger> constructor = (Constructor<LuceneDocumentMerger>) mergeDocumentClass.getConstructor(Serializer.class,
+            DocumentFactory documentFactory = documentFactoryClass.newInstance().build(indexName, shardName);
+            Constructor<LuceneDocumentMerger> constructor = (Constructor<LuceneDocumentMerger>) mergeDocumentClass.getConstructor(
+                    Serializer.class,
                     Analyzer.class,
                     File.class,
                     DocumentFactory.class,
                     LuceneIndexMergeManager.class);
 
-            LuceneDocumentMerger luceneDocumentMerger = constructor.newInstance(serializer, getAnalyzer(), shardIndexPath, documentFactory, mergeManager);
+            LuceneDocumentMerger luceneDocumentMerger = constructor.newInstance(
+                    serializer,
+                    getAnalyzer(),
+                    shardIndexPath,
+                    documentFactory,
+                    mergeManager);
             updateListener.onBeforeUpdate(indexName, shardName);
             return luceneDocumentMerger;
         } catch (Exception e) {

@@ -1,0 +1,57 @@
+<assembly xmlns="http://maven.apache.org/assembly/2.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/assembly/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
+
+    <id>dist</id>
+    <formats>
+        <format>tar.gz</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <baseDirectory>./</baseDirectory>
+
+
+    <dependencySets>
+        <dependencySet>
+            <useProjectArtifact>true</useProjectArtifact>
+            <outputDirectory>lib</outputDirectory>
+            <unpack>false</unpack>
+            <scope>runtime</scope>
+            <!--
+            <includes>
+                <include>com.ivyft.katta:katta-client:jar</include>
+            </includes>
+
+            <excludes>
+                <exclude>com.sdyc.ndmp:ndmp-etl-streams:jar</exclude>
+            </excludes>
+            -->
+        </dependencySet>
+    </dependencySets>
+
+    <fileSets>
+        <fileSet>
+            <directory>../manual/bin</directory>
+            <outputDirectory>bin</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+        <fileSet>
+            <directory>../data</directory>
+            <outputDirectory>data</outputDirectory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>../katta-core/src/main/resources</directory>
+            <outputDirectory>conf</outputDirectory>
+            <includes>
+                <include>*</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+
+
+</assembly>

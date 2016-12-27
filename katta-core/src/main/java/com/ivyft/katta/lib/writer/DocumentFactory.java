@@ -18,14 +18,26 @@ import java.util.Collection;
  *
  * @author zhenqin
  */
-public interface DocumentFactory<T> {
+public abstract class DocumentFactory<T> {
+
+
+    /**
+     * Build Document Factory, 用于选择表
+     * @param indexName 此次合并的 Index Name
+     * @param shardName 此次合并的 Shard Name
+     * @return 返回 self, or new Document
+     */
+    public DocumentFactory<T> build(String indexName, String shardName) {
+        return this;
+    }
+
 
 
     /**
      * 初始化一些信息.
      * @param conf Node Conf
      */
-    public void init(NodeConfiguration conf);
+    public abstract void init(NodeConfiguration conf);
 
 
     /**
@@ -33,5 +45,5 @@ public interface DocumentFactory<T> {
      * @param obj 对象
      * @return 返回 Lucene Document
      */
-    public Collection<Document> get(T obj);
+    public abstract Collection<Document> get(T obj);
 }

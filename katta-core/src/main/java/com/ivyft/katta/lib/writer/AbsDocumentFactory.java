@@ -18,7 +18,7 @@ import java.util.*;
  *
  * @author zhenqin
  */
-public abstract class AbsDocumentFactory<T> implements DocumentFactory<T> {
+public abstract class AbsDocumentFactory<T> extends DocumentFactory<T> {
 
 
     protected Map<String, Serializer> serializerMap = new HashMap<String, Serializer>(3);

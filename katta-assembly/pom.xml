@@ -1,0 +1,82 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.ivyft.katta</groupId>
+    <artifactId>katta-assembly</artifactId>
+    <version>${project.parent.version}</version>
+    <packaging>pom</packaging>
+
+    <name>Katta Ssembly</name>
+    <url>http://www.ivyft.com</url>
+
+
+    <properties>
+        <katta.build.version>${project.parent.version}</katta.build.version>
+    </properties>
+
+
+    <parent>
+        <groupId>com.ivyft.katta</groupId>
+        <artifactId>katta</artifactId>
+        <version>1.6.5</version>
+    </parent>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ivyft.katta</groupId>
+            <artifactId>katta-core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ivyft.katta</groupId>
+            <artifactId>katta-client</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ivyft.katta</groupId>
+            <artifactId>katta-hadoop</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ivyft.katta</groupId>
+            <artifactId>katta-yarn</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>katta-${project.version}</finalName>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>katta</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <outputDirectory>./target/</outputDirectory>
+                    <descriptors>
+                        <descriptor>assembly.xml</descriptor>
+                    </descriptors>
+                </configuration>
+            </plugin>
+        </plugins>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+    </build>
+
+</project>

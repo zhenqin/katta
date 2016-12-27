@@ -24,7 +24,7 @@ import java.util.List;
  *
  * @author zhenqin
  */
-public class JdkSerialFactory<T> implements DocumentFactory<T> {
+public class JdkSerialFactory<T> extends DocumentFactory<T> {
 
 
 
