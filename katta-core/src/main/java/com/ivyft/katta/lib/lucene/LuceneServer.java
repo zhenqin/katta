@@ -503,7 +503,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
     /**
      * Returns the number of documents a shard has.
      *
-     * 默认 Katta 启动后打开索引，当加载大量的 Lucene 索引时，
+     * 默认 Katta 启动后打开索引，当加载大量的 Lucene 索引时，打开搜索会造成持有的文件句柄数过多。
      *
      * @param shardName
      * @return the number of documents in the shard.

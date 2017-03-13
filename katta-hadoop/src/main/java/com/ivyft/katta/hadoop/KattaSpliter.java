@@ -56,41 +56,47 @@ public class KattaSpliter {
             prop.setProperty(entry.getKey(), entry.getValue());
         }
 
-        ZkConfiguration zkConf = new ZkConfiguration(prop, null);
-        InteractionProtocol protocol = new InteractionProtocol(zkClient, zkConf);
 
-        List<String> selectIndex = null;
-        if(indexes.length == 1 && StringUtils.equals(indexes[0], "*")) {
-            selectIndex = protocol.getIndices();
-        } else {
-            selectIndex = Arrays.asList(indexes);
-        }
+        try {
+            ZkConfiguration zkConf = new ZkConfiguration(prop, null);
+            InteractionProtocol protocol = new InteractionProtocol(zkClient, zkConf);
 
-        for(String index : selectIndex) {
-            IndexMetaData indexMetaData = protocol.getIndexMD(index);
-            if(indexMetaData == null) {
-                throw new IllegalArgumentException("找不到Index: " + index + " 的ZooKeeper注册信息。");
+            List<String> selectIndex = null;
+            if(indexes.length == 1 && StringUtils.equals(indexes[0], "*")) {
+                selectIndex = protocol.getIndices();
+            } else {
+                selectIndex = Arrays.asList(indexes);
             }
 
-            Set<Shard> shardList = indexMetaData.getShards();
-            for (Shard shard : shardList) {
-                List<String> installNodes = protocol.getShardNodes(shard.getName());
-                if(installNodes == null || installNodes.isEmpty()) {
-                    throw new IllegalStateException(shard.getName() + " no node to install.");
+            for(String index : selectIndex) {
+                IndexMetaData indexMetaData = protocol.getIndexMD(index);
+                if(indexMetaData == null) {
+                    throw new IllegalArgumentException("找不到Index: " + index + " 的ZooKeeper注册信息。");
                 }
-                String node = randomNode(installNodes);
-                KattaInputSplit split = new KattaInputSplit();
-                split.setPort(KattaInputFormat.getSocketPort(configuration));
-                split.setKeyField(KattaInputFormat.getInputKey(configuration));
-                split.setQuery(KattaInputFormat.getInputQuery(configuration));
-                split.setLimit(KattaInputFormat.getLimit(configuration));
 
-                split.setHost(node.substring(0, node.indexOf(":")));
-                log.info("katta reader multi thread: " + split.getHost() + "    " + shard.getName());
-                split.setShardName(shard.getName());
+                Set<Shard> shardList = indexMetaData.getShards();
+                for (Shard shard : shardList) {
+                    List<String> installNodes = protocol.getShardNodes(shard.getName());
+                    if(installNodes == null || installNodes.isEmpty()) {
+                        throw new IllegalStateException(shard.getName() + " no node to install.");
+                    }
+                    String node = randomNode(installNodes);
+                    KattaInputSplit split = new KattaInputSplit();
+                    split.setPort(KattaInputFormat.getSocketPort(configuration));
+                    split.setKeyField(KattaInputFormat.getInputKey(configuration));
+                    split.setQuery(KattaInputFormat.getInputQuery(configuration));
+                    split.setLimit(KattaInputFormat.getLimit(configuration));
 
-                inputSplits.add(split);
+                    split.setHost(node.substring(0, node.indexOf(":")));
+                    log.info("katta reader multi thread: " + split.getHost() + "    " + shard.getName());
+                    split.setShardName(shard.getName());
+
+                    inputSplits.add(split);
+                }
             }
+        } finally {
+            zkClient.close();
+
         }
 
         return inputSplits;

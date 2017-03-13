@@ -75,7 +75,7 @@ public class NodeProxyManager implements INodeProxyManager {
 
 
     /**
-     * 访问授权
+     * 访问 Node 的策略
      */
     protected final INodeSelectionPolicy selectionPolicy;
 

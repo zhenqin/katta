@@ -86,7 +86,7 @@ public class BasicNodeSelectionPolicy implements INodeSelectionPolicy {
 
 
     /**
-     * //TODO 在客户端查询的时候创建分布式查询计划，随机的给每个节点分配shard的查询。
+     * 在客户端查询的时候创建分布式查询计划，随机的给每个节点分配shard的查询。
      *
      * @param shards 一个Index的没一个shard
      * @return 返回查询计划
@@ -104,12 +104,11 @@ public class BasicNodeSelectionPolicy implements INodeSelectionPolicy {
                 // vs. empty entry in the map means the shard was deployed, but now is inaccessible
                 throw new ShardAccessException(shard);
             }
-            String node;
             synchronized (nodeList) {
-                //TODO 分布式查询，每次轮迅，负载均衡
-                node = nodeList.getNext();
+                // 分布式查询，每次轮迅，负载均衡
+                node2ShardsMap.add(nodeList.getNext(), shard);
             }
-            node2ShardsMap.add(node, shard);
+
         }
 
         return node2ShardsMap.asMap();

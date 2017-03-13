@@ -185,11 +185,13 @@ public class Client implements ConnectedComponent {
 
                     @Override
                     public void removed(String name) {
+                        log.info("remove katta index {}", name);
                         removeIndex(name);
                     }
 
                     @Override
                     public void added(String name) {
+                        log.info("add index {} to katta", name);
                         IndexMetaData indexMD = protocol.getIndexMD(name);
                         if (isIndexSearchable(indexMD)) {
                             addIndexForSearching(indexMD);
@@ -609,8 +611,21 @@ public class Client implements ConnectedComponent {
 
     private Map<String, List<String>> getNode2ShardsMap(final String[] indexNames) throws KattaException {
         Collection<String> shardsToSearchIn = getShardsToSearchIn(indexNames);
-        final Map<String, List<String>> nodeShardsMap = this.selectionPolicy.createNode2ShardsMap(shardsToSearchIn);
-        return nodeShardsMap;
+
+        //TODO get Shard Node Error，挽救一下
+        try {
+            return this.selectionPolicy.createNode2ShardsMap(shardsToSearchIn);
+        } catch (ShardAccessException e) {
+            log.warn("get shard node error...", e);
+            // 读取 Katta Shard 的加载 Node，如果出错，这里更新一下
+            for (String shard : shardsToSearchIn) {
+                List<String> nodes = protocol.getShardNodes(shard);
+                log.info("shard: {} nodes: {}", shard, nodes.toString());
+                this.selectionPolicy.update(shard, nodes);
+            }
+            // 如果还不能找到，则只能报异常了
+            return this.selectionPolicy.createNode2ShardsMap(shardsToSearchIn);
+        }
     }
 
     private Collection<String> getShardsToSearchIn(String[] indexNames) throws KattaException {
