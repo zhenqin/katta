@@ -87,7 +87,12 @@ public class DeployClient implements IDeployClient {
         NewIndexMetaData newIndexMetaData = new NewIndexMetaData(indexName, indexPath, shardNum, shardStep);
 
         //部署结果如何?
-        return new CreatedIndexDeployFuture(protocol, newIndexMetaData);
+        CreatedIndexDeployFuture deployFuture = new CreatedIndexDeployFuture(newIndexMetaData);
+
+        //尝试创建索引
+        protocol.createIndex(newIndexMetaData);
+
+        return deployFuture;
     }
 
 
