@@ -8,8 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -49,7 +47,7 @@ public class CreatedIndexDeployFuture implements IIndexDeployFuture, Runnable {
     /**
      * 进程池
      */
-    protected final ExecutorService executor = Executors.newScheduledThreadPool(1);
+    protected final Thread executor = new Thread(this);
 
 
     /**
@@ -65,7 +63,8 @@ public class CreatedIndexDeployFuture implements IIndexDeployFuture, Runnable {
     public CreatedIndexDeployFuture(NewIndexMetaData meta) {
         this.newIndexMetaData = meta;
         try {
-            executor.submit(this);
+            LOG.info("submit create index thread.");
+            executor.start();
         } catch (Exception e){
             LOG.warn("create index error.", e);
         }
@@ -78,6 +77,7 @@ public class CreatedIndexDeployFuture implements IIndexDeployFuture, Runnable {
     public void run() {
         try {
             String dataStoragePath = newIndexMetaData.getPath();
+            LOG.info("data storage path: " + dataStoragePath);
 
             CreateNewIndex createNewIndex = new CreateNewIndex(dataStoragePath, newIndexMetaData);
             createNewIndex.created();
@@ -98,7 +98,7 @@ public class CreatedIndexDeployFuture implements IIndexDeployFuture, Runnable {
 
 
     @Override
-    public IndexState joinDeployment() throws InterruptedException {
+    public synchronized IndexState joinDeployment() throws InterruptedException {
         return joinDeployment(Integer.MAX_VALUE);
     }
 
@@ -109,12 +109,6 @@ public class CreatedIndexDeployFuture implements IIndexDeployFuture, Runnable {
             countDownLatch.await(maxWaitMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             return getState();
-        }
-
-        try {
-            executor.shutdownNow();
-        } catch (Exception e) {
-
         }
         return getState();
     }

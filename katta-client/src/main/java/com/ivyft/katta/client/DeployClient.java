@@ -193,6 +193,12 @@ public class DeployClient implements IDeployClient {
         return protocol.indexExists(indexName);
     }
 
+
+    @Override
+    public boolean existsNewIndex(String name) {
+        return protocol.getNewIndexs().contains(name);
+    }
+
     @Override
     public IndexMetaData getIndexMetaData(String indexName) {
         return protocol.getIndexMD(indexName);
