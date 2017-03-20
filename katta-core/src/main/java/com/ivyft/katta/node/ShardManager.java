@@ -156,7 +156,9 @@ public class ShardManager {
             documentFactoryClass.newInstance();
 
             mergeDocumentClass = (Class<? extends LuceneDocumentMerger>) conf.getClass("lucene.document.merger.class");
-            Constructor<?> constructor = mergeDocumentClass.getConstructor(Serializer.class,
+            Constructor<?> constructor = mergeDocumentClass.getConstructor(
+                    String.class,
+                    Serializer.class,
                     Analyzer.class,
                     File.class,
                     DocumentFactory.class,
@@ -597,6 +599,7 @@ public class ShardManager {
         try {
             DocumentFactory documentFactory = documentFactoryClass.newInstance().build(indexName, shardName);
             Constructor<LuceneDocumentMerger> constructor = (Constructor<LuceneDocumentMerger>) mergeDocumentClass.getConstructor(
+                    String.class,
                     Serializer.class,
                     Analyzer.class,
                     File.class,
@@ -604,6 +607,7 @@ public class ShardManager {
                     LuceneIndexMergeManager.class);
 
             LuceneDocumentMerger luceneDocumentMerger = constructor.newInstance(
+                    indexName,
                     serializer,
                     getAnalyzer(),
                     shardIndexPath,

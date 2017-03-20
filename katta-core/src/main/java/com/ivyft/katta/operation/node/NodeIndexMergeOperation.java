@@ -97,7 +97,9 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
         AtomicLong addCount = new AtomicLong(0);
 
         for (ShardRange commit : commits) {
-
+            if(commit == null) {
+                continue;
+            }
             log.info("start merge commit {} path {}", commit.getShardName(), commit.getShardPath());
             Path shardPath = new Path(commit.getShardPath());
             List<Path> paths = shardManager.getDataPaths(shardPath);
@@ -151,12 +153,14 @@ public class NodeIndexMergeOperation extends AbstractShardOperation {
 
         result.addShardMetaDataMap(shardName, meta);
 
-        try {
-            luceneDocumentMerger.merge();
-        } catch (Exception e) {
-            log.error(ExceptionUtils.getFullStackTrace(e));
+        if(luceneDocumentMerger != null) {
+            try {
+                luceneDocumentMerger.merge();
+                log.info("merge index success");
+            } catch (Exception e) {
+                log.error(ExceptionUtils.getFullStackTrace(e));
+            }
         }
-        log.info("merge index success");
         log.info("index {} commitid {}", indexName, commitId);
     }
 

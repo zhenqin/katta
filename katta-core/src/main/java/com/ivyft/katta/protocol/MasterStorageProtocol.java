@@ -214,7 +214,9 @@ public class MasterStorageProtocol implements KattaClientProtocol, ConnectedComp
                         commitIndexFuture = new CommitIndexFuture(commitId.toString(), protocol);
                         commitIndexFuture.joinDeployment(timeout);
                     } finally {
-                        commitIndexFuture.disposable();
+                        if(commitIndexFuture != null){
+                            commitIndexFuture.disposable();
+                        }
                     }
                 }
                 //throw new IllegalStateException("unsupport finish option.");
