@@ -343,13 +343,13 @@ public class DefaultDataWriter extends DataWriter implements Runnable {
 
                     //再次把 shard properties 文件 copy 到 data 目录下, 使 shard data 完整
                     String shardMetaFileName = this.indexName + ".shard." + shardRange.getShardName() + ".meta.properties";
-                    Path shardPropPath = new Path(shardDataPath.getParent(), shardMetaFileName);
+                    Path shardPropPath = new Path(shardRange.getShardPath(), shardMetaFileName);
                     Path copyTargetPath = new Path(commitTimeLinePath, shardMetaFileName);
 
                     //旧版本的情况
-                    if(!fs.exists(shardDataPath)) {
+                    if(!fs.exists(shardPropPath)) {
                         shardPropPath = copyTargetPath;
-                        copyTargetPath = new Path(shardDataPath.getParent(), shardMetaFileName);
+                        copyTargetPath = new Path(shardRange.getShardPath(), shardMetaFileName);
 
                         //copy new
                     }

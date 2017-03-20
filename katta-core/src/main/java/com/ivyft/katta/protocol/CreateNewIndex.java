@@ -75,6 +75,7 @@ public class CreateNewIndex {
         LOG.info(indexId + " index data storage path: " + indexDataStoragePath);
 
 
+        //在 index 下写入该 Index 的 shardNum 信息，shardStep 信息
         Path indexMetaPath = new Path(indexDataStoragePath, indexId + ".meta.properties");
         int shardPartitions = newIndexMetaData.getShardNum() * newIndexMetaData.getShardStep();
 
@@ -111,6 +112,7 @@ public class CreateNewIndex {
             shardProp.setProperty("total.partitions", String.valueOf(shardPartitions));
 
             String shardMetaFileName = indexId + ".shard." + shardId + ".meta.properties";
+            //在 Shard 目录下写入 Shard 的信息
             FSDataOutputStream out = fs.create(new Path(shardDataStoragePath.getParent(), shardMetaFileName), true);
 
             try {
