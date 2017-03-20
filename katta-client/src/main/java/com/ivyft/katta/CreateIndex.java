@@ -114,11 +114,11 @@ public class CreateIndex extends ProtocolCommand {
 
         //用于判断当前是否已经部署过这个shardName的shard
         IDeployClient deployClient = new DeployClient(protocol);
-        /*
-        if (deployClient.existsIndex(name)) {
-            throw new IllegalArgumentException("Index with name " + name + " already exists.");
+
+        if (deployClient.existsNewIndex(name)) {
+            throw new IllegalArgumentException("New Index with name " + name + " already exists.");
         }
-        */
+
         try {
             long startTime = System.currentTimeMillis();
             IIndexDeployFuture deployFuture = deployClient.createIndex(name, path, shardNum, shardStep);

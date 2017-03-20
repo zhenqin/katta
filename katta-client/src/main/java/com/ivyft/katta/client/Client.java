@@ -499,7 +499,23 @@ public class Client implements ConnectedComponent {
                 shards.addAll(indexShards);
             }
         }
-        final Map<String, List<String>> nodeShardsMap = this.selectionPolicy.createNode2ShardsMap(shards);
+
+        //TODO get Shard Node Error，挽救一下
+        Map<String, List<String>> nodeShardsMap;
+        try {
+            nodeShardsMap = this.selectionPolicy.createNode2ShardsMap(shards);
+        } catch (ShardAccessException e) {
+            log.warn("get shard node error...", e);
+            // 读取 Katta Shard 的加载 Node，如果出错，这里更新一下
+            for (String shard : shards) {
+                List<String> nodes = protocol.getShardNodes(shard);
+                log.info("shard: {} nodes: {}", shard, nodes.toString());
+                this.selectionPolicy.update(shard, nodes);
+            }
+            // 如果还不能找到，则只能报异常了
+            nodeShardsMap = this.selectionPolicy.createNode2ShardsMap(shards);
+        }
+
         if (nodeShardsMap.values().isEmpty()) {
             throw new KattaException("No shards selected: " + shards);
         }

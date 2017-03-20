@@ -87,7 +87,12 @@ public class DeployClient implements IDeployClient {
         NewIndexMetaData newIndexMetaData = new NewIndexMetaData(indexName, indexPath, shardNum, shardStep);
 
         //部署结果如何?
-        return new CreatedIndexDeployFuture(protocol, newIndexMetaData);
+        CreatedIndexDeployFuture deployFuture = new CreatedIndexDeployFuture(newIndexMetaData);
+
+        //尝试创建索引
+        protocol.createIndex(newIndexMetaData);
+
+        return deployFuture;
     }
 
 
@@ -186,6 +191,12 @@ public class DeployClient implements IDeployClient {
     @Override
     public boolean existsIndex(String indexName) {
         return protocol.indexExists(indexName);
+    }
+
+
+    @Override
+    public boolean existsNewIndex(String name) {
+        return protocol.getNewIndexs().contains(name);
     }
 
     @Override

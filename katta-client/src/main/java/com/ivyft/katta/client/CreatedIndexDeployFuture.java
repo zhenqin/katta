@@ -1,14 +1,13 @@
 package com.ivyft.katta.client;
 
 import com.ivyft.katta.protocol.CreateNewIndex;
-import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.metadata.IndexDeployError;
 import com.ivyft.katta.protocol.metadata.NewIndexMetaData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,15 +27,9 @@ public class CreatedIndexDeployFuture implements IIndexDeployFuture, Runnable {
 
 
     /**
-     * 接口协议
-     */
-    protected InteractionProtocol protocol;
-
-
-    /**
      * 新索引
      */
-    protected NewIndexMetaData newIndexMetaData;
+    protected final NewIndexMetaData newIndexMetaData;
 
 
     /**
@@ -48,29 +41,33 @@ public class CreatedIndexDeployFuture implements IIndexDeployFuture, Runnable {
     /**
      * 阻塞计数器
      */
-    protected CountDownLatch countDownLatch = new CountDownLatch(1);
-
-
-    /**
-     * 当前是否正在运行
-     */
-    protected boolean operating = false;
+    protected final CountDownLatch countDownLatch = new CountDownLatch(1);
 
 
     /**
      * 进程池
      */
-    protected ExecutorService executor = Executors.newSingleThreadExecutor();
+    protected final Thread executor = new Thread(this);
+
+
+    /**
+     * log
+     */
+    protected final static Logger LOG = LoggerFactory.getLogger(CreatedIndexDeployFuture.class);
 
 
     /**
      * 构造方法
-     * @param protocol
      * @param meta
      */
-    public CreatedIndexDeployFuture(InteractionProtocol protocol, NewIndexMetaData meta) {
-        this.protocol = protocol;
+    public CreatedIndexDeployFuture(NewIndexMetaData meta) {
         this.newIndexMetaData = meta;
+        try {
+            LOG.info("submit create index thread.");
+            executor.start();
+        } catch (Exception e){
+            LOG.warn("create index error.", e);
+        }
     }
 
 
@@ -80,26 +77,20 @@ public class CreatedIndexDeployFuture implements IIndexDeployFuture, Runnable {
     public void run() {
         try {
             String dataStoragePath = newIndexMetaData.getPath();
+            LOG.info("data storage path: " + dataStoragePath);
 
             CreateNewIndex createNewIndex = new CreateNewIndex(dataStoragePath, newIndexMetaData);
             createNewIndex.created();
 
-            //尝试创建索引
-            protocol.createIndex(newIndexMetaData);
-
             setIndexState(IndexState.DEPLOYED);
         } catch (IOException e) {
+            LOG.warn("create index error.", e);
             setIndexState(IndexState.ERROR);
             IndexDeployError error = new IndexDeployError(newIndexMetaData.getName(), IndexDeployError.ErrorType.UNKNOWN);
             error.setException(e);
 
             newIndexMetaData.setDeployError(error);
         } finally {
-            try {
-                executor.shutdown();
-            } catch (Exception e) {
-
-            }
             countDownLatch.countDown();
         }
 
@@ -107,31 +98,23 @@ public class CreatedIndexDeployFuture implements IIndexDeployFuture, Runnable {
 
 
     @Override
-    public IndexState joinDeployment() throws InterruptedException {
+    public synchronized IndexState joinDeployment() throws InterruptedException {
         return joinDeployment(Integer.MAX_VALUE);
     }
 
+
     @Override
-    public IndexState joinDeployment(long maxWaitMillis) throws InterruptedException {
-        if(!operating) {
-            operating = true;
-            try {
-                executor.submit(this);
-            } catch (Exception e){
-
-            }
-        }
-
+    public synchronized IndexState joinDeployment(long maxWaitMillis) throws InterruptedException {
         try {
             countDownLatch.await(maxWaitMillis, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
-
+            return getState();
         }
         return getState();
     }
 
 
-    public synchronized void setIndexState(IndexState indexState) {
+    public void setIndexState(IndexState indexState) {
         this.indexState = indexState;
     }
 

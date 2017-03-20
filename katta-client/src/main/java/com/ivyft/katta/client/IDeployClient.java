@@ -100,6 +100,15 @@ public interface IDeployClient {
     boolean existsIndex(String name);
 
 
+
+    /**
+     * 验证是否存在 Create Index shardName
+     * @param name shardName
+     * @return true已经部署过
+     */
+    boolean existsNewIndex(String name);
+
+
     /**
      * 返回索引信息, 大小等
      * @param name  shardName

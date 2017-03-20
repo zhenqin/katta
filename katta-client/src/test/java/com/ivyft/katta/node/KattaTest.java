@@ -28,7 +28,8 @@ public class KattaTest {
     @Test
     public void testTimeUnit() throws Exception {
         System.out.println(System.currentTimeMillis());
-        System.out.println(TimeUnit.SECONDS.toMillis(2));
+        System.out.println(TimeUnit.MICROSECONDS.toMillis(1000));
+        System.out.println(TimeUnit.MILLISECONDS.toMicros(1000));
 
     }
 
