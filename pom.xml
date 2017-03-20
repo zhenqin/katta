@@ -4,7 +4,7 @@
 
   <groupId>com.ivyft.katta</groupId>
   <artifactId>katta</artifactId>
-  <version>1.6.5</version>
+  <version>1.6.6</version>
   <packaging>pom</packaging>
 
   <name>Katta Distributed Search Engine</name>
@@ -750,7 +750,7 @@
     </dependencies>
 
     <build>
-        <finalName>${project.artifactId}</finalName>
+        <finalName>${project.artifactId}-${project.version}</finalName>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
