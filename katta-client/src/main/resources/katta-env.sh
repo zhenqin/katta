@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Set Katta-specific environment variables here.
 
 # The only required environment variable is JAVA_HOME.  All others are
