@@ -34,11 +34,11 @@ public class ShortRange extends Range {
         this.minInclusive = minInclusive;
         this.maxInclusive = maxInclusive;
 
-        if (!minInclusive && min != Long.MAX_VALUE) {
+        if (!minInclusive && min != Short.MAX_VALUE) {
             min++;
         }
 
-        if (!maxInclusive && max != Long.MIN_VALUE) {
+        if (!maxInclusive && max != Short.MIN_VALUE) {
             max--;
         }
 

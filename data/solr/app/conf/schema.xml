@@ -313,21 +313,25 @@
 	 removes stop words from case-insensitive "stopwords.txt"
 	 (empty by default), and down cases.  At query time only, it
 	 also applies synonyms. -->
-	 
-	 
-    <fieldType name="text_general" class="solr.TextField">
-        <analyzer class="org.wltea.analyzer.lucene.IKAnalyzer" />
-    </fieldType>
-    
-    <!-- A text field with defaults appropriate for English, plus
-	 aggressive word-splitting and autophrase features enabled.
-	 This field is just like text_en, except it adds
-	 WordDelimiterFilter to enable splitting and matching of
-	 words on case-change, alpha numeric boundaries, and
-	 non-alphanumeric chars.  This means certain compound word
-	 cases will work, for example query "wi fi" will match
-	 document "WiFi" or "wi-fi".
-        -->
+
+      <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100">
+          <analyzer type="index">
+              <tokenizer class="com.huaban.analysis.jieba.lucene.JiebaTokenizerFactory"  segMode="INDEX"/>
+          </analyzer>
+          <analyzer type="query">
+              <tokenizer class="com.huaban.analysis.jieba.lucene.JiebaTokenizerFactory"  segMode="INDEX"/>
+          </analyzer>
+      </fieldType>
+
+      <!-- A text field with defaults appropriate for English, plus
+       aggressive word-splitting and autophrase features enabled.
+       This field is just like text_en, except it adds
+       WordDelimiterFilter to enable splitting and matching of
+       words on case-change, alpha numeric boundaries, and
+       non-alphanumeric chars.  This means certain compound word
+       cases will work, for example query "wi fi" will match
+       document "WiFi" or "wi-fi".
+          -->
     
         <!-- charFilter + WhitespaceTokenizer  -->
     <!--

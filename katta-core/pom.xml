@@ -46,7 +46,7 @@
                 <configuration>
                     <mainClass>${java.main.class}</mainClass>
                     <arguments>
-                        <argument>startMaster</argument>
+                        <argument>master </argument>
                         <argument>-e</argument>
                     </arguments>
                     <!--

@@ -67,8 +67,8 @@
                 <configuration>
                     <mainClass>${java.main.class}</mainClass>
                     <arguments>
-                        <argument>startMaster</argument>
-                        <argument>-e</argument>
+                        <argument>node</argument>
+                        <argument>-s</argument>
                     </arguments>
                     <!--
                     <executable>java</executable>

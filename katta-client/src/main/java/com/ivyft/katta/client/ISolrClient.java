@@ -28,7 +28,7 @@ public interface ISolrClient extends ILuceneClient {
      * @param query
      * @return
      */
-    public QueryResponse query(SolrQuery query, String[] shards) throws KattaException;
+    public QueryResponse query(SolrQuery query, String[] indexNames) throws KattaException;
 
 
 
