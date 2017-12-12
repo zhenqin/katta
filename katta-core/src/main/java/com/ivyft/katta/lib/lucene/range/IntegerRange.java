@@ -34,11 +34,11 @@ public class IntegerRange extends Range {
         this.minInclusive = minInclusive;
         this.maxInclusive = maxInclusive;
 
-        if (!minInclusive && min != Long.MAX_VALUE) {
+        if (!minInclusive && min != Integer.MAX_VALUE) {
             min++;
         }
 
-        if (!maxInclusive && max != Long.MIN_VALUE) {
+        if (!maxInclusive && max != Integer.MIN_VALUE) {
             max--;
         }
 

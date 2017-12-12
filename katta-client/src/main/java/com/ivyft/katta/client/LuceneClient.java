@@ -230,13 +230,13 @@ public class LuceneClient implements ISolrClient {
      * @return
      */
     @Override
-    public QueryResponse query(SolrQuery query, String[] shards) throws KattaException {
+    public QueryResponse query(SolrQuery query, String[] indexNames) throws KattaException {
         IResultReceiver<QueryResponse> results = this.client.broadcastToIndices(
                 this.timeout,
                 true,
                 QUERY_METHOD,
                 SECOND_ARG_SHARD_ARG_IDX,
-                shards,
+                indexNames,
                 new Object[]{
                         new QueryWritable(query),
                         null,
@@ -251,7 +251,7 @@ public class LuceneClient implements ISolrClient {
     }
 
     @Override
-    public Hits search(SolrQuery query, final String[] shards)
+    public Hits search(SolrQuery query, final String[] indexNames)
             throws KattaException {
         IResultReceiver<Hits> results;
 
@@ -260,7 +260,7 @@ public class LuceneClient implements ISolrClient {
                 true,
                 SEARCH_METHOD,
                 SECOND_ARG_SHARD_ARG_IDX,
-                shards,
+                indexNames,
                 new Object[]{
                         new QueryWritable(query),
                         null,
