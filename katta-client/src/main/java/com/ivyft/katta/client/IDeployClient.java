@@ -85,11 +85,11 @@ public interface IDeployClient {
 
     /**
      * 给Index删除一份索引path
-     * @param name Index name
-     * @param path Shard name
+     * @param indexName Index name
+     * @param shardName Shard name
      *
      */
-    void removeShard(String name, String path);
+    void removeShard(String indexName, String shardName);
 
 
     /**

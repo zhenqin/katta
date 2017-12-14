@@ -125,6 +125,10 @@ public class IndexMetaData implements Serializable {
     }
 
 
+    public void removeShard(Shard shard) {
+        this.shards.remove(shard);
+    }
+
 
     public void addShards(Collection<Shard> shards) {
         this.shards.addAll(shards);
