@@ -4,7 +4,7 @@
 
   <groupId>com.ivyft.katta</groupId>
   <artifactId>katta</artifactId>
-  <version>1.6.6</version>
+  <version>1.6.7</version>
   <packaging>pom</packaging>
 
   <name>Katta Distributed Search Engine</name>
@@ -763,8 +763,8 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
@@ -776,7 +776,7 @@
                 <configuration>
                     <mainClass>${java.main.class}</mainClass>
                     <arguments>
-                        <argument>startMaster</argument>
+                        <argument>master</argument>
                         <argument>-e</argument>
                     </arguments>
                     <!--
