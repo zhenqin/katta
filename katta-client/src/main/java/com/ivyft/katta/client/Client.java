@@ -186,7 +186,7 @@ public class Client implements ConnectedComponent {
                     @Override
                     public void removed(String name) {
                         log.info("remove katta index {}", name);
-                        removeIndex(name);
+                        _removeIndex(name);
                     }
 
                     @Override
@@ -228,7 +228,6 @@ public class Client implements ConnectedComponent {
 
 
     public <T> KattaLoader<T> getKattaLoader(String index) {
-        //TODO 取得 Loader 这一刻检查, 其它时候不检查
         if(newIndexBlck.contains(index) || indexToShards.containsKey(index)) {
             List<String> masters = this.protocol.getMasters();
 
@@ -264,11 +263,16 @@ public class Client implements ConnectedComponent {
 
     protected void removeIndexes(List<String> indexes) {
         for (String index : indexes) {
-            removeIndex(index);
+            _removeIndex(index);
         }
     }
 
-    protected void removeIndex(String index) {
+
+    /**
+     * 内部处理移除 Index
+     * @param index
+     */
+    protected void _removeIndex(String index) {
         List<String> shards = indexToShards.remove(index);
         if (shards != null) {
             for (String shard : shards) {

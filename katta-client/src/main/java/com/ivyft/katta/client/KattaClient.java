@@ -3,8 +3,11 @@ package com.ivyft.katta.client;
 
 import com.ivyft.katta.codec.Serializer;
 import com.ivyft.katta.lib.writer.Serialization;
+import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.KattaClientProtocol;
 import com.ivyft.katta.protocol.Message;
+import com.ivyft.katta.util.ClientConfiguration;
+import com.ivyft.katta.util.ZkConfiguration;
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.NettyTransceiver;
 import org.apache.avro.ipc.Transceiver;
@@ -36,28 +39,55 @@ import java.util.concurrent.TimeUnit;
  *
  * @author zhenqin
  */
-public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
+public class KattaClient<T> extends LuceneClient implements KattaClientProtocol, KattaLoader<T> {
 
 
+    /**
+     * Master  的 IP 地址
+     */
     private String host = "localhost";
 
+
+    /**
+     * Master 打开的端口号
+     */
     private int port = 8440;
 
 
-    private final KattaClientProtocol kattaClientProtocol;
+    /**
+     * 和远程 Master 的通信协议
+     */
+    private KattaClientProtocol kattaClientProtocol;
 
 
-    private final Transceiver t;
+    /**
+     * 和远程 Master 的内部通信
+     */
+    private Transceiver t;
 
 
-    protected final Serializer serializer;
+    /**
+     * 数据序列化方法
+     */
+    protected Serializer serializer;
 
 
-    private final String indexName;
+    /**
+     * 当前 DataLoader 打开的索引
+     */
+    private String indexName;
 
 
-
+    /**
+     * 当前的 DataLoader 的 commit 提交
+     */
     private CharSequence currentCommitId;
+
+
+    /**
+     * 是否当前打开的只是 DataLoader
+     */
+    private boolean onlyLoader;
 
     /**
      * LOG
@@ -65,14 +95,30 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     private final static Logger LOG = LoggerFactory.getLogger(KattaClient.class);
 
 
-    public KattaClient(String indexName) {
-        this("localhost", 8440, indexName);
+    public KattaClient(INodeSelectionPolicy nodeSelectionPolicy) {
+        super(nodeSelectionPolicy);
     }
 
+    public KattaClient(InteractionProtocol protocol) {
+        super(protocol);
+    }
 
-    public KattaClient(String host, int port, String index) {
+    public KattaClient(ZkConfiguration zkConfig) {
+        super(zkConfig);
+    }
+
+    public KattaClient(INodeSelectionPolicy policy, ZkConfiguration zkConfig) {
+        super(policy, zkConfig);
+    }
+
+    public KattaClient(INodeSelectionPolicy policy, ZkConfiguration zkConfig, ClientConfiguration clientConfiguration) {
+        super(policy, zkConfig, clientConfiguration);
+    }
+
+    protected KattaClient(String host, int port, String index) {
         this.host = host;
         this.port = port;
+        this.onlyLoader = true;
         this.indexName = index;
         if(StringUtils.isBlank(index)) {
             throw new IllegalArgumentException("index must not be blank.");
@@ -109,7 +155,7 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     }
 
     @Override
-    public int addBean(String shardId, T message) {
+    public int addBean(String shardId, Object message) {
         try {
             return add(new Message(this.indexName, shardId, ByteBuffer.wrap(serializer.serialize(message))));
         } catch (AvroRemoteException e) {
@@ -186,8 +232,16 @@ public class KattaClient<T> implements KattaClientProtocol, KattaLoader<T> {
     }
 
 
+    @Override
     public void close() throws IOException {
-        t.close();
+        if(this.onlyLoader && t != null) {
+            t.close();
+            t = null;
+            kattaClientProtocol = null;
+            return;
+        }
+
+        super.close();
     }
 
 

@@ -1252,7 +1252,7 @@ public class Katta {
      * @param path shardIndex索引地址
      * @param replicationLevel 复制次数,份数
      */
-    protected static void addIndex(InteractionProtocol protocol, String name, String collectionName, String path, int replicationLevel) {
+    public static void addIndex(InteractionProtocol protocol, String name, String collectionName, String path, int replicationLevel) {
         if (name.trim().equals("*")) {
             throw new IllegalArgumentException("Index with name " + name + " isn't allowed.");
         }
@@ -1283,7 +1283,7 @@ public class Katta {
         }
     }
 
-    protected static void removeIndex(InteractionProtocol protocol, final String indexName) {
+    public static void removeIndex(InteractionProtocol protocol, final String indexName) {
         IDeployClient deployClient = new DeployClient(protocol);
         if (!deployClient.existsIndex(indexName)) {
             throw new IllegalArgumentException("index '" + indexName + "' does not exist");
@@ -1293,7 +1293,7 @@ public class Katta {
 
 
 
-    protected static void removeShard(InteractionProtocol protocol, final String indexName, final String shardName) {
+    public static void removeShard(InteractionProtocol protocol, final String indexName, final String shardName) {
         IDeployClient deployClient = new DeployClient(protocol);
         if (!deployClient.existsIndex(indexName)) {
             throw new IllegalArgumentException("index '" + indexName + "' does not exist");
@@ -1316,7 +1316,7 @@ public class Katta {
      * @param name shardName
      * @param path shardIndex索引地址
      */
-    protected static void addShard(InteractionProtocol protocol,
+    public static void addShard(InteractionProtocol protocol,
                                    String name, String path) {
         //用于判断当前是否已经部署过这个shardName的shard
         IDeployClient deployClient = new DeployClient(protocol);

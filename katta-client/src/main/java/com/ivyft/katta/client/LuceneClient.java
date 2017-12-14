@@ -25,6 +25,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -453,7 +454,7 @@ public class LuceneClient implements ISolrClient {
 
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         this.client.close();
     }
 

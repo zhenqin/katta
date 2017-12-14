@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Random;
@@ -29,16 +30,26 @@ import java.util.concurrent.TimeUnit;
  */
 public class KattaLoaderTest {
 
+
+
+    protected KattaClient kattaClient;
+
+
     public KattaLoaderTest() {
 
     }
 
 
 
+    @Before
+    public void setUp() throws Exception {
+        kattaClient = new KattaClient(new ZkConfiguration());
+    }
+
+
     @Test
     public void testCreatedLoaderByMaster() throws Exception {
-        LuceneClient client = new LuceneClient(new ZkConfiguration());
-        KattaLoader<Object> test = client.getKattaLoader("userindex");
+        KattaLoader<Object> test = kattaClient.getKattaLoader("userindex");
 
         for (int i = 0; i < 10000; i++) {
             System.out.println(test.addBean("java" + i, "hello" + new Random().nextInt()));
@@ -57,7 +68,7 @@ public class KattaLoaderTest {
 
     @Test
     public void testSend() throws Exception {
-        KattaLoader<String> loader = new KattaClient<String>("zhenqin-pro102", 8440, "hello");
+        KattaLoader<String> loader = kattaClient.getKattaLoader("hello");
         for (int i = 0; i < 10000; i++) {
             System.out.println(loader.addBean("java" + i, "hello" + new Random().nextInt()));
         }
