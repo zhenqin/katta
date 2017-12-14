@@ -15,16 +15,7 @@
             <useProjectArtifact>true</useProjectArtifact>
             <outputDirectory>lib</outputDirectory>
             <unpack>false</unpack>
-            <scope>runtime</scope>
-            <!--
-            <includes>
-                <include>com.ivyft.katta:katta-client:jar</include>
-            </includes>
-
-            <excludes>
-                <exclude>com.ivyft.katta:katta-client:jar</exclude>
-            </excludes>
-            -->
+            <scope>compile</scope>
         </dependencySet>
         <dependencySet>
             <useProjectArtifact>true</useProjectArtifact>
@@ -33,6 +24,8 @@
             <scope>runtime</scope>
             <includes>
                 <include>com.ivyft.katta:katta-client:jar</include>
+                <include>com.ivyft.katta:katta-core:jar</include>
+                <include>com.ivyft.katta:katta-server:jar</include>
             </includes>
         </dependencySet>
     </dependencySets>
@@ -50,7 +43,8 @@
             <directory>../data</directory>
             <outputDirectory>data</outputDirectory>
             <includes>
-                <include>**/*</include>
+                <include>solr/**</include>
+                <include>katta-shards</include>
             </includes>
         </fileSet>
         <fileSet>

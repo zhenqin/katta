@@ -21,6 +21,7 @@ import com.ivyft.katta.util.KattaException;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.solr.client.solrj.SolrQuery;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -136,6 +137,6 @@ public interface ILuceneClient {
     /**
      * Closes down the client.
      */
-    public void close();
+    public void close() throws IOException;
 
 }

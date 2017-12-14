@@ -4,7 +4,7 @@
 
   <groupId>com.ivyft.katta</groupId>
   <artifactId>katta</artifactId>
-  <version>1.6.7</version>
+  <version>1.6.8</version>
   <packaging>pom</packaging>
 
   <name>Katta Distributed Search Engine</name>
@@ -44,6 +44,7 @@
         <module>katta-hadoop</module>
         <module>katta-yarn</module>
         <module>katta-server</module>
+        <module>katta-ui</module>
         <module>katta-assembly</module>
     </modules>
 
@@ -401,13 +402,6 @@
                     <groupId>org.apache.httpcomponents</groupId>
                 </exclusion>
             </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.wltea.analyzer</groupId>
-            <artifactId>ik-analyzer-lucene4</artifactId>
-            <version>u6</version>
-            <optional>true</optional>
         </dependency>
 
         <dependency>

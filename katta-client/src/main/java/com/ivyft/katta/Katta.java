@@ -375,6 +375,59 @@ public class Katta {
 
 
 
+    protected static Command LIST_SHARDS_COMMAND = new ProtocolCommand("listShards",
+            "Lists all shards in index. ") {
+
+        private String indexName;
+        private boolean batchMode;
+        private boolean skipColumnNames;
+
+        @Override
+        public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) {
+            IndexMetaData indexMD = protocol.getIndexMD(indexName);
+            final Table table = new Table();
+            table.setBatchMode(batchMode);
+            table.setSkipColumnNames(skipColumnNames);
+            for (Shard shard : indexMD.getShards()) {
+                table.addRow(shard.getName(), shard.getPath(), indexName, indexMD.getCollectionName());
+            }
+            table.setHeader("shard", "path", "from index", "solr core");
+            System.out.println(table.toString());
+        }
+
+        @Override
+        public Options getOpts() {
+            Options options = new Options();
+            //"[-d] [-b] [-n] [-S]",
+            options.addOption("i", "index", true, "index name.");
+
+            options.addOption("b", false, "for batch mode.");
+            options.addOption("n", false, "don't write column headers.");
+            options.addOption("s", false, "print exception");
+            return options;
+        }
+
+        @Override
+        public void process(CommandLine cl) throws Exception {
+            indexName = cl.getOptionValue("i");
+
+            if(StringUtils.isBlank(indexName)) {
+                throw new IllegalArgumentException("-i or --index must not be null.");
+            }
+
+            if(cl.hasOption("b")) {
+                batchMode = Boolean.parseBoolean(cl.getOptionValue("b"));
+            }
+            if(cl.hasOption("n")) {
+                skipColumnNames = Boolean.parseBoolean(cl.getOptionValue("n"));
+            }
+
+            execute(new ZkConfiguration());
+        }
+    };
+
+
+
     protected static Command LOG_METRICS_COMMAND = new ProtocolCommand("logMetrics",
             "Subscribes to the Metrics updates and logs them to log file or console") {
 
@@ -701,20 +754,12 @@ public class Katta {
             this.collectionName = cl.getOptionValue("c");
             this.path = cl.getOptionValue("p");
 
-            if(path.startsWith("hdfs://")) {
-                //hadoop 文件系统, replicationLevel = 1
-                if (cl.hasOption("r")) {
-                    this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
-                }
+            if (cl.hasOption("r")) {
+                this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
+            }
 
-                if(this.replicationLevel != 1) {
-                    this.replicationLevel = 1;
-                    System.out.print("hdfs index path, replicationLevel must eq 1, use default 1");
-                }
-            } else {
-                if (cl.hasOption("r")) {
-                    this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
-                }
+            if(this.replicationLevel > 3) {
+                System.out.println("replicationLevel: " + replicationLevel + ", mybe too larger.");
             }
 
             if(StringUtils.isBlank(name) || StringUtils.isBlank(path) || StringUtils.isBlank(collectionName)) {
@@ -789,6 +834,50 @@ public class Katta {
             execute(new ZkConfiguration());
         }
     };
+
+
+    protected static Command REMOVE_SHARD_COMMAND = new ProtocolCommand("removeShard",
+            "Remove a shard in index from Katta") {
+        private String indexName;
+
+
+        private String shardName;
+
+
+        @Override
+        public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) throws Exception {
+            removeShard(protocol, indexName, shardName);
+            System.out.println("remove shard '" + shardName + "' from index '" + indexName + "'");
+        }
+
+        @Override
+        public Options getOpts() {
+            //"<index name>",
+            Options options = new Options();
+            options.addOption("i", "index", true, "index name.");
+            options.addOption("S", "shard", true, "shard name.");
+            options.addOption("s", false, "print exception");
+            return options;
+        }
+
+        @Override
+        public void process(CommandLine cl) throws Exception {
+            indexName = cl.getOptionValue("i");
+
+            if(StringUtils.isBlank(indexName)) {
+                throw new IllegalArgumentException("-i or --index must not be null.");
+            }
+
+            shardName = cl.getOptionValue("S");
+
+            if(StringUtils.isBlank(shardName)) {
+                throw new IllegalArgumentException("-S or --shard must not be null.");
+            }
+
+            execute(new ZkConfiguration());
+        }
+    };
+
 
     protected static Command REDEPLOY_INDEX_COMMAND = new ProtocolCommand("redeployIndex",
             "Undeploys and deploys an index") {
@@ -1051,6 +1140,7 @@ public class Katta {
 
         commands.put(LIST_NODES_COMMAND.getCommand(), LIST_NODES_COMMAND);
         commands.put(LIST_INDICES_COMMAND.getCommand(), LIST_INDICES_COMMAND);
+        commands.put(LIST_SHARDS_COMMAND.getCommand(), LIST_SHARDS_COMMAND);
         commands.put(LOG_METRICS_COMMAND.getCommand(), LOG_METRICS_COMMAND);
         commands.put(START_GUI_COMMAND.getCommand(), START_GUI_COMMAND);
         commands.put(SHOW_STRUCTURE_COMMAND.getCommand(), SHOW_STRUCTURE_COMMAND);
@@ -1064,6 +1154,7 @@ public class Katta {
         commands.put(ADD_INDEX_COMMAND.getCommand(), ADD_INDEX_COMMAND);
         commands.put(ADD_SHARD_COMMAND.getCommand(), ADD_SHARD_COMMAND);
         commands.put(REMOVE_INDEX_COMMAND.getCommand(), REMOVE_INDEX_COMMAND);
+        commands.put(REMOVE_SHARD_COMMAND.getCommand(), REMOVE_SHARD_COMMAND);
         commands.put(REDEPLOY_INDEX_COMMAND.getCommand(), REDEPLOY_INDEX_COMMAND);
         commands.put(LIST_ERRORS_COMMAND.getCommand(), LIST_ERRORS_COMMAND);
         commands.put(SEARCH_COMMAND.getCommand(), SEARCH_COMMAND);
@@ -1161,7 +1252,7 @@ public class Katta {
      * @param path shardIndex索引地址
      * @param replicationLevel 复制次数,份数
      */
-    protected static void addIndex(InteractionProtocol protocol, String name, String collectionName, String path, int replicationLevel) {
+    public static void addIndex(InteractionProtocol protocol, String name, String collectionName, String path, int replicationLevel) {
         if (name.trim().equals("*")) {
             throw new IllegalArgumentException("Index with name " + name + " isn't allowed.");
         }
@@ -1192,7 +1283,7 @@ public class Katta {
         }
     }
 
-    protected static void removeIndex(InteractionProtocol protocol, final String indexName) {
+    public static void removeIndex(InteractionProtocol protocol, final String indexName) {
         IDeployClient deployClient = new DeployClient(protocol);
         if (!deployClient.existsIndex(indexName)) {
             throw new IllegalArgumentException("index '" + indexName + "' does not exist");
@@ -1201,13 +1292,31 @@ public class Katta {
     }
 
 
+
+    public static void removeShard(InteractionProtocol protocol, final String indexName, final String shardName) {
+        IDeployClient deployClient = new DeployClient(protocol);
+        if (!deployClient.existsIndex(indexName)) {
+            throw new IllegalArgumentException("index '" + indexName + "' does not exist");
+        }
+
+        IndexMetaData indexMetaData = deployClient.getIndexMetaData(indexName);
+        Shard shard = indexMetaData.getShard(shardName);
+        if(shard == null) {
+            throw new IllegalArgumentException("shard '" + shardName + "' does not exist in index '"+ indexName +"'");
+        }
+
+        deployClient.removeShard(indexName, shardName);
+    }
+
+
+
     /**
      * 手动的添加一份shard到一个Index
      * @param protocol zk包装的协议
      * @param name shardName
      * @param path shardIndex索引地址
      */
-    protected static void addShard(InteractionProtocol protocol,
+    public static void addShard(InteractionProtocol protocol,
                                    String name, String path) {
         //用于判断当前是否已经部署过这个shardName的shard
         IDeployClient deployClient = new DeployClient(protocol);

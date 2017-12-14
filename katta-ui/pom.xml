@@ -1,0 +1,111 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.ivyft.katta</groupId>
+    <artifactId>katta-ui</artifactId>
+    <version>${project.parent.version}</version>
+    <packaging>jar</packaging>
+
+    <name>Katta Master UI</name>
+    <url>http://www.ivyft.com</url>
+
+
+    <properties>
+        <jetty.version>8.2.0.v20160908</jetty.version>
+
+        <java.main.class>com.ivyft.katta.ui.Booster</java.main.class>
+
+        <katta.build.version>${project.parent.version}</katta.build.version>
+    </properties>
+
+
+    <parent>
+        <groupId>com.ivyft.katta</groupId>
+        <artifactId>katta</artifactId>
+        <version>1.6.8</version>
+    </parent>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ivyft.katta</groupId>
+            <artifactId>katta-core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!--
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
+        -->
+
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.40</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <version>2.3.23</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
+        </dependency>
+
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.9.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>1.3.2</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <configuration>
+                    <!-- 简单启动，exec:java -->
+                    <mainClass>${java.main.class}</mainClass>
+
+                    <!-- 定制参数启动, exec:exec -->
+                    <!--
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>-Xmx512m</argument>
+                        <argument>-classpath</argument>
+                        <classpath/>
+                        <argument>${java.main.class}</argument>
+                    </arguments>
+                    -->
+                </configuration>
+
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+        </plugins>
+    </build>
+
+</project>
