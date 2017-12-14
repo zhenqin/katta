@@ -375,6 +375,59 @@ public class Katta {
 
 
 
+    protected static Command LIST_SHARDS_COMMAND = new ProtocolCommand("listShards",
+            "Lists all shards in index. ") {
+
+        private String indexName;
+        private boolean batchMode;
+        private boolean skipColumnNames;
+
+        @Override
+        public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) {
+            IndexMetaData indexMD = protocol.getIndexMD(indexName);
+            final Table table = new Table();
+            table.setBatchMode(batchMode);
+            table.setSkipColumnNames(skipColumnNames);
+            for (Shard shard : indexMD.getShards()) {
+                table.addRow(shard.getName(), shard.getPath(), indexName, indexMD.getCollectionName());
+            }
+            table.setHeader("shard", "path", "from index", "solr core");
+            System.out.println(table.toString());
+        }
+
+        @Override
+        public Options getOpts() {
+            Options options = new Options();
+            //"[-d] [-b] [-n] [-S]",
+            options.addOption("i", "index", true, "index name.");
+
+            options.addOption("b", false, "for batch mode.");
+            options.addOption("n", false, "don't write column headers.");
+            options.addOption("s", false, "print exception");
+            return options;
+        }
+
+        @Override
+        public void process(CommandLine cl) throws Exception {
+            indexName = cl.getOptionValue("i");
+
+            if(StringUtils.isBlank(indexName)) {
+                throw new IllegalArgumentException("-i or --index must not be null.");
+            }
+
+            if(cl.hasOption("b")) {
+                batchMode = Boolean.parseBoolean(cl.getOptionValue("b"));
+            }
+            if(cl.hasOption("n")) {
+                skipColumnNames = Boolean.parseBoolean(cl.getOptionValue("n"));
+            }
+
+            execute(new ZkConfiguration());
+        }
+    };
+
+
+
     protected static Command LOG_METRICS_COMMAND = new ProtocolCommand("logMetrics",
             "Subscribes to the Metrics updates and logs them to log file or console") {
 
@@ -790,6 +843,50 @@ public class Katta {
         }
     };
 
+
+    protected static Command REMOVE_SHARD_COMMAND = new ProtocolCommand("removeShard",
+            "Remove a shard in index from Katta") {
+        private String indexName;
+
+
+        private String shardName;
+
+
+        @Override
+        public void execute(ZkConfiguration zkConf, InteractionProtocol protocol) throws Exception {
+            removeShard(protocol, indexName, shardName);
+            System.out.println("remove shard '" + shardName + "' from index '" + indexName + "'");
+        }
+
+        @Override
+        public Options getOpts() {
+            //"<index name>",
+            Options options = new Options();
+            options.addOption("i", "index", true, "index name.");
+            options.addOption("S", "shard", true, "shard name.");
+            options.addOption("s", false, "print exception");
+            return options;
+        }
+
+        @Override
+        public void process(CommandLine cl) throws Exception {
+            indexName = cl.getOptionValue("i");
+
+            if(StringUtils.isBlank(indexName)) {
+                throw new IllegalArgumentException("-i or --index must not be null.");
+            }
+
+            shardName = cl.getOptionValue("S");
+
+            if(StringUtils.isBlank(shardName)) {
+                throw new IllegalArgumentException("-S or --shard must not be null.");
+            }
+
+            execute(new ZkConfiguration());
+        }
+    };
+
+
     protected static Command REDEPLOY_INDEX_COMMAND = new ProtocolCommand("redeployIndex",
             "Undeploys and deploys an index") {
 
@@ -1051,6 +1148,7 @@ public class Katta {
 
         commands.put(LIST_NODES_COMMAND.getCommand(), LIST_NODES_COMMAND);
         commands.put(LIST_INDICES_COMMAND.getCommand(), LIST_INDICES_COMMAND);
+        commands.put(LIST_SHARDS_COMMAND.getCommand(), LIST_SHARDS_COMMAND);
         commands.put(LOG_METRICS_COMMAND.getCommand(), LOG_METRICS_COMMAND);
         commands.put(START_GUI_COMMAND.getCommand(), START_GUI_COMMAND);
         commands.put(SHOW_STRUCTURE_COMMAND.getCommand(), SHOW_STRUCTURE_COMMAND);
@@ -1064,6 +1162,7 @@ public class Katta {
         commands.put(ADD_INDEX_COMMAND.getCommand(), ADD_INDEX_COMMAND);
         commands.put(ADD_SHARD_COMMAND.getCommand(), ADD_SHARD_COMMAND);
         commands.put(REMOVE_INDEX_COMMAND.getCommand(), REMOVE_INDEX_COMMAND);
+        commands.put(REMOVE_SHARD_COMMAND.getCommand(), REMOVE_SHARD_COMMAND);
         commands.put(REDEPLOY_INDEX_COMMAND.getCommand(), REDEPLOY_INDEX_COMMAND);
         commands.put(LIST_ERRORS_COMMAND.getCommand(), LIST_ERRORS_COMMAND);
         commands.put(SEARCH_COMMAND.getCommand(), SEARCH_COMMAND);
@@ -1199,6 +1298,24 @@ public class Katta {
         }
         deployClient.removeIndex(indexName);
     }
+
+
+
+    protected static void removeShard(InteractionProtocol protocol, final String indexName, final String shardName) {
+        IDeployClient deployClient = new DeployClient(protocol);
+        if (!deployClient.existsIndex(indexName)) {
+            throw new IllegalArgumentException("index '" + indexName + "' does not exist");
+        }
+
+        IndexMetaData indexMetaData = deployClient.getIndexMetaData(indexName);
+        Shard shard = indexMetaData.getShard(shardName);
+        if(shard == null) {
+            throw new IllegalArgumentException("shard '" + shardName + "' does not exist in index '"+ indexName +"'");
+        }
+
+        deployClient.removeShard(indexName, shardName);
+    }
+
 
 
     /**
