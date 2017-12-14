@@ -1,22 +1,21 @@
 package com.ivyft.katta.ui.controller;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.ivyft.katta.protocol.metadata.IndexDeployError;
+import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.metadata.IndexMetaData;
+import com.ivyft.katta.protocol.metadata.MasterMetaData;
 import com.ivyft.katta.protocol.metadata.NodeMetaData;
 import com.ivyft.katta.ui.annaotion.Action;
 import com.ivyft.katta.ui.annaotion.Path;
-
+import com.ivyft.katta.util.ZkConfiguration;
 import org.I0Itec.zkclient.ZkClient;
 import org.joda.time.DateTime;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -37,17 +36,23 @@ import java.util.Map;
 public class DashboardController {
 
 
-    ZkClient zklcient;
+    protected ZkClient zklcient;
 
+
+    protected InteractionProtocol protocol;
 
 
     public DashboardController() {
-        zklcient = new ZkClient("localhost:2181", 60000, 30000);
+        ZkConfiguration conf = new ZkConfiguration();
+        zklcient = new ZkClient(conf.getZKServers(), conf.getZKTickTime(), conf.getZKTimeOut());
+        protocol = new InteractionProtocol(zklcient, conf);
     }
 
 
     @Path("/dashboard")
-    public String dashboard(Map<String, Object> params, HttpServletRequest request, HttpServletResponse response) {
+    public String dashboard(Map<String, Object> params,
+                            HttpServletRequest request,
+                            HttpServletResponse response) {
         HashMap<String, Object> map = new HashMap<>();
         map.put("id", "asdfasdfad");
         map.put("name", "asdfasdfad");
@@ -60,17 +65,86 @@ public class DashboardController {
 
         params.put("flash", ImmutableMap.of("message", "OK"));
 
-        params.put("master", ImmutableMap.of("masterName", "3nqrjhewhr234234123h", "startTimeAsString", new Date()));
+        DateTime dateTime = new DateTime(2017, 12, 12, 19, 0, 0);
 
-        NodeMetaData nodeMetaData = new NodeMetaData("zhenqin-pro102");
-        nodeMetaData.setStartTimeStamp(new DateTime(2017, 12, 12, 19, 0, 0).getMillis());
-        nodeMetaData.setQueriesPerMinute(10);
+        MasterMetaData masterMetaData = new MasterMetaData();
+        masterMetaData.setMasterName("aaaabbbb-cccdd-asdfa");
+        masterMetaData.setStartTime(dateTime.getMillis());
+        masterMetaData.setProxyBlckPort(4560);
 
-        params.put("nodes", Lists.newArrayList(nodeMetaData));
+        MasterMetaData masterMD = protocol.getMasterMD();
 
-        IndexMetaData indexMetaData = new IndexMetaData("aaa", "hdfs:/user/hadoop/fidl", "userindex", 3);
-        params.put("indexes", ImmutableList.of(indexMetaData));
+        params.put("master", masterMD);
+
+
+
+        List<String> liveNodes = protocol.getLiveNodes();
+        List<NodeMetaData> nodes = new ArrayList<>();
+
+        for (String liveNode : liveNodes) {
+            nodes.add(protocol.getNodeMD(liveNode));
+        }
+
+        List<String> knownNodes = protocol.getKnownNodes();
+        for (String knownNode : knownNodes) {
+            NodeMetaData nodeMetaData = new NodeMetaData(knownNode);
+            nodeMetaData.setStartTimeStamp(dateTime.getMillis());
+            nodeMetaData.setQueriesPerMinute(0);
+
+            nodes.add(nodeMetaData);
+        }
+
+        params.put("nodes", nodes);
+
+        List<String> indices = protocol.getIndices();
+        List<IndexMetaData> indexMetaDataList = new ArrayList<>(indices.size());
+        for (String index : indices) {
+            indexMetaDataList.add(protocol.getIndexMD(index));
+        }
+        params.put("indexes", indexMetaDataList);
 
         return "dashboard.ftl";
     }
+
+
+
+    /**
+     * RESTFull
+     * @param params
+     * @return
+     */
+    @Path("/indexx")
+    public String indexName(Map<String, Object> params,
+                                         HttpServletRequest request,
+                                         HttpServletResponse response) {
+        String indexName = request.getParameter("name");
+
+        params.put("name", indexName);
+        params.put("success", true);
+        params.put("datetime", System.currentTimeMillis());
+        params.put("message", "我是傻子？ hi "+indexName+".");
+
+        return "indice.ftl";
+    }
+
+    /**
+     * RESTFull
+     * @param params
+     * @return
+     */
+    @Path("/hi")
+    public Map<String, Object> hi(Map<String, Object> params, HttpServletRequest request, HttpServletResponse response) {
+        String name = request.getParameter("name");
+
+        Map<String, Object> r = new HashMap<>();
+        r.put("name", name);
+        r.put("error", "我这里是中文。");
+        r.put("success", true);
+        r.put("datetime", System.currentTimeMillis());
+        r.put("message", "hi "+name+".");
+
+        return r;
+    }
+
+
 }

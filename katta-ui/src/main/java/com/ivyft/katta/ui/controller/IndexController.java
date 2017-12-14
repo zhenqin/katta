@@ -31,7 +31,19 @@ public class IndexController {
     }
 
 
-    @Path("/index")
+    @Path("/home")
+    public String home(Map<String, Object> params, HttpServletRequest request, HttpServletResponse response) {
+        return index(params, request, response);
+    }
+
+
+    @Path("/home.html")
+    public String homeHtml(Map<String, Object> params, HttpServletRequest request, HttpServletResponse response) {
+        return index(params, request, response);
+    }
+
+
+    @Path("/index.html")
     public String index(Map<String, Object> params, HttpServletRequest request, HttpServletResponse response) {
         HashMap<String, Object> map = new HashMap<>();
         map.put("id", "asdfasdfad");

@@ -16,7 +16,7 @@
 		<br/>
         <h2>Clusters</h2>
          <div class="list">
-                <table>
+                <table class="table table-bordered" style="width: 80%;">
                     <thead>
                         <tr>
                         <!-- TODO Frank, I dont want to use the tag g:sortableColumn, though I'm not sure what else to take so I copy pasted what the tag renders, however there might be a better way.. -->

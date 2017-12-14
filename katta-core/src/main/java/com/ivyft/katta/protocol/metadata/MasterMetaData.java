@@ -20,6 +20,7 @@ import com.ivyft.katta.util.DefaultDateFormat;
 import org.joda.time.DateTime;
 
 import java.io.Serializable;
+import java.util.Date;
 
 
 /**
@@ -88,9 +89,15 @@ public class MasterMetaData implements Serializable {
         this.masterName = masterName;
     }
 
-    public long getStartTime() {
+    public long getStartTimestamp() {
         return startTime;
     }
+
+
+    public Date getStartTime() {
+        return new Date(startTime);
+    }
+
 
     public void setStartTime(long startTime) {
         this.startTime = startTime;

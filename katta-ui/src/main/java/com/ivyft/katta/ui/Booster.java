@@ -15,6 +15,7 @@ import org.mortbay.jetty.servlet.ServletHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.util.List;
 
@@ -33,6 +34,8 @@ import java.util.List;
  * @author zhenqin
  */
 public class Booster {
+
+    static Logger LOG = LoggerFactory.getLogger(Booster.class);
 
 
 
@@ -58,7 +61,10 @@ public class Booster {
             // 静态文件
             ResourceHandler resourceHandler = new ResourceHandler();  //静态资源处理的handler
             resourceHandler.setWelcomeFiles(new String[]{"index.html"});
-            resourceHandler.setResourceBase("src/main/resources/static");
+
+            String path = Booster.class.getClassLoader().getResource("").getPath();
+            File rf = new File(path, "static");
+            resourceHandler.setResourceBase(rf.getAbsolutePath());
 
 
             LOG.info("add rule: /static");
@@ -128,7 +134,11 @@ public class Booster {
     }
 
 
-    static Logger LOG = LoggerFactory.getLogger(Booster.class);
+    private void serve() throws InterruptedException {
+        srv.join();
+    }
+
+
 
     public static void main(String[] args) {
         Booster booster = new Booster();
@@ -142,7 +152,4 @@ public class Booster {
         }
     }
 
-    private void serve() throws InterruptedException {
-        srv.join();
-    }
 }

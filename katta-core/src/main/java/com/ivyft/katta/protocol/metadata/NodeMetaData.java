@@ -19,6 +19,7 @@ package com.ivyft.katta.protocol.metadata;
 import com.ivyft.katta.util.DefaultDateFormat;
 
 import java.io.Serializable;
+import java.util.Date;
 
 
 /**
@@ -91,6 +92,11 @@ public class NodeMetaData implements Serializable {
 
     public long getStartTimeStamp() {
         return startTimeStamp;
+    }
+
+
+    public Date getStartTime() {
+        return new Date(startTimeStamp);
     }
 
     public void setStartTimeStamp(long startTimeStamp) {
