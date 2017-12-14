@@ -754,20 +754,12 @@ public class Katta {
             this.collectionName = cl.getOptionValue("c");
             this.path = cl.getOptionValue("p");
 
-            if(path.startsWith("hdfs://")) {
-                //hadoop 文件系统, replicationLevel = 1
-                if (cl.hasOption("r")) {
-                    this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
-                }
+            if (cl.hasOption("r")) {
+                this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
+            }
 
-                if(this.replicationLevel != 1) {
-                    this.replicationLevel = 1;
-                    System.out.print("hdfs index path, replicationLevel must eq 1, use default 1");
-                }
-            } else {
-                if (cl.hasOption("r")) {
-                    this.replicationLevel = Integer.parseInt(cl.getOptionValue("r"));
-                }
+            if(this.replicationLevel > 3) {
+                System.out.println("replicationLevel: " + replicationLevel + ", mybe too larger.");
             }
 
             if(StringUtils.isBlank(name) || StringUtils.isBlank(path) || StringUtils.isBlank(collectionName)) {
