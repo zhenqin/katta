@@ -185,7 +185,7 @@ public class DeployClient implements IDeployClient {
 
 
     public void removeShard(String indexName, String shardName) {
-        protocol.addMasterOperation(new UndeployShardOperation(indexName, shardName));
+        
     }
 
     @Override
