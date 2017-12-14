@@ -405,13 +405,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.wltea.analyzer</groupId>
-            <artifactId>ik-analyzer-lucene4</artifactId>
-            <version>u6</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>org.mortbay.jetty</groupId>
             <artifactId>jetty</artifactId>
             <version>6.1.26</version>

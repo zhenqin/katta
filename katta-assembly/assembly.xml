@@ -15,16 +15,20 @@
             <useProjectArtifact>true</useProjectArtifact>
             <outputDirectory>lib</outputDirectory>
             <unpack>false</unpack>
+            <scope>compile</scope>
+        </dependencySet>
+        <dependencySet>
+            <useProjectArtifact>true</useProjectArtifact>
+            <outputDirectory>lib</outputDirectory>
+            <unpack>false</unpack>
             <scope>runtime</scope>
-            <!--
             <includes>
                 <include>com.ivyft.katta:katta-client:jar</include>
+                <include>com.ivyft.katta:katta-core:jar</include>
+                <include>com.ivyft.katta:katta-server:jar</include>
+                <include>com.ivyft.katta:katta-hadoop:jar</include>
+                <include>com.ivyft.katta:katta-yarn:jar</include>
             </includes>
-
-            <excludes>
-                <exclude>com.sdyc.ndmp:ndmp-etl-streams:jar</exclude>
-            </excludes>
-            -->
         </dependencySet>
     </dependencySets>
 
@@ -41,7 +45,8 @@
             <directory>../data</directory>
             <outputDirectory>data</outputDirectory>
             <includes>
-                <include>**/*</include>
+                <include>solr/**</include>
+                <include>katta-shards</include>
             </includes>
         </fileSet>
         <fileSet>

@@ -44,6 +44,11 @@
             <artifactId>katta-yarn</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.ivyft.katta</groupId>
+            <artifactId>katta-server</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
