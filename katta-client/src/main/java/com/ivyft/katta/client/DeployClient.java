@@ -15,10 +15,7 @@
  */
 package com.ivyft.katta.client;
 
-import com.ivyft.katta.operation.master.AbstractIndexOperation;
-import com.ivyft.katta.operation.master.IndexDeployOperation;
-import com.ivyft.katta.operation.master.IndexUndeployOperation;
-import com.ivyft.katta.operation.master.ShardDeployOperation;
+import com.ivyft.katta.operation.master.*;
 import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.metadata.IndexMetaData;
 import com.ivyft.katta.protocol.metadata.NewIndexMetaData;
@@ -134,12 +131,15 @@ public class DeployClient implements IDeployClient {
             throw new IllegalArgumentException("it has not index name: " + indexName);
         }
 
+        // 选绑定，监控 ZooKeeper 节点数据变化
+        ShardDeployFuture shardDeployFuture = new ShardDeployFuture(protocol, indexName, indexMetaData, shardPath);
+
         //尝试添加一个Shard
         protocol.addMasterOperation(
                 new ShardDeployOperation(indexName, shardPath,
                 indexMetaData.getCollectionName(), indexMetaData.getReplicationLevel()));
 
-        return new ShardDeployFuture(protocol, indexName, shardPath);
+        return shardDeployFuture;
     }
 
 
@@ -184,8 +184,8 @@ public class DeployClient implements IDeployClient {
     }
 
 
-    public void removeShard(String name, String path) {
-
+    public void removeShard(String indexName, String shardName) {
+        protocol.addMasterOperation(new UndeployShardOperation(indexName, shardName));
     }
 
     @Override

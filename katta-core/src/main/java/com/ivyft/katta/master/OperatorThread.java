@@ -119,6 +119,12 @@ class OperatorThread extends Thread {
                     //TODO Master 全局的操作
                     //取出一个操作
                     MasterOperation operation = _queue.peek();
+                    if(operation == null) {
+                        continue;
+                    }
+
+                    LOG.info("master get an operation {}", operation);
+
                     List<OperationId> nodeOperationIds = null;
                     try {
                         List<MasterOperation> runningOperations = _registry.getRunningOperations();
