@@ -29,9 +29,10 @@ public class MapConvertor implements DocumentConvertor<Map> {
     }
 
     @Override
-    public Map convert(Document document) {
+    public Map convert(Document document, float score) {
         //所有的结果都要存放在result变量中
         final Map<String, Object> result = new HashMap<String, Object>();
+        result.put("score", score);
 
         //i遍历所有的field
         final List<IndexableField> fields = document.getFields();

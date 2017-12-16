@@ -1,5 +1,6 @@
 package com.ivyft.katta.lib.lucene;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -9,7 +10,6 @@ import org.apache.solr.common.params.SolrParams;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.PriorityBlockingQueue;
 
 /**
  * <pre>
@@ -53,7 +53,7 @@ public class QueryResponse implements Serializable {
     /**
      * 负载的数据
      */
-    private final Collection<Map<String, Serializable>> docs;
+    private final List<Map<String, Serializable>> docs;
 
 
     /**
@@ -123,15 +123,26 @@ public class QueryResponse implements Serializable {
     }
 
     public <T> Collection<T> getDocs() {
+        if(params != null) {
+            int size = docs.size();
+
+            // 分页时超过页数了，返回 null
+            if(size < offset || size == 0) {
+                return Collections.emptyList();
+            }
+
+            // 返回最后一页
+            //return (Collection<T>) docs.subList(offset, offset + limit);
+            return (Collection<T>) docs.subList(offset, size);
+        }
+
         return (Collection<T>) docs;
     }
 
 
     public synchronized void addDocs(Collection<Map<String, Serializable>> docs) {
         this.docs.addAll((Collection)docs);
-        System.out.println("=====================");
         if(params != null) {
-
             String s = params.get(CommonParams.SORT);
             String[] fs = params.getParams("sort.fields.type");
             if(StringUtils.isNotBlank(s)) {
@@ -143,15 +154,12 @@ public class QueryResponse implements Serializable {
                             StringUtils.upperCase(f.substring(beginIndex+1)));
                 }
                 //需要排序
-                System.out.println(SORT_FIELD_MAP);
                 String[] sps = s.split(",");
                 List<SolrQuery.SortClause> sorts = new ArrayList<>(sps.length);
                 for (String sp : sps) {
                     String[] sc = sp.split("(\\s)+");
                     sorts.add(SolrQuery.SortClause.create(sc[0], sc[1]));
                 }
-
-                System.out.println(sorts);
 
                 Comparator comparator;
                 if(sorts.size() == 1) {
@@ -189,9 +197,18 @@ public class QueryResponse implements Serializable {
                 // 字符串类型排序
                 return new StringComparator(field, asc);
 
+            case "SHORT":
+            case "BYTE":
             case "INTEGER":
                 // 整形类型排序
                 return new IntegerComparator(field, asc);
+
+            case "LONG":
+                return new LongComparator(field, asc);
+
+            case "FLOAT":
+            case "DOUBLE":
+                return new DoubleComparator(field, asc);
 
             case "BOOLEAN":
                 // Boolean 类型排序
@@ -303,6 +320,29 @@ class IntegerComparator implements Comparator<SolrDocument> {
     }
 }
 
+
+
+class LongComparator implements Comparator<SolrDocument> {
+
+    public int asc = 1;
+
+
+    protected String field;
+
+    public LongComparator(String field) {
+        this(field, true);
+    }
+
+    public LongComparator(String field, boolean desc) {
+        this.field = field;
+        this.asc = (desc ? -1 : 1);
+    }
+
+    @Override
+    public int compare(SolrDocument o1, SolrDocument o2) {
+        return asc * ((Long)o1.get(field)).compareTo((Long) o2.get(field));
+    }
+}
 
 class DoubleComparator implements Comparator<SolrDocument> {
 

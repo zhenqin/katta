@@ -86,7 +86,7 @@ public class IndexSearcherTest {
         System.out.println(scoreDocs.length);
         for (ScoreDoc scoreDoc : scoreDocs) {
             Document doc = indexSearcher.doc(scoreDoc.doc);
-            System.out.println(convertor.convert(doc));
+            System.out.println(convertor.convert(doc, 1.0f));
         }
 
 

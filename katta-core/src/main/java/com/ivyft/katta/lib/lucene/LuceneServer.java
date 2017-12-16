@@ -264,7 +264,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
      */
     public LuceneServer() {
         DEFAULT_QUERY.setStart(0);
-        DEFAULT_QUERY.setRows(10);
+        DEFAULT_QUERY.setRows(100);
         DEFAULT_QUERY.set(CommonParams.TIME_ALLOWED, 5 * 1000);
     }
 
@@ -279,7 +279,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
      */
     public LuceneServer(String name, ISeacherFactory seacherFactory, float timeoutPercentage) {
         DEFAULT_QUERY.setStart(0);
-        DEFAULT_QUERY.setRows(10);
+        DEFAULT_QUERY.setRows(100);
         DEFAULT_QUERY.set(CommonParams.TIME_ALLOWED, 5 * 1000);
 
         init(name, new NodeConfiguration());
@@ -650,8 +650,11 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
                                   String[] shardNames,
                                   long timeout)
             throws IOException {
-        int count = query.getQuery().getRows() == null ? DEFAULT_QUERY.getRows() : query.getQuery().getRows();
-        return search(query, shardNames, timeout, count);
+        int offset = query.getQuery().getStart() == null ? DEFAULT_QUERY.getStart() : query.getQuery().getStart();
+        int limit = query.getQuery().getRows() == null ? DEFAULT_QUERY.getRows() : query.getQuery().getRows();
+
+        limit = offset + limit;
+        return search(query, shardNames, timeout, limit);
     }
 
     @Override
@@ -775,13 +778,13 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
      * @param query
      * @param shards
      * @param result
-     * @param max
+     * @param limit
      * @throws IOException
      */
     protected final void search(SolrQuery query,
                                 String[] shards,
                                 HitsMapWritable result,
-                                int max,
+                                int limit,
                                 long timeout) throws IOException {
         timeout = getCollectorTiemout(timeout);
         Query luceneQuery;
@@ -792,7 +795,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
         }
 
         int shardsCount = shards.length;
-        int offset = query.getStart() == null ? 0 : query.getStart();
+        int offset = 0;
 
 
         // Run the search in parallel on the shards with a thread pool.
@@ -800,7 +803,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
 
         //这里是并行搜索
         for (int i = 0; i < shardsCount; i++) {
-            SearchCall call = new SearchCall(shards[i], offset, max, timeout, i, luceneQuery, null);
+            SearchCall call = new SearchCall(shards[i], offset, limit, timeout, i, luceneQuery, null);
             csSearch.submit(call);
         }
 
@@ -882,6 +885,8 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
 
         int offset = query.getStart() == null ? 0 : query.getStart();
         int limit = query.getRows() == null ? LuceneServer.DEFAULT_QUERY.getRows() : query.getRows();
+        limit = limit + offset;
+        offset = 0;
 
 
         //解析 SolrQuery 为 Lucene 的 Query 对象
@@ -1597,7 +1602,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
                     topDocsCollector = TopScoreDocCollector.create(offset + limit, true);
                 } else {
                     //需要排序
-                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, false, false, false);
+                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, true, true, true);
                 }
 
 
@@ -1619,9 +1624,9 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
                 TopDocs topDocs = topDocsCollector.topDocs(offset, limit);
                 for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                     if (fields != null) {
-                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc, fields)));
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc, fields), scoreDoc.score));
                     } else {
-                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc)));
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc), scoreDoc.score));
                     }
                 }
 

@@ -120,7 +120,7 @@
 	<field name="USER_FOLLOWINGS" type="int" indexed="true" stored="true" />
 	<field name="CNT_FOLLOWINGS"  type="int" indexed="true" stored="true" />
     <field name="CONTENT"         type="string" indexed="true" stored="true" />
-
+    <field name="FRIENDS"         type="string" indexed="true" stored="true" multiValued="true"/>
 
      <!-- uncomment the following to ignore any fields that don't already match an existing
           field name or dynamic field, rather than reporting them as an error.

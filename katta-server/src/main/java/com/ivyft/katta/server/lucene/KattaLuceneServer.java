@@ -1639,7 +1639,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
                 } else {
                     //需要排序
                     LOG.info(sort.toString());
-                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, false, false, false);
+                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, true, true, true);
                 }
 
 
@@ -1661,9 +1661,9 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
                 TopDocs topDocs = topDocsCollector.topDocs(offset, limit);
                 for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                     if (fields != null) {
-                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc, fields)));
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc, fields), scoreDoc.score));
                     } else {
-                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc)));
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc), scoreDoc.score));
                     }
                 }
 
