@@ -159,7 +159,7 @@ public class NodeProxyManager implements INodeProxyManager {
 
 
     @Override
-    public void shutdown() {
+    public synchronized void shutdown() {
         Collection<VersionedProtocol> proxies = node2ProxyMap.values();
         for (VersionedProtocol search : proxies) {
             RPC.stopProxy(search);

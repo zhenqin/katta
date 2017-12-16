@@ -1008,7 +1008,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
             }
         }
 
-        response.setDocs(docs);
+        response.addDocs(docs);
         //发现总数
         response.setNumFount(totalHits.get());
     }
@@ -1322,9 +1322,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
 
         LOG.debug("solr core is null: " + (handler.getSolrCore() == null));
 
-        LocalSolrQueryRequest request = new LocalSolrQueryRequest(handler.getSolrCore(), LuceneServer.DEFAULT_QUERY);
-
-        SolrPluginUtils.setDefaults(request, LuceneServer.DEFAULT_QUERY, solrQuery, null);
+        LocalSolrQueryRequest request = new LocalSolrQueryRequest(handler.getSolrCore(), solrQuery);
 
         String q = solrQuery.getQuery();
         String[] fq = solrQuery.getFilterQueries();

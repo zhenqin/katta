@@ -16,8 +16,10 @@
 package com.ivyft.katta.client;
 
 import com.ivyft.katta.lib.lucene.ILuceneServer;
+import com.ivyft.katta.lib.lucene.QueryWritable;
 import com.ivyft.katta.util.KattaException;
 import org.apache.hadoop.ipc.VersionedProtocol;
+import org.apache.solr.client.solrj.SolrQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,13 +155,17 @@ class NodeInteraction<T> implements Runnable {
             //反射完成调用
 
             T result = (T) this.method.invoke(luceneServer, args);
+
             shardManager.reportNodeCommunicationSuccess(this.node);
 
-            log.info("exec "+ node + " shards " + shards + " method " + method.getName()
-                    + " success, use time: " + (System.currentTimeMillis() - startTime));
+            log.info("exec {} shards {} method {} success, use time: {} ms",
+                    node,
+                    shards.toString(),
+                    method.getName(),
+                    (System.currentTimeMillis() - startTime));
 
             //TODO 远程调用完成, 需要合并结果
-            this.result.addResult(method.getName(), result, this.shards);
+            this.result.addResult(result, this.shards);
 
             synchronized (this.result) {
                 this.result.notifyAll();

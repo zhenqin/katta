@@ -136,7 +136,7 @@ public class ResultCompletePolicy<T> implements IResultPolicy<T> {
         if (done) {
             return shutDown ? -1 : 0;
         }
-        return Math.min(coverageStopTime - now, 50);
+        return Math.min(coverageStopTime - now, 30);
     }
 
     @Override

@@ -27,6 +27,8 @@ bin=`cd "$bin"; pwd`
 # stop node daemons
 "$bin"/katta-daemons.sh stop node --config $KATTA_CONF_DIR
 
+sleep 5
+
 # stop master daemons
 "$bin"/katta-daemon.sh stop master --config $KATTA_CONF_DIR
 

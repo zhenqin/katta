@@ -968,7 +968,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
             }
         }
 
-        response.setDocs(docs);
+        response.addDocs(docs);
         //发现总数
         response.setNumFount(totalHits.get());
     }
@@ -1279,11 +1279,9 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
     protected Query parse(SolrQuery solrQuery, String shardName) throws SyntaxError {
         SolrHandler handler = shardBySolrPath.get(shardName);
 
-        LOG.debug("solr core is null: " + (handler.getSolrCore() == null));
+        LOG.debug("solr core is null: {}", (handler.getSolrCore() == null));
 
-        LocalSolrQueryRequest request = new LocalSolrQueryRequest(handler.getSolrCore(), DEFAULT_QUERY);
-
-        SolrPluginUtils.setDefaults(request, DEFAULT_QUERY, solrQuery, null);
+        LocalSolrQueryRequest request = new LocalSolrQueryRequest(handler.getSolrCore(), solrQuery);
 
         String q = solrQuery.getQuery();
         String[] fq = solrQuery.getFilterQueries();
@@ -1599,7 +1597,6 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
                     topDocsCollector = TopScoreDocCollector.create(offset + limit, true);
                 } else {
                     //需要排序
-                    LOG.info(sort.toString());
                     topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, false, false, false);
                 }
 

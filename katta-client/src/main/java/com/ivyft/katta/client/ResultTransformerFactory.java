@@ -1,8 +1,12 @@
 package com.ivyft.katta.client;
 
 import com.ivyft.katta.client.transformer.*;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.common.params.SolrParams;
 
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -67,11 +71,17 @@ public class ResultTransformerFactory {
      * @param key 方法名
      * @return 通过默认构造实例化类的对象
      */
-    public <T> ResultTransformer<T> get(Object key) {
+    public <T> ResultTransformer<T> get(Object key, SolrParams params) {
         Class<? extends ResultTransformer> transformerClass = resultTransformerMapper.get(key);
         try {
-            return transformerClass.newInstance();
+            Constructor<? extends ResultTransformer> cons = transformerClass.getDeclaredConstructor(SolrParams.class);
+            return cons.newInstance(params);
         } catch (Exception e) {
+            try {
+                return transformerClass.newInstance();
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
             throw new IllegalStateException(e);
         }
     }
@@ -82,7 +92,7 @@ public class ResultTransformerFactory {
      * @param name 集合器名字
      * @return 返回集合器
      */
-    public static ResultTransformer getResultTransformer(String name) {
-        return getInstance().get(name);
+    public static ResultTransformer getResultTransformer(String name, SolrParams params) {
+        return getInstance().get(name, params);
     }
 }

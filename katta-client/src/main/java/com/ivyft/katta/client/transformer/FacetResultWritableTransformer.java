@@ -42,13 +42,13 @@ public class FacetResultWritableTransformer<T extends Writable> implements Resul
     /**
      * 命中的文档数量
      */
-    protected int totalHitCount = 0;
+    protected AtomicInteger totalHitCount = new AtomicInteger(0);
 
 
     /**
      * Group命中文档的最大数量
      */
-    protected int totalGroupedHitCount = 0;
+    protected AtomicInteger totalGroupedHitCount = new AtomicInteger(0);
 
 
 
@@ -84,7 +84,7 @@ public class FacetResultWritableTransformer<T extends Writable> implements Resul
 
     @Override
     public Map<T, Integer> getResult() {
-        Map<T, Integer> result = new HashMap<T, Integer>();
+        Map<T, Integer> result = new HashMap<T, Integer>(facet.size());
         for (Map.Entry<T, AtomicInteger> entry : facet.entrySet()) {
             result.put(entry.getKey(), entry.getValue().intValue());
         }
@@ -102,19 +102,19 @@ public class FacetResultWritableTransformer<T extends Writable> implements Resul
     }
 
     public int getTotalHitCount() {
-        return totalHitCount;
+        return totalHitCount.get();
     }
 
     public void addTotalHitCount(int totalHitCount) {
-        this.totalHitCount += totalHitCount;
+        this.totalHitCount.addAndGet(totalHitCount);
     }
 
     public int getTotalGroupedHitCount() {
-        return totalGroupedHitCount;
+        return totalGroupedHitCount.get();
     }
 
     public void addTotalGroupedHitCount(int totalGroupedHitCount) {
-        this.totalGroupedHitCount += totalGroupedHitCount;
+        this.totalGroupedHitCount.addAndGet(totalGroupedHitCount);
     }
 
     public int getTotalGroupCount() {

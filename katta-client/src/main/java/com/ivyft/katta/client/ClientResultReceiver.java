@@ -1,6 +1,8 @@
 package com.ivyft.katta.client;
 
 import com.ivyft.katta.util.KattaException;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.common.params.SolrParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,12 +75,12 @@ public class ClientResultReceiver<T> implements IResultReceiver<T> {
     /**
      * 完成的RPC次数
      */
-    private AtomicInteger successCount = new AtomicInteger(0);
+    private final AtomicInteger successCount = new AtomicInteger(0);
 
     /**
      * 合并结果使用
      */
-    private ResultTransformer<T> resultTransformer;
+    private final ResultTransformer<T> resultTransformer;
 
 
     /**
@@ -87,27 +89,6 @@ public class ClientResultReceiver<T> implements IResultReceiver<T> {
     private static final Logger log = LoggerFactory.getLogger(ClientResultReceiver.class);
 
 
-    /**
-     * Construct a non-closed ClientResult, which waits for addResults() or
-     * addError() calls until close() is called. After that point, addResults()
-     * and addError() calls are ignored, and this object becomes immutable.
-     *
-     * @param closedListener If not null, it's clientResultClosed() method is called when our
-     *                       close() method is.
-     * @param allShards      The set of all shards to expect results from.
-     */
-    public ClientResultReceiver(IClosedListener closedListener, int nodeCount, Collection<String> allShards) {
-        if (allShards == null || allShards.isEmpty()) {
-            throw new IllegalArgumentException("No shards specified");
-        }
-        this.nodeCount = nodeCount;
-        this.allShards = Collections.unmodifiableSet(new HashSet<String>(allShards));
-        this.closedListener = closedListener;
-        if (log.isTraceEnabled()) {
-            log.trace(String.format("Created ClientResult(%s, %s)", closedListener != null ? closedListener : "null",
-                    allShards));
-        }
-    }
 
     /**
      * Construct a non-closed ClientResult, which waits for addResults() or
@@ -118,9 +99,43 @@ public class ClientResultReceiver<T> implements IResultReceiver<T> {
      *                       close() method is.
      * @param allShards      The set of all shards to expect results from.
      */
-    public ClientResultReceiver(IClosedListener closedListener, int nodeCount, String... allShards) {
-        this(closedListener, nodeCount, Arrays.asList(allShards));
+    public ClientResultReceiver(IClosedListener closedListener, int nodeCount,
+                                String method,
+                                SolrParams params,
+                                String... allShards) {
+        this(closedListener, nodeCount, method, params, Arrays.asList(allShards));
     }
+
+
+    /**
+     * Construct a non-closed ClientResult, which waits for addResults() or
+     * addError() calls until close() is called. After that point, addResults()
+     * and addError() calls are ignored, and this object becomes immutable.
+     *
+     * @param closedListener If not null, it's clientResultClosed() method is called when our
+     *                       close() method is.
+     * @param allShards      The set of all shards to expect results from.
+     */
+    public ClientResultReceiver(IClosedListener closedListener,
+                                int nodeCount,
+                                String method,
+                                SolrParams params,
+                                Collection<String> allShards) {
+        if (allShards == null || allShards.isEmpty()) {
+            throw new IllegalArgumentException("No shards specified");
+        }
+        this.nodeCount = nodeCount;
+        this.allShards = Collections.unmodifiableSet(new HashSet<String>(allShards));
+        this.closedListener = closedListener;
+
+        resultTransformer = ResultTransformerFactory.getResultTransformer(method, params);
+
+        if (log.isTraceEnabled()) {
+            log.trace(String.format("Created ClientResult(%s, %s)", closedListener != null ? closedListener : "null",
+                    allShards));
+        }
+    }
+
 
     /**
      * Add a result. Will be ignored if closed.
@@ -129,7 +144,7 @@ public class ClientResultReceiver<T> implements IResultReceiver<T> {
      * @param shards The shards used to compute the result.
      */
     @Override
-    public synchronized void addResult(String method, T result, Collection<String> shards) {
+    public synchronized void addResult(T result, Collection<String> shards) {
         if (closed) {
             if (log.isTraceEnabled()) {
                 log.trace("Ignoring results given to closed ClientResult");
@@ -140,9 +155,7 @@ public class ClientResultReceiver<T> implements IResultReceiver<T> {
             log.warn("Null shards passed to AddResult()");
             return;
         }
-        if(resultTransformer == null) {
-            resultTransformer = ResultTransformerFactory.getResultTransformer(method);
-        }
+
         resultTransformer.transform(result, shards);
         seenShards.addAll(shards);
 
@@ -158,8 +171,8 @@ public class ClientResultReceiver<T> implements IResultReceiver<T> {
      * @param result The result to add.
      * @param shards The shards used to compute the result.
      */
-    public synchronized void addResult(String method, T result, String... shards) {
-        addResult(method, result, Arrays.asList(shards));
+    public synchronized void addResult(T result, String... shards) {
+        addResult(result, Arrays.asList(shards));
     }
 
     /**
