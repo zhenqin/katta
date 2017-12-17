@@ -472,22 +472,24 @@ public class Katta {
     protected static Command START_GUI_COMMAND = new Command("startGui",
             "Starts the web based katta.gui") {
 
+
+        /**
+         * 绑定 Host
+         */
+        private String host = "0.0.0.0";
+
+
         /**
          * 端口号
          */
         private int port = 8080;
 
 
-        /**
-         * war文件
-         */
-        private File war;
-
         @Override
         public Options getOpts() {
             //"[-war <pathToWar>] [-port <port>]"
             Options options = new Options();
-            options.addOption("w", "war", true, "a java web archive path for local.");
+            options.addOption("h", "host", true, "start jetty server for host(default 0.0.0.0).");
             options.addOption("p", "port", true, "start jetty server for port(default 8080).");
             options.addOption("s", false, "print exception");
             return options;
@@ -495,7 +497,10 @@ public class Katta {
 
         @Override
         public void process(CommandLine cl) throws Exception {
-            war = new File(cl.getOptionValue("w"));
+            if(cl.hasOption("h")) {
+                host = cl.getOptionValue("h");
+            }
+
             if(cl.hasOption("p")) {
                 port = Integer.parseInt(cl.getOptionValue("p"));
             }
@@ -504,15 +509,14 @@ public class Katta {
 
         @Override
         public void execute(ZkConfiguration zkConf) throws Exception {
-            List<String> paths = new ArrayList<String>();
-            if (war != null) {
-                paths.add(war.getAbsolutePath());
-            } else {
-                paths.add(".");
-                paths.add("./extras/katta.gui");
-            }
-
-            WebApp app = new WebApp(paths.toArray(new String[paths.size()]), port);
+            final WebApp app = new WebApp(host, port);
+            Runtime.getRuntime().addShutdownHook(new Thread(()->{
+                try {
+                    app.stopWebServer();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }));
             app.startWebServer();
         }
     };
