@@ -19,7 +19,7 @@ import com.ivyft.katta.client.Client;
 import com.ivyft.katta.client.INodeSelectionPolicy;
 import com.ivyft.katta.client.IResultReceiver;
 import com.ivyft.katta.lib.mapfile.IMapFileServer;
-import com.ivyft.katta.util.ClientConfiguration;
+import com.ivyft.katta.client.ClientConfiguration;
 import com.ivyft.katta.util.KattaException;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.apache.hadoop.io.Text;

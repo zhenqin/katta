@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ivyft.katta.util;
+package com.ivyft.katta.client;
+
+import com.ivyft.katta.util.KattaConfiguration;
 
 /**
  * Configuration for a {@link com.ivyft.katta.client.Client}.

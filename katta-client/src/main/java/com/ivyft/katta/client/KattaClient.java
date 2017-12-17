@@ -6,7 +6,6 @@ import com.ivyft.katta.lib.writer.Serialization;
 import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.KattaClientProtocol;
 import com.ivyft.katta.protocol.Message;
-import com.ivyft.katta.util.ClientConfiguration;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.apache.avro.AvroRemoteException;
 import org.apache.avro.ipc.NettyTransceiver;
@@ -27,6 +26,9 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
+ *
+ * 该类实例封装了和远程 Node 的链接请求，因此很重，尽量复用。
+ *
  * <pre>
  *
  * Created by IntelliJ IDEA.

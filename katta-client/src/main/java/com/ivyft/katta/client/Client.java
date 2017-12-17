@@ -57,7 +57,7 @@ public class Client implements ConnectedComponent {
     /**
      * 所有的shard
      */
-    private static final String[] ALL_INDICES = new String[]{"*"};
+    public static final String[] ALL_INDICES = new String[]{"*"};
 
 
 
@@ -98,18 +98,28 @@ public class Client implements ConnectedComponent {
     protected final ExecutorService executor;
 
 
-
+    /**
+     * Client Conf
+     */
     private final ClientConfiguration clientConfiguration;
 
 
+    /**
+     * 和 ZooKeeper 交互 Protocol
+     */
     protected InteractionProtocol protocol;
 
 
+    /**
+     * 搜索节点选择
+     */
     protected final INodeSelectionPolicy selectionPolicy;
 
 
+    /**
+     * 代理节点远程执行 RPC 管理器
+     */
     private INodeProxyManager proxyManager;
-
 
 
 

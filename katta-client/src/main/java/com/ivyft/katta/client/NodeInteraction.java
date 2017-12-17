@@ -75,7 +75,7 @@ class NodeInteraction<T> implements Runnable {
     private final int instanceId = interactionInstanceCounter++;
 
 
-    private static final Logger log = LoggerFactory.getLogger(NodeInteraction.class);
+    private static final Logger log = LoggerFactory.getLogger("node-interaction");
 
 
     
@@ -158,7 +158,7 @@ class NodeInteraction<T> implements Runnable {
 
             shardManager.reportNodeCommunicationSuccess(this.node);
 
-            log.info("exec {} shards {} method {} success, use time: {} ms",
+            log.info("exec {} shards {} method {}, cost time: {} ms",
                     node,
                     shards.toString(),
                     method.getName(),

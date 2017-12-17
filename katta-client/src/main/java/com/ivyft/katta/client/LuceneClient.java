@@ -17,7 +17,6 @@ package com.ivyft.katta.client;
 
 import com.ivyft.katta.lib.lucene.*;
 import com.ivyft.katta.protocol.InteractionProtocol;
-import com.ivyft.katta.util.ClientConfiguration;
 import com.ivyft.katta.util.KattaException;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.apache.hadoop.io.MapWritable;
@@ -30,6 +29,8 @@ import java.lang.reflect.Method;
 import java.util.*;
 
 /**
+ *
+ * 该类实例封装了和远程 Node 的链接请求，因此很重，尽量复用。
  *
  * <p>
  *
