@@ -329,7 +329,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
         public void run() {
             while (!shutdown.get()) {
                 try {
-                    LOG.info("notify close index searcher thread...");
+                    LOG.debug("notify close index searcher thread...");
                     for (Map.Entry<String, SearcherHandle> entry : searcherHandlesByShard.entrySet()) {
                         try {
                             entry.getValue().closeWithPolicy(entry.getKey(), KattaLuceneServer.this.closeIndexSearcherPolicy);

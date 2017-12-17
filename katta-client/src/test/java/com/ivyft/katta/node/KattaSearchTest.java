@@ -44,7 +44,7 @@ public class KattaSearchTest {
 
     @Test
     public void testSearch() throws Exception {
-        SolrQuery query = new SolrQuery("CNT_FOLLOWINGS:[2 OR 3 OR 4 OR 0] AND USER_FOLLOWINGS:0");
+        SolrQuery query = new SolrQuery("CNT_FOLLOWINGS:(2 OR 3) AND USER_FOLLOWINGS:0");
         query.setStart(60);
         query.setRows(20);
 
@@ -79,7 +79,7 @@ public class KattaSearchTest {
 
     @Test
     public void testFact() throws Exception {
-        SolrQuery query = new SolrQuery("CNT_FOLLOWINGS:2 AND USER_FOLLOWINGS:0");
+        SolrQuery query = new SolrQuery("USER_FOLLOWINGS:0");
         query.setStart(60);
         query.setRows(20);
 

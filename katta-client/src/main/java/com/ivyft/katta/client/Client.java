@@ -92,9 +92,15 @@ public class Client implements ConnectedComponent {
     private long queryCount = 0;
 
 
+    /**
+     * 当搜索失败，重试次数
+     */
     private final int maxTryCount;
 
 
+    /**
+     * 线程池
+     */
     protected final ExecutorService executor;
 
 
@@ -342,6 +348,11 @@ public class Client implements ConnectedComponent {
                 });
     }
 
+
+    /**
+     * 索引可搜索？ 可搜索加入到搜索列表中，如果部署出现异常则代表不能被搜索，索引部署不成功。
+     * @param indexMD
+     */
     protected void addIndexForSearching(IndexMetaData indexMD) {
         final Set<Shard> shards = indexMD.getShards();
         List<String> shardNames = new ArrayList<String>();

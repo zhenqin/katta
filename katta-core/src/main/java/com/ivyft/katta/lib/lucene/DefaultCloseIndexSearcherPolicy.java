@@ -70,7 +70,9 @@ public class DefaultCloseIndexSearcherPolicy implements CloseIndexSearcherPolicy
         long now = System.currentTimeMillis();
         int ref = handle.refCount();
 
-        LOG.debug("last visited index at {}， close index searcher will at ", new DateTime(lastVisited).toString("mm/dd HH:mm:ss"),
+        LOG.info("shard {} last visited index at {}， close index searcher will at {}",
+                name,
+                new DateTime(lastVisited).toString("mm/dd HH:mm:ss"),
                 new DateTime(lastVisited).plusMinutes(closeSearcherMinutes).toString("mm/dd HH:mm:ss"));
         if(ref == 0 && (now - lastVisited >= MINUTE * closeSearcherMinutes)) {
             handle.closeIndexSearcher();

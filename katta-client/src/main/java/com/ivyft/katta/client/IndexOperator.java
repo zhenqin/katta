@@ -101,6 +101,15 @@ public class IndexOperator {
         return kattaClient.facetRange(query, indices);
     }
 
+
+    public long getTimeout() {
+        return kattaClient.getTimeout();
+    }
+
+    public void setTimeout(long timeout) {
+        kattaClient.setTimeout(timeout);
+    }
+
     public void close() throws IOException {
         kattaClient.close();
     }
