@@ -63,9 +63,15 @@
                         <#list nodes as node> 
                         <tr class="even">
                             <td><a href="${request.contextPath}/node?name=${node.name}">${node.name}</a></td>
-                            <td>OK</td>
+                            <td>
+                                <#if node.live == 'down'>
+                                    <span class="label label-danger">DOWN</span>
+                                <#else>
+                                    <span class="label label-success">UP</span>
+                                </#if>
+                            </td>
                             <td>${node.startTime?string('yyyy-MM-dd HH:mm:ss')}</td>
-                            <td>${node.queriesPerMinute}</td>
+                            <td>${node.shardSize}</td>
                              
                         </tr>
                         </#list>
@@ -88,11 +94,12 @@
                 <table class="table table-bordered" style="width: 80%;">
                     <thead>
                         <tr>
-                             <th class="sortable" >Name</th>
-                             <th class="sortable" >Path</th>
-                             <th class="sortable" >CoreName</th>
-                             <th class="sortable" >State</th>
-                             <th class="sortable" >Replication Level</th>
+                            <th class="sortable" >Name</th>
+                            <th class="sortable" >Path</th>
+                            <th class="sortable" >CoreName</th>
+                            <th class="sortable" >State</th>
+                            <th class="sortable" >ShardSize</th>
+                            <th class="sortable" >Replication Level</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -101,7 +108,14 @@
                             <td><a href="${request.contextPath}/indexx?name=${index.name}">${index.name}</a></td>
                             <td>${index.path}</td>
                             <td>${index.collectionName}</td>
-                            <td>${index.deployError! 'ERROR'}</td>
+                            <td>
+                                <#if deployError??>
+                                    <span class="label label-danger">ERROR</span>
+                                <#else>
+                                    <span class="label label-success">SUCCESS</span>
+                                </#if>
+                            </td>
+                            <td>${index.shardSize}</td>
                             <td>${index.replicationLevel}</td>
                         </tr>
                     </#list>

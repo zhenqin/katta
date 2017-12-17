@@ -7,16 +7,15 @@ import com.ivyft.katta.protocol.metadata.MasterMetaData;
 import com.ivyft.katta.protocol.metadata.NodeMetaData;
 import com.ivyft.katta.ui.annaotion.Action;
 import com.ivyft.katta.ui.annaotion.Path;
+import com.ivyft.katta.ui.dtd.IndexInfo;
+import com.ivyft.katta.ui.dtd.NodeInfo;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.I0Itec.zkclient.ZkClient;
 import org.joda.time.DateTime;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * <pre>
@@ -49,6 +48,13 @@ public class DashboardController {
     }
 
 
+    @Path("/overview")
+    public String overview(Map<String, Object> params,
+                            HttpServletRequest request,
+                            HttpServletResponse response) {
+        return dashboard(params, request, response);
+    }
+
     @Path("/dashboard")
     public String dashboard(Map<String, Object> params,
                             HttpServletRequest request,
@@ -79,10 +85,16 @@ public class DashboardController {
 
 
         List<String> liveNodes = protocol.getLiveNodes();
-        List<NodeMetaData> nodes = new ArrayList<>();
+        List<NodeInfo> nodes = new ArrayList<>();
 
         for (String liveNode : liveNodes) {
-            nodes.add(protocol.getNodeMD(liveNode));
+            Collection<String> nodeShards = protocol.getNodeShards(liveNode);
+            NodeMetaData nodeMD = protocol.getNodeMD(liveNode);
+
+            NodeInfo nodeInfo = new NodeInfo(nodeMD);
+            nodeInfo.setShards(nodeShards);
+            nodeInfo.setLive("live");
+            nodes.add(nodeInfo);
         }
 
         List<String> knownNodes = protocol.getKnownNodes();
@@ -91,15 +103,28 @@ public class DashboardController {
             nodeMetaData.setStartTimeStamp(dateTime.getMillis());
             nodeMetaData.setQueriesPerMinute(0);
 
-            nodes.add(nodeMetaData);
+            boolean add = true;
+            for (NodeInfo node : nodes) {
+                if(node.getName().equals(knownNode)) {
+                    add = false;
+                    break;
+                }
+            }
+
+            if(add) {
+                NodeInfo nodeInfo = new NodeInfo(nodeMetaData);
+                nodeInfo.setLive("down");
+                nodes.add(nodeInfo);
+            }
         }
 
         params.put("nodes", nodes);
 
         List<String> indices = protocol.getIndices();
-        List<IndexMetaData> indexMetaDataList = new ArrayList<>(indices.size());
+        List<IndexInfo> indexMetaDataList = new ArrayList<>(indices.size());
         for (String index : indices) {
-            indexMetaDataList.add(protocol.getIndexMD(index));
+            IndexMetaData indexMD = protocol.getIndexMD(index);
+            indexMetaDataList.add(new IndexInfo(indexMD));
         }
         params.put("indexes", indexMetaDataList);
 
@@ -124,7 +149,36 @@ public class DashboardController {
         params.put("datetime", System.currentTimeMillis());
         params.put("message", "我是傻子？ hi "+indexName+".");
 
+        IndexMetaData indexMD = protocol.getIndexMD(indexName);
+        params.put("index", new IndexInfo(indexMD));
         return "indice.ftl";
+    }
+
+
+
+    /**
+     * RESTFull
+     * @param params
+     * @return
+     */
+    @Path("/node")
+    public String node(Map<String, Object> params,
+                            HttpServletRequest request,
+                            HttpServletResponse response) {
+        String nodeName = request.getParameter("name");
+
+        params.put("name", nodeName);
+        params.put("success", true);
+        params.put("datetime", System.currentTimeMillis());
+        params.put("message", "我是傻子？ hi "+nodeName+".");
+
+        Collection<String> nodeShards = protocol.getNodeShards(nodeName);
+        params.put("shards", nodeShards);
+
+        Map<String, List<String>> shard2NodesMap = protocol.getShard2NodesMap(nodeShards);
+
+        params.put("shard2Node", shard2NodesMap);
+        return "node.ftl";
     }
 
     /**
