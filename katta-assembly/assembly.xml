@@ -28,6 +28,7 @@
                 <include>com.ivyft.katta:katta-server:jar</include>
                 <include>com.ivyft.katta:katta-hadoop:jar</include>
                 <include>com.ivyft.katta:katta-yarn:jar</include>
+                <include>com.ivyft.katta:katta-ui:jar</include>
             </includes>
         </dependencySet>
     </dependencySets>

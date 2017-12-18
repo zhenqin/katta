@@ -120,7 +120,7 @@ fi
 # restore ordinary behaviour
 # unset IFS
 
-CLASS='net.sf.katta.Katta'
+CLASS='com.ivyft.katta.Katta'
 
 KATTA_OPTS="$KATTA_OPTS -Dkatta.log.dir=$KATTA_LOG_DIR"
 KATTA_OPTS="$KATTA_OPTS -Dkatta.log.file=$KATTA_LOGFILE"
