@@ -11,7 +11,8 @@
     <title>${title!'Katta UI'}</title>
     <link rel="shortcut icon" href="${request.contextPath}/static/images/favicon.ico" type="image/x-icon" />
     <link rel="stylesheet" href="${request.contextPath}/static/css/style.css" type="text/css" media="screen"/>
-    <link rel="stylesheet" href="${request.contextPath}/static/css/main.css" />
+    <!-- Bootstrap 3.3.5 -->
+    <link rel="stylesheet" href="${request.contextPath}/static/bootstrap3/css/bootstrap.min.css">
 
     <script type="application/javascript">
         var base_url = '${request.contextPath}';
@@ -21,20 +22,36 @@
 <#macro commonScript>
 	<!-- jQuery 2.1.4 -->
 	<script src="${request.contextPath}/static/js/jquery.min.js"></script>
-    <script src="${request.contextPath}/static/js/jquery.sparkline.min.js"></script>
-
-	<script type="application/javascript" src="${request.contextPath}/static/js/application.js"></script>
+    <!-- Bootstrap 3.3.5 -->
+	<script src="${request.contextPath}/static/bootstrap3/js/bootstrap.min.js"></script>
+    <!-- Vue -->
+    <script src="${request.contextPath}/static/vue/vue.js" language="javascript" type="text/javascript"></script>
 
 </#macro>
 
 <#macro commonHeader>
-	<div class="nav">
-        <span class="menuButton"><a class="home" href="${request.contextPath}/">Home</a></span>
-        <span class="menuButton"><a class="create" href="${request.contextPath}/dashboard">Dashboard</a></span>
-    </div>
-    <#if flash??>
-                <div class="message">${flash.message}</div>
-    </#if>
+        <!-- Fixed navbar -->
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="${request.contextPath}/overview">Katta</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            <ul class="nav navbar-nav">
+                <li><a href="${request.contextPath}/overview">Overview</a></li>
+            </ul>
+        </div><!-- /.navbar-collapse -->
+    </div><!-- /.container-fluid -->
+</nav>
 </#macro>
 
 <#macro commonLeft pageName >

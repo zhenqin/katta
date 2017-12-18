@@ -28,9 +28,10 @@ public class SolrDocumentConvertor implements DocumentConvertor<SolrDocument> {
     }
 
     @Override
-    public SolrDocument convert(Document document) {
+    public SolrDocument convert(Document document, float score) {
         //所有的结果都要存放在result变量中
         SolrDocument solrDocument = new SolrDocument();
+        solrDocument.setField("score", score);
 
         //i遍历所有的field
         List<IndexableField> fields = document.getFields();

@@ -8,6 +8,7 @@ import freemarker.template.TemplateException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -68,7 +69,7 @@ public class FreemarkerView {
 
 
 
-    public void out(PrintWriter writer, Map<String, Object> params) throws IOException, TemplateException {
+    public void out(Writer writer, Map<String, Object> params) throws IOException, TemplateException {
         template.process(params, writer);
     }
 
@@ -78,8 +79,7 @@ public class FreemarkerView {
         FreemarkerView servlet = new FreemarkerView("upload_file.ftl");
         System.out.println(servlet.getViewString(new HashMap<>()));
 
-        servlet = new FreemarkerView("upload_file.ftl");
-        System.out.println(servlet.getViewString(new HashMap<>()));
+        System.out.println(servlet.template.getEncoding());
     }
 
 

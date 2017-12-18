@@ -155,7 +155,7 @@ public class InteractionProtocol {
     /**
      * log
      */
-    protected final static Logger LOG = LoggerFactory.getLogger(InteractionProtocol.class);
+    protected final static Logger LOG = LoggerFactory.getLogger("InteractionProtocol");
 
 
     /**

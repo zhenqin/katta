@@ -19,26 +19,37 @@
             <h1>Master List</h1>
           
             <div class="list">
-                <table>
+                <#if master??>
+                <table class="table table-bordered" style="width: 60%;">
                     <thead>
                         <tr>
                    	        <th class="sortable">Name</th>
+                            <th class="sortable">ProxyPort</th>
                    	        <th class="sortable">Start Time</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr class="odd">
                             <td>${master.masterName}</td>
-                            <td>${master.startTimeAsString?string('yyyy-MM-dd HH:mm:ss')}</td>
+                            <td>${master.proxyBlckPort}</td>
+                            <td>${master.startTime?string('yyyy-MM-dd HH:mm:ss')}</td>
                         </tr>
                     </tbody>
                 </table>
+                <#else>
+                <div class="alert alert-danger alert-dismissible" style="width: 50%;" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span></button>
+                    <strong>警告：</strong> 当前没有可用的 Katta Master。
+                </div>
+                </#if>
             </div>
             
             <!-- nodes -->
             <h1>Nodes List</h1>
             <div class="list">
-                <table style="width: 80%;">
+                <#if nodes??>
+                <table class="table table-bordered" style="width: 80%;">
                     <thead>
                         <tr>
                              <th class="sortable" >Name</th>
@@ -52,37 +63,59 @@
                         <#list nodes as node> 
                         <tr class="even">
                             <td><a href="${request.contextPath}/node?name=${node.name}">${node.name}</a></td>
-                            <td>OK</td>
-                            <td>${node.startTimeStamp}</td>
-                            <td>100</td>
+                            <td>
+                                <#if node.live == 'down'>
+                                    <span class="label label-danger">DOWN</span>
+                                <#else>
+                                    <span class="label label-success">UP</span>
+                                </#if>
+                            </td>
+                            <td>${node.startTime?string('yyyy-MM-dd HH:mm:ss')}</td>
+                            <td>${node.shardSize}</td>
                              
                         </tr>
                         </#list>
                     </tbody>
                     
                 </table>
+
+                <#else>
+                <div class="alert alert-danger alert-dismissible" style="width: 50%;" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span></button>
+                    <strong>警告：</strong> 当前没有可用的 Katta Node。
+                </div>
+            </#if>
             </div>
 
             <!-- indexes -->
             <h1>Index List</h1>
             <div class="list">
-                <table style="width: 80%;">
+                <table class="table table-bordered" style="width: 80%;">
                     <thead>
                         <tr>
-                             <th class="sortable" >Name</th>
-                             <th class="sortable" >Path</th>
-                             <th class="sortable" >CoreName</th>
-                             <th class="sortable" >State</th>
-                             <th class="sortable" >Replication Level</th>
+                            <th class="sortable" >Name</th>
+                            <th class="sortable" >Path</th>
+                            <th class="sortable" >CoreName</th>
+                            <th class="sortable" >State</th>
+                            <th class="sortable" >ShardSize</th>
+                            <th class="sortable" >Replication Level</th>
                         </tr>
                     </thead>
                     <tbody>
                     <#list indexes as index>
                         <tr class="odd">
-                            <td>${index.name}</td>
+                            <td><a href="${request.contextPath}/indexx?name=${index.name}">${index.name}</a></td>
                             <td>${index.path}</td>
                             <td>${index.collectionName}</td>
-                            <td>${index.deployError! 'ERROR'}</td>
+                            <td>
+                                <#if deployError??>
+                                    <span class="label label-danger">ERROR</span>
+                                <#else>
+                                    <span class="label label-success">SUCCESS</span>
+                                </#if>
+                            </td>
+                            <td>${index.shardSize}</td>
                             <td>${index.replicationLevel}</td>
                         </tr>
                     </#list>

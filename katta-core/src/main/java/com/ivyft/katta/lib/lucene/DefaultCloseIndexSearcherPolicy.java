@@ -37,14 +37,16 @@ public class DefaultCloseIndexSearcherPolicy implements CloseIndexSearcherPolicy
     public final static long MINUTE = 1000L * 60;
 
 
-
+    /**
+     * Index 打开后 30 分钟无操作，则关闭 IndexSearcher,防止进程持有的文件句柄数过多
+     */
     protected int closeSearcherMinutes = 30;
 
 
     /**
      * LOG
      */
-    private static Logger LOG = LoggerFactory.getLogger(DefaultCloseIndexSearcherPolicy.class);
+    private static Logger LOG = LoggerFactory.getLogger("CloseIndexSearcherPolicy");
 
 
 
@@ -68,7 +70,10 @@ public class DefaultCloseIndexSearcherPolicy implements CloseIndexSearcherPolicy
         long now = System.currentTimeMillis();
         int ref = handle.refCount();
 
-        LOG.debug("lastVisited = {}", new DateTime(lastVisited).toString("yyyy-mm-dd HH:mm:ss"));
+        LOG.info("shard {} last visited index at {}， close index searcher will at {}",
+                name,
+                new DateTime(lastVisited).toString("mm/dd HH:mm:ss"),
+                new DateTime(lastVisited).plusMinutes(closeSearcherMinutes).toString("mm/dd HH:mm:ss"));
         if(ref == 0 && (now - lastVisited >= MINUTE * closeSearcherMinutes)) {
             handle.closeIndexSearcher();
             return true;

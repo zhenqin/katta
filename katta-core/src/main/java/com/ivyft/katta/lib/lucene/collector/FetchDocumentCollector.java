@@ -3,6 +3,7 @@ package com.ivyft.katta.lib.lucene.collector;
 import com.ivyft.katta.lib.lucene.convertor.DocumentConvertor;
 import com.ivyft.katta.lib.lucene.convertor.SolrDocumentConvertor;
 import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TotalHitCountCollector;
 
 import java.io.IOException;
@@ -57,6 +58,12 @@ public class FetchDocumentCollector extends TotalHitCountCollector {
 
 
     /**
+     * 该文档的得分
+     */
+    protected float score = 0.0f;
+
+
+    /**
      * Lucene Document Convertor，默认转换成Solr Input Document
      */
     private DocumentConvertor convertor = new SolrDocumentConvertor();
@@ -81,19 +88,29 @@ public class FetchDocumentCollector extends TotalHitCountCollector {
         this.context = context;
     }
 
+
+    @Override
+    public void setScorer(Scorer scorer) {
+        try {
+            this.score = scorer.score();
+        } catch (IOException e) {
+            this.score = 0.1f;
+        }
+    }
+
     @Override
     public void collect(int doc) {
         super.collect(doc);
         if(docs.size() < limit && getTotalHits() > offset) {
             if(fields != null) {
                 try {
-                    docs.add(convertor.convert(context.reader().document(doc, fields)));
+                    docs.add(convertor.convert(context.reader().document(doc, fields), this.score));
                 } catch (IOException e) {
                     throw new IllegalArgumentException(e);
                 }
             } else {
                 try {
-                    docs.add(convertor.convert(context.reader().document(doc)));
+                    docs.add(convertor.convert(context.reader().document(doc), this.score));
                 } catch (IOException e) {
                     throw new IllegalArgumentException(e);
                 }

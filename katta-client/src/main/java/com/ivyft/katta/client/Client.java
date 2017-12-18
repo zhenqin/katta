@@ -57,7 +57,7 @@ public class Client implements ConnectedComponent {
     /**
      * 所有的shard
      */
-    private static final String[] ALL_INDICES = new String[]{"*"};
+    public static final String[] ALL_INDICES = new String[]{"*"};
 
 
 
@@ -92,24 +92,40 @@ public class Client implements ConnectedComponent {
     private long queryCount = 0;
 
 
+    /**
+     * 当搜索失败，重试次数
+     */
     private final int maxTryCount;
 
 
+    /**
+     * 线程池
+     */
     protected final ExecutorService executor;
 
 
-
+    /**
+     * Client Conf
+     */
     private final ClientConfiguration clientConfiguration;
 
 
+    /**
+     * 和 ZooKeeper 交互 Protocol
+     */
     protected InteractionProtocol protocol;
 
 
+    /**
+     * 搜索节点选择
+     */
     protected final INodeSelectionPolicy selectionPolicy;
 
 
+    /**
+     * 代理节点远程执行 RPC 管理器
+     */
     private INodeProxyManager proxyManager;
-
 
 
 
@@ -332,6 +348,11 @@ public class Client implements ConnectedComponent {
                 });
     }
 
+
+    /**
+     * 索引可搜索？ 可搜索加入到搜索列表中，如果部署出现异常则代表不能被搜索，索引部署不成功。
+     * @param indexMD
+     */
     protected void addIndexForSearching(IndexMetaData indexMD) {
         final Set<Shard> shards = indexMD.getShards();
         List<String> shardNames = new ArrayList<String>();

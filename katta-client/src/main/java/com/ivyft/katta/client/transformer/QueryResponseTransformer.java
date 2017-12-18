@@ -3,8 +3,11 @@ package com.ivyft.katta.client.transformer;
 import com.ivyft.katta.client.ResultTransformer;
 import com.ivyft.katta.lib.lucene.QueryResponse;
 import com.ivyft.katta.lib.lucene.ResponseWritable;
+import org.apache.solr.common.params.SolrParams;
 
+import java.io.Serializable;
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * <pre>
@@ -21,20 +24,28 @@ import java.util.Collection;
  */
 public class QueryResponseTransformer implements ResultTransformer<QueryResponse> {
 
-    private QueryResponse response = new QueryResponse();
+    /**
+     * 查询结果聚集器
+     */
+    private final QueryResponse response;
+
 
     public QueryResponseTransformer() {
+        this(null);
+    }
 
+    public QueryResponseTransformer(SolrParams params) {
+        response = new QueryResponse(params);
     }
 
     @Override
     public void transform(Object obj, Collection<String> shards) {
         if(obj instanceof ResponseWritable) {
             QueryResponse resp = ((ResponseWritable)obj).getResponse();
-            response.addDocs(resp.getDocs());
             response.setMaxScore(resp.getMaxScore());
             response.addNumFount(resp.getNumFount());
             response.setQTime(resp.getQTime());
+            response.addDocs(resp.getDocs());
         }
     }
 

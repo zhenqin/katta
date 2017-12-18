@@ -15,6 +15,8 @@
  */
 package com.ivyft.katta.client;
 
+import com.ivyft.katta.lib.lucene.QueryWritable;
+import org.apache.solr.common.params.SolrParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -151,15 +153,27 @@ class WorkQueue<T> implements INodeExecutor {
         this.shardManager = shardManager;
         this.method = method;
         this.shardArrayParamIndex = shardArrayParamIndex;
-        this.args = args != null ? args : new Object[0];
+        this.args = (args != null ? args : new Object[0]);
         IClosedListener closedListener = new IClosedListener() {
             public void clientResultClosed() {
                 close();
             }
         };
 
+        // 获取到排序规则
+        SolrParams params = null;
+        int i = 0;
+        do {
+            if(args[i] instanceof QueryWritable) {
+                params = ((QueryWritable) args[i]).getQuery();
+                break;
+            }
+            i++;
+        } while (i < args.length);
+        // 排序规则
+
         //构造ClientResult, 这里可以变化
-        this.results = new ClientResultReceiver<T>(closedListener, nodeCount, allShards);
+        this.results = new ClientResultReceiver<T>(closedListener, nodeCount, method.getName(), params, allShards);
     }
 
     /**

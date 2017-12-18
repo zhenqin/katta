@@ -1,6 +1,8 @@
 package com.ivyft.katta.lib.lucene.convertor;
 
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FloatField;
 
 /**
  * <pre>
@@ -22,7 +24,8 @@ public class DefaultDocumentConvertor  implements DocumentConvertor<Document> {
     }
 
     @Override
-    public Document convert(Document document) {
+    public Document convert(Document document, float score) {
+        document.add(new FloatField("score", score, Field.Store.NO));
         return document;
     }
 }

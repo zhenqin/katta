@@ -28,9 +28,10 @@ public class MapWritableConvertor implements DocumentConvertor<MapWritable> {
     }
 
     @Override
-    public MapWritable convert(Document document) {
+    public MapWritable convert(Document document, float score) {
         //所有的结果都要存放在result变量中
         final MapWritable result = new MapWritable();
+        result.put(new Text("score"), new FloatWritable(score));
 
         //i遍历所有的field
         final List<IndexableField> fields = document.getFields();

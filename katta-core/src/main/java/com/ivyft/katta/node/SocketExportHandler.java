@@ -208,12 +208,9 @@ public class SocketExportHandler implements Runnable {
         try {
             //searcher.
             try {
-                LocalSolrQueryRequest request = new LocalSolrQueryRequest(core, DEFAULT_QUERY);
-
-                //List<String> queryStrings = new LinkedList<String>();
                 SolrQuery solrQuery = query.getSolrQuery();
 
-                SolrPluginUtils.setDefaults(request, DEFAULT_QUERY, solrQuery, null);
+                LocalSolrQueryRequest request = new LocalSolrQueryRequest(core, solrQuery);
 
                 String q = solrQuery.getQuery();
                 String[] fq = solrQuery.getFilterQueries();

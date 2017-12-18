@@ -18,6 +18,12 @@ import org.apache.lucene.document.Document;
 public interface DocumentConvertor<T> {
 
 
-    public T convert(Document document);
+    /**
+     * 转换 Lucene Document 为其它形式
+     * @param document LuceneDocument
+     * @param score 分数
+     * @return
+     */
+    public T convert(Document document, float score);
 
 }

@@ -4,12 +4,15 @@ import com.alibaba.fastjson.JSON;
 import org.apache.commons.lang.exception.ExceptionUtils;
 
 import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,8 +33,23 @@ import java.util.Map;
  */
 public class DynamicRequestServlet extends HttpServlet {
 
-    Object instance;
-    Method method;
+
+    /**
+     * Action Object
+     */
+    private final Object instance;
+
+
+    /**
+     * Action Method
+     */
+    private final Method method;
+
+
+    /**
+     * 输出的字符编码
+     */
+    protected Charset utf8 = Charset.forName("utf-8");
 
 
     public DynamicRequestServlet(Object instance, Method method) {
@@ -50,29 +68,34 @@ public class DynamicRequestServlet extends HttpServlet {
         HashMap<String, Object> params = new HashMap<>();
         params.put("request", req);
 
-        PrintWriter writer = resp.getWriter();
+        ServletOutputStream out = resp.getOutputStream();
 
         try {
             Object r = method.invoke(instance, params, req, resp);
             if(r != null) {
                 if(r instanceof String) {
-                    resp.setContentType("text/html");
-                    resp.setCharacterEncoding("utf-8");
-                    new FreemarkerServlet((String)r).out(writer, params);
+                    resp.setCharacterEncoding(utf8.name());
+                    resp.setContentType("text/html; charset=" + utf8);
+                    resp.setHeader("Content-type", "text/html;charset=" + utf8);
+                    new FreemarkerView((String)r).out(new OutputStreamWriter(out, utf8), params);
                 } else if((r instanceof Map) || (r instanceof Collection)) {
-                    resp.setContentType("application/json");
                     resp.setCharacterEncoding("utf-8");
-                    writer.write(JSON.toJSONString(r));
+                    resp.setContentType("application/json");
+                    resp.setHeader("Content-type", "application/json;charset=" + utf8);
+                    out.write(JSON.toJSONString(r).getBytes(utf8));
                 } else {
                     throw new IllegalArgumentException("unkown action to print " + r);
                 }
             }
         } catch (Exception e) {
             resp.reset();
-            writer.write(ExceptionUtils.getFullStackTrace(e));
+            resp.setCharacterEncoding(utf8.name());
+            resp.setContentType("text/html; charset=" + utf8);
+            resp.setHeader("Content-type", "text/html;charset=" + utf8);
+            out.write(ExceptionUtils.getFullStackTrace(e).getBytes(utf8));
             throw new ServletException(e);
         } finally {
-            writer.flush();
+            out.flush();
         }
     }
 }

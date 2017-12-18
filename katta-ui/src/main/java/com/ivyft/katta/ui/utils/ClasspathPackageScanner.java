@@ -1,5 +1,7 @@
 package com.ivyft.katta.ui.utils;
 
+import com.ivyft.katta.ui.Booster;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,8 +9,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
@@ -65,6 +69,43 @@ public class ClasspathPackageScanner {
 
         return doScan(basePackage, new ArrayList<>());
     }
+
+
+
+
+    /**
+     * Find a jar that contains a class of the same name, if any.
+     * It will return a jar file, even if that is not the first thing
+     * on the class path that has a class with the same name.
+     *
+     * @param my_class the class to find.
+     * @return a jar file that contains the class, or null.
+     * @throws IOException on any error
+     */
+    public static String findContainingJar(Class<?> my_class) throws IOException {
+        ClassLoader loader = my_class.getClassLoader();
+        String class_file = my_class.getName().replaceAll("\\.", "/") + ".class";
+        for(Enumeration<URL> itr = loader.getResources(class_file);
+            itr.hasMoreElements();) {
+            URL url = itr.nextElement();
+            if ("jar".equals(url.getProtocol())) {
+                String toReturn = url.getPath();
+                if (toReturn.startsWith("file:")) {
+                    toReturn = toReturn.substring("file:".length());
+                }
+                toReturn = toReturn.replaceAll("\\+", "%2B");
+                toReturn = URLDecoder.decode(toReturn, "UTF-8");
+                return toReturn.replaceAll("!.*$", "");
+            } else if("file".equals(url.getProtocol())) {
+                String pack = my_class.getName().replaceAll("\\.", "/") + ".class";
+                return url.getPath().replace(pack, "");
+            }
+        }
+        throw new IOException("Fail to locat a JAR for class: "+my_class.getName());
+    }
+
+
+
 
     /**
      * Actually perform the scanning procedure.
@@ -130,9 +171,15 @@ public class ClasspathPackageScanner {
      * e.g., String -> java.lang.String
      */
     private String toFullyQualifiedName(String shortName, String basePackage) {
-        StringBuilder sb = new StringBuilder(basePackage);
-        sb.append('.');
-        sb.append(StringUtil.trimExtension(shortName));
+        shortName = shortName.replaceAll("/", ".");
+        StringBuilder sb = new StringBuilder();
+        if(!shortName.startsWith(basePackage)) {
+            sb.append(basePackage);
+            sb.append('.');
+            sb.append(StringUtil.trimExtension(shortName));
+        } else {
+            sb.append(shortName.substring(0, shortName.length() - 6));
+        }
 
         return sb.toString();
     }
@@ -143,16 +190,21 @@ public class ClasspathPackageScanner {
         }
 
         JarInputStream jarIn = new JarInputStream(new FileInputStream(jarPath));
-        JarEntry entry = jarIn.getNextJarEntry();
+        List<String> nameList;
+        try {
+            JarEntry entry = jarIn.getNextJarEntry();
 
-        List<String> nameList = new ArrayList<>();
-        while (null != entry) {
-            String name = entry.getName();
-            if (name.startsWith(splashedPackageName) && isClassFile(name)) {
-                nameList.add(name);
+            nameList = new ArrayList<>();
+            while (null != entry) {
+                String name = entry.getName();
+                if (name.startsWith(splashedPackageName) && isClassFile(name)) {
+                    nameList.add(name);
+                }
+
+                entry = jarIn.getNextJarEntry();
             }
-
-            entry = jarIn.getNextJarEntry();
+        } finally {
+            jarIn.close();
         }
 
         return nameList;
@@ -160,7 +212,9 @@ public class ClasspathPackageScanner {
 
     private List<String> readFromDirectory(String path) {
         File file = new File(path);
-        String[] names = file.list();
+        String[] names = file.list((dir, name) -> {
+            return new File(dir, name).isDirectory() || name.endsWith(".class");
+        });
 
         if (null == names) {
             return null;
@@ -181,7 +235,8 @@ public class ClasspathPackageScanner {
      * For test purpose.
      */
     public static void main(String[] args) throws Exception {
-        ClasspathPackageScanner scan = new ClasspathPackageScanner("com.ivyft.katta.ui");
+        ClasspathPackageScanner scan = new ClasspathPackageScanner("com.google.common");
+        //ClasspathPackageScanner scan = new ClasspathPackageScanner("com.ivyft.katta.ui");
         List<String> list = scan.getFullyQualifiedClassNameList();
         for (String s : list) {
             System.out.println(s);

@@ -111,79 +111,21 @@
    --> 
     <field name="_version_" type="long" indexed="true" stored="true" multiValued="false"/>
 	
-	<field name="INDEX" type="int" indexed="true" stored="true" />
 	
-	<field name="META"     type="string" indexed="true" stored="true"  multiValued="true"/>
-    <field name="POST_URN" type="string" indexed="true" stored="true" required="true" />
-    <field name="POST_ID" type="string" indexed="true" stored="true" />
-    <field name="CREATED_AT" type="long" indexed="true" stored="true" />
-	<field name="DW_CREATED_AT" type="long" indexed="true" stored="true" />
-	<field name="TITLE" type="text_general" indexed="true" stored="true" />
-	<field name="CONTENT" type="text_general" indexed="true" stored="true" /> 
 	
 	<field name="USER_ID" type="string" indexed="true" stored="true" />
     <field name="USER_URN" type="string" indexed="true" stored="true" />
-    <field name="SCREEN_NAME" type="text_general" indexed="true" stored="true" />
-	<field name="CNT_READ" type="int" indexed="true" stored="true" />
-	<field name="CNT_LIKES" type="int" indexed="true" stored="true" />
-	<field name="CNT_REPLIED" type="int" indexed="true" stored="true"  />
-	<field name="POST_URL" type="string" indexed="true" stored="true" />
-	<field name="ROOT_POST_URL" type="string" indexed="true" stored="true" />
-	<field name="ROOT_POST_URN" type="string" indexed="true" stored="true" />
-	<field name="ENTITY_SECTION_URN" type="long" indexed="true" stored="true" />
-	<field name="ENTITY_SECTION_NAME" type="string" indexed="true" stored="true" />  
-	<field name="SERVICE_TYPE_URN" type="long" indexed="true" stored="true" />	
-    <field name="SERVICE_TYPE_NAME" type="string" indexed="true" stored="true" />	 
-    <field name="CNT_FORWARDED" type="int" indexed="true" stored="true" />
-	<field name="CNT_FAVORITED" type="int" indexed="true" stored="true" />
-	<field name="IMAGES" type="string" indexed="true" stored="true" />
-    <field name="POST_TYPE" type="int" indexed="true" stored="true" />
-    <field name="SOURCE_URN" type="string" indexed="true" stored="true" /> 
 	
+	
+	<field name="USER_FOLLOWINGS" type="int" indexed="true" stored="true" />
+	<field name="CNT_FOLLOWINGS"  type="int" indexed="true" stored="true" />
+    <field name="CONTENT"         type="string" indexed="true" stored="true" />
+    <field name="FRIENDS"         type="string" indexed="true" stored="true" multiValued="true"/>
 
-    <!--@@@ USER CONTACT -->
-    <field name="ACCOUNT_TYPE" type="int" indexed="true" stored="true" /> 
-    <field name="GENDER" type="string" indexed="true" stored="true" />  
-	<field name="LEVEL_CODE" type="int" indexed="true" stored="true" />
-	<field name="PRO_FILE_URL" type="string" indexed="true" stored="true" />
-	<field name="TXT_DESCRIPTION" type="string" indexed="true" stored="true" />
-	<field name="VERIFIED_STR" type="string" indexed="true" stored="true" />
-	
-	
-	<field name="CNT_FOLLOWERS" type="int" indexed="true" stored="true" />
-	<field name="CNT_FOLLOWING" type="int" indexed="true" stored="true" />
-	<field name="CNT_POSTS" type="int" indexed="true" stored="true" />
-	<field name="CNT_FRIENDS" type="int" indexed="true" stored="true" />
-	<field name="LOC_COUNTRY" type="long" indexed="true" stored="true" />
-    <field name="LOC_PROVINCE" type="long" indexed="true" stored="true" />
-    <field name="LOC_CITY" type="long" indexed="true" stored="true" />
-	<field name="LOC_CITY_LEVEL" type="int" indexed="true" stored="true" />
-	<field name="BIRTHDAY" type="long" indexed="true" stored="true" />
-	<field name="AGE_ZONE" type="string" indexed="true" stored="true" /> 
-	<field name="CNT_REPLIES" type="int" indexed="true" stored="true" />
-	<field name="CNT_FAVOURITES" type="int" indexed="true" stored="true" />
-	
-	
-    
-    <field name="ITEMS"     type="string" indexed="true" stored="true"  multiValued="true"/>
-	<field name="USER_TAGS" type="string" indexed="true" stored="true" multiValued="true"/>
-	<field name="TAGS" type="string" indexed="true" stored="true" multiValued="true"/>
-	<field name="EDUCATIONS" type="string" indexed="true" stored="true" multiValued="true"/>
-	<field name="JOBS" type="string" indexed="true" stored="true" multiValued="true"/>
-	
-	
-	
-	<!-- @@@ TOPIC CONTACT -->
-	<field name="TOPICS" type="string" indexed="true" stored="true"  multiValued="true"/>
-	
-     
-    
-    
-  
-   <!-- uncomment the following to ignore any fields that don't already match an existing 
-        field name or dynamic field, rather than reporting them as an error. 
-        alternately, change the type="ignored" to some other type e.g. "text" if you want 
-        unknown fields indexed and/or stored by default --> 
+     <!-- uncomment the following to ignore any fields that don't already match an existing
+          field name or dynamic field, rather than reporting them as an error.
+          alternately, change the type="ignored" to some other type e.g. "text" if you want
+          unknown fields indexed and/or stored by default -->
    <!--dynamicField name="*" type="ignored" multiValued="true" /-->
    
  </fields>
@@ -192,7 +134,7 @@
  <!-- Field to use to determine and enforce document uniqueness. 
       Unless this field is marked with required="false", it will be a required field
    -->
- <uniqueKey>POST_URN</uniqueKey>
+ <uniqueKey>USER_URN</uniqueKey>
 
  <!-- DEPRECATED: The defaultSearchField is consulted by various query parsers when
   parsing a query string that isn't explicit about the field.  Machine (non-user)
@@ -421,20 +363,22 @@
     <fieldType name="location_rpt" class="solr.SpatialRecursivePrefixTreeFieldType"
         geo="true" distErrPct="0.025" maxDistErr="0.000009" units="degrees" />
 
+    <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100">
+        <analyzer type="index">
+            <tokenizer class="com.huaban.analysis.jieba.lucene.JiebaTokenizerFactory"
+                segMode="INDEX"/>
+        </analyzer>
+        <analyzer type="query">
+            <tokenizer class="com.huaban.analysis.jieba.lucene.JiebaTokenizerFactory"
+                segMode="INDEX"/>
+        </analyzer>
+    </fieldType>
+
     <!--
 	<fieldType name="text_general" class="solr.TextField">
-        <analyzer class="org.wltea.analyzer.lucene.IKAnalyzer"/>
+        <analyzer class="org.wltea.analyzer.lucene.IKAnalyzer" />
     </fieldType>
     -->
-
-      <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100">
-          <analyzer type="index">
-              <tokenizer class="com.huaban.analysis.jieba.lucene.JiebaTokenizerFactory"  segMode="INDEX"/>
-          </analyzer>
-          <analyzer type="query">
-              <tokenizer class="com.huaban.analysis.jieba.lucene.JiebaTokenizerFactory"  segMode="INDEX"/>
-          </analyzer>
-      </fieldType>
      
    <!-- some examples for different languages (generally ordered by ISO code) -->
 

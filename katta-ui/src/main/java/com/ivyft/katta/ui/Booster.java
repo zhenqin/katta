@@ -12,10 +12,15 @@ import org.mortbay.jetty.handler.ResourceHandler;
 import org.mortbay.jetty.nio.SelectChannelConnector;
 import org.mortbay.jetty.servlet.ServletHandler;
 import org.mortbay.jetty.servlet.ServletHolder;
+import org.mortbay.resource.JarResource;
+import org.mortbay.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.lang.reflect.Method;
+import java.net.URI;
+import java.net.URL;
 import java.util.List;
 
 /**
@@ -34,15 +39,47 @@ import java.util.List;
  */
 public class Booster {
 
+    static Logger LOG = LoggerFactory.getLogger(Booster.class);
 
 
-    Server srv = null;
 
+    protected Server srv = null;
+
+
+    /**
+     * 绑定的 Host
+     */
+    protected String host = "0.0.0.0";
+
+
+    /**
+     * Http 的端口号
+     */
+    protected int port = 8080;
+
+
+    public Booster(String host, int port) {
+        this.host = host;
+        this.port = port;
+    }
+
+
+    public Booster(int port) {
+        this.port = port;
+    }
 
     public String getName() {
         return "katta-ui";
     }
 
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
 
     public void start() {
         Preconditions.checkState(srv == null,
@@ -58,8 +95,19 @@ public class Booster {
             // 静态文件
             ResourceHandler resourceHandler = new ResourceHandler();  //静态资源处理的handler
             resourceHandler.setWelcomeFiles(new String[]{"index.html"});
-            resourceHandler.setResourceBase("src/main/resources/static");
 
+            //String path = Booster.class.getClassLoader().getResource("").getPath();
+            String jar = ClasspathPackageScanner.findContainingJar(Booster.class);
+            LOG.info("resource in path {}", jar);
+            if(jar.endsWith(".jar")) {
+                // jar 内部资源
+                URL uri = new URL("jar:file:" + jar + "!/static");
+                resourceHandler.setBaseResource(Resource.newResource(uri, true));
+
+            } else {
+                File rf = new File(jar, "static");
+                resourceHandler.setResourceBase(rf.getAbsolutePath());
+            }
 
             LOG.info("add rule: /static");
             ContextHandler contextHandler = new ContextHandler();
@@ -104,8 +152,8 @@ public class Booster {
             uploadHandler.setHandler(handler);
             srv.addHandler(uploadHandler);
 
-            connector.setHost("0.0.0.0");
-            connector.setPort(8080);
+            connector.setHost(host);
+            connector.setPort(port);
             srv.addConnector(connector);
 
             srv.start();
@@ -128,10 +176,14 @@ public class Booster {
     }
 
 
-    static Logger LOG = LoggerFactory.getLogger(Booster.class);
+    public void serve() throws InterruptedException {
+        srv.join();
+    }
 
-    public static void main(String[] args) {
-        Booster booster = new Booster();
+
+
+    public static void main(String[] args) throws Exception {
+        Booster booster = new Booster(8080);
         booster.start();
         try {
             booster.serve();
@@ -142,7 +194,4 @@ public class Booster {
         }
     }
 
-    private void serve() throws InterruptedException {
-        srv.join();
-    }
 }

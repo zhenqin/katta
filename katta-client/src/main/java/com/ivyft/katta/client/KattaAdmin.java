@@ -3,10 +3,8 @@ package com.ivyft.katta.client;
 import com.ivyft.katta.Katta;
 import com.ivyft.katta.lib.lucene.ILuceneServer;
 import com.ivyft.katta.protocol.InteractionProtocol;
-import com.ivyft.katta.util.ClientConfiguration;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.ipc.VersionedProtocol;
 
 /**
  * <pre>

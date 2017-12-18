@@ -65,11 +65,10 @@ public interface IResultReceiver<T> {
 
     /**
      * Add the shard's results. Silently fails if result is closed.
-     * @param methodName method
      * @param result The result to add.
      * @param shards The shards that were called to produce the result.
      */
-    public void addResult(String methodName, T result, Collection<String> shards);
+    public void addResult(T result, Collection<String> shards);
 
     /**
      * Report an error thrown by the node when we tried to access the specified

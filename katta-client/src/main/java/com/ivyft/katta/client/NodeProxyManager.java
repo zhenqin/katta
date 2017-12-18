@@ -106,25 +106,22 @@ public class NodeProxyManager implements INodeProxyManager {
 
 
     /**
-     * 根据Node创建一个连接, 也可能从缓存中取出连接, 取决于establishIfNoExists参数
+     * 根据Node创建一个连接, 也可能从缓存中取出连接, 取决于establishIfNoExists参数。 为 true 则没有连接自动创建链接
+     *
      * @param nodeName Node节点
-     * @param establishIfNoExists establishIfNoExists=true,则相当启用缓存
+     * @param establishIfNoExists establishIfNoExists=false,则相当于只从缓存拿链接
      * @return 返回创建的连接
      */
     @Override
-    public VersionedProtocol getProxy(String nodeName, boolean establishIfNoExists) {
+    public synchronized VersionedProtocol getProxy(String nodeName, boolean establishIfNoExists) {
         VersionedProtocol versionedProtocol = node2ProxyMap.get(nodeName);
         if (versionedProtocol == null && establishIfNoExists) {
-            synchronized (nodeName.intern()) {
-                if (!node2ProxyMap.containsKey(nodeName)) {
-                    try {
-                        versionedProtocol = createNodeProxy(nodeName);
-                        node2ProxyMap.put(nodeName, versionedProtocol);
-                    } catch (Exception e) {
-                        log.warn("Could not create proxy for node '" + nodeName + "' - " + e.getClass().getSimpleName() + ": "
-                                + e.getMessage());
-                    }
-                }
+            try {
+                versionedProtocol = createNodeProxy(nodeName);
+                node2ProxyMap.put(nodeName, versionedProtocol);
+            } catch (Exception e) {
+                log.warn("Could not create proxy for node '" + nodeName + "' - " + e.getClass().getSimpleName() + ": "
+                        + e.getMessage());
             }
         }
         return versionedProtocol;
@@ -159,10 +156,14 @@ public class NodeProxyManager implements INodeProxyManager {
 
 
     @Override
-    public void shutdown() {
+    public synchronized void shutdown() {
         Collection<VersionedProtocol> proxies = node2ProxyMap.values();
         for (VersionedProtocol search : proxies) {
-            RPC.stopProxy(search);
+            try {
+                RPC.stopProxy(search);
+            } catch (Exception e) {
+                log.warn("close proxy rpc error. ", e);
+            }
         }
     }
 

@@ -329,7 +329,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
         public void run() {
             while (!shutdown.get()) {
                 try {
-                    LOG.info("notify close index searcher thread...");
+                    LOG.debug("notify close index searcher thread...");
                     for (Map.Entry<String, SearcherHandle> entry : searcherHandlesByShard.entrySet()) {
                         try {
                             entry.getValue().closeWithPolicy(entry.getKey(), KattaLuceneServer.this.closeIndexSearcherPolicy);
@@ -1008,7 +1008,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
             }
         }
 
-        response.setDocs(docs);
+        response.addDocs(docs);
         //发现总数
         response.setNumFount(totalHits.get());
     }
@@ -1322,9 +1322,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
 
         LOG.debug("solr core is null: " + (handler.getSolrCore() == null));
 
-        LocalSolrQueryRequest request = new LocalSolrQueryRequest(handler.getSolrCore(), LuceneServer.DEFAULT_QUERY);
-
-        SolrPluginUtils.setDefaults(request, LuceneServer.DEFAULT_QUERY, solrQuery, null);
+        LocalSolrQueryRequest request = new LocalSolrQueryRequest(handler.getSolrCore(), solrQuery);
 
         String q = solrQuery.getQuery();
         String[] fq = solrQuery.getFilterQueries();
@@ -1641,7 +1639,7 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
                 } else {
                     //需要排序
                     LOG.info(sort.toString());
-                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, false, false, false);
+                    topDocsCollector = TopFieldCollector.create(sort, offset + limit, true, true, true, true);
                 }
 
 
@@ -1663,9 +1661,9 @@ public class KattaLuceneServer implements IContentServer, KattaServerProtocol, I
                 TopDocs topDocs = topDocsCollector.topDocs(offset, limit);
                 for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
                     if (fields != null) {
-                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc, fields)));
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc, fields), scoreDoc.score));
                     } else {
-                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc)));
+                        docs.add(convertor.convert(searcher.doc(scoreDoc.doc), scoreDoc.score));
                     }
                 }
 
