@@ -215,10 +215,10 @@ public class QueryResponse implements Serializable {
                 return new BooleanComparator(field, asc);
 
             default:
-                System.out.println("unknown type");
+                return new TextComparator(field, asc);
                 //throw new IllegalArgumentException("unknown sort type: " + type + " from " + field);
         }
-        return new TextComparator(field, asc);
+
     }
 
 }
@@ -226,9 +226,15 @@ public class QueryResponse implements Serializable {
 
 class KattaListComparator implements Comparator<Map<String, Serializable>> {
 
+    /**
+     * 排序列表
+     */
     protected List<Comparator> comparators;
 
 
+    /**
+     * 正排序还是倒排序？ 正排序等于1，1*任何值不变。倒排序为-1，-1 *任何值为相反数。
+     */
     public int asc = 1;
 
 
@@ -258,6 +264,9 @@ class KattaListComparator implements Comparator<Map<String, Serializable>> {
 
 class StringComparator implements Comparator<Map<String, Serializable>> {
 
+    /**
+     * 正排序还是倒排序？ 正排序等于1，1*任何值不变。倒排序为-1，-1 *任何值为相反数。
+     */
     public int asc = 1;
 
 
@@ -299,7 +308,9 @@ class TextComparator extends StringComparator {
 
 
 class IntegerComparator implements Comparator<SolrDocument> {
-
+    /**
+     * 正排序还是倒排序？ 正排序等于1，1*任何值不变。倒排序为-1，-1 *任何值为相反数。
+     */
     public int asc = 1;
 
 
@@ -324,6 +335,9 @@ class IntegerComparator implements Comparator<SolrDocument> {
 
 class LongComparator implements Comparator<SolrDocument> {
 
+    /**
+     * 正排序还是倒排序？ 正排序等于1，1*任何值不变。倒排序为-1，-1 *任何值为相反数。
+     */
     public int asc = 1;
 
 
@@ -346,6 +360,9 @@ class LongComparator implements Comparator<SolrDocument> {
 
 class DoubleComparator implements Comparator<SolrDocument> {
 
+    /**
+     * 正排序还是倒排序？ 正排序等于1，1*任何值不变。倒排序为-1，-1 *任何值为相反数。
+     */
     public int asc = 1;
 
 
@@ -370,6 +387,9 @@ class DoubleComparator implements Comparator<SolrDocument> {
 
 class BooleanComparator implements Comparator<SolrDocument> {
 
+    /**
+     * 正排序还是倒排序？ 正排序等于1，1*任何值不变。倒排序为-1，-1 *任何值为相反数。
+     */
     public int asc = 1;
 
 
