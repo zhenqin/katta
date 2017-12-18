@@ -781,7 +781,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
      * @param limit
      * @throws IOException
      */
-    protected final void search(SolrQuery query,
+    protected void search(SolrQuery query,
                                 String[] shards,
                                 HitsMapWritable result,
                                 int limit,
@@ -869,7 +869,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
      * @param response
      * @throws IOException
      */
-    protected final void query(SolrQuery query,
+    protected void query(SolrQuery query,
                                 String[] shards,
                                 QueryResponse response,
                                 long timeout) throws IOException {
@@ -1006,7 +1006,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
      * @param shards
      * @throws IOException
      */
-    protected final GroupResultWritable<Writable> group(SolrQuery query,
+    protected GroupResultWritable<Writable> group(SolrQuery query,
                                String[] shards,
                                long timeout) throws IOException {
         timeout = getCollectorTiemout(timeout);
@@ -1080,7 +1080,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
      * @param shards
      * @throws IOException
      */
-    protected final FacetResultWritable<Writable> facet(SolrQuery query,
+    protected FacetResultWritable<Writable> facet(SolrQuery query,
                                                         String[] shards,
                                                         long timeout) throws IOException {
         timeout = getCollectorTiemout(timeout);
@@ -1164,7 +1164,7 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
      * @return Facet Result
      * @throws IOException
      */
-    private FacetResultWritable facetByRange(SolrQuery solrQuery,
+    protected FacetResultWritable facetByRange(SolrQuery solrQuery,
                                      String[] shards,
                                      long timeout) throws IOException {
         timeout = getCollectorTiemout(timeout);

@@ -43,7 +43,7 @@ public class ZkConfiguration extends KattaConfiguration {
     public static final String ZOOKEEPER_TICK_TIME = "zookeeper.tick-time";
     public static final String ZOOKEEPER_INIT_LIMIT = "zookeeper.init-limit";
     public static final String ZOOKEEPER_SYNC_LIMIT = "zookeeper.sync-limit";
-    public static final String MONITOR_INT = "monitor.int";
+    public static final String MONITOR_INT = "katta.node.monitor.period.sec";
     public static final String ZOOKEEPER_DATA_DIR = "zookeeper.data-dir";
     public static final String ZOOKEEPER_LOG_DATA_DIR = "zookeeper.log-data-dir";
 
@@ -324,8 +324,13 @@ public class ZkConfiguration extends KattaConfiguration {
         return getString(ZOOKEEPER_LOG_DATA_DIR);
     }
 
+
+    /**
+     * 返回 Node 的监控输出频率， 返回时间单位为（s）
+     * @return
+     */
     public int getMonitorInt() {
-        return Integer.parseInt(getProperty(MONITOR_INT, "3000"));
+        return Integer.parseInt(getProperty(MONITOR_INT, "10"));
     }
 
 

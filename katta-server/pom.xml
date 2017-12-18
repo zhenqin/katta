@@ -29,6 +29,12 @@
             <artifactId>katta-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.ivyft.katta</groupId>
+            <artifactId>katta-hadoop</artifactId>
+            <version>1.6.8</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * <pre>
@@ -85,7 +86,11 @@ public class KattaSearchTest {
 
         query.setFacet(true);
         query.addFacetField("CNT_FOLLOWINGS");
+        Set group = indexOperator.group(query);
+        System.out.println(group);
+
         Map<Object, Integer> facet = indexOperator.facet(query);
         System.out.println(facet);
+
     }
 }
