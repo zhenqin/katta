@@ -51,10 +51,10 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>../data</directory>
+            <directory>../data/logs</directory>
             <outputDirectory>logs</outputDirectory>
             <includes>
-                <include>logs/*</include>
+                <include>*.md</include>
             </includes>
         </fileSet>
         <fileSet>
