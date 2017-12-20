@@ -97,7 +97,7 @@ public class KattaSocketReader {
 	}
 
 	public void initialize(InputSplit split)
-			throws IOException, InterruptedException {
+			throws IOException {
         // 创建无连接传输channel的辅助类(UDP),包括client和server
         socket = new Socket(this._split.getHost(),
                 this._split.getPort());
@@ -165,7 +165,7 @@ public class KattaSocketReader {
 
 
 
-	public synchronized boolean nextKeyValue() throws IOException, InterruptedException {
+	public synchronized boolean nextKeyValue() throws IOException {
         // 当前_cursor已经没数据了
         if (!_cursor.hasNext()) {
             // 检查下远程netty里变量还有值没？
@@ -211,16 +211,15 @@ public class KattaSocketReader {
 
 	}
 
-	public Object getCurrentKey() throws IOException, InterruptedException {
+	public Object getCurrentKey() throws IOException {
 		return _current.get(_split.getKeyField());
 	}
 
-	public SolrDocument getCurrentValue() throws IOException,
-			InterruptedException {
+	public SolrDocument getCurrentValue() throws IOException {
 		return _current;
 	}
 
-	public float getProgress() throws IOException, InterruptedException {
+	public float getProgress() throws IOException {
         float process = 0.0f;
         if(luceneResult != null) {
             //防止除以0抛异常
@@ -232,6 +231,14 @@ public class KattaSocketReader {
 	}
 
 
+	public long getPos() {
+        long pos = 0L;
+        if(luceneResult != null) {
+            //防止除以0抛异常
+            pos = luceneResult.getEnd();
+        }
+        return pos;
+    }
 
     /**
      * Close the record reader.

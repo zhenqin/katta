@@ -99,7 +99,7 @@ public class KattaInputSplit extends InputSplit implements Writable,
 
 	@Override
 	public String[] getLocations() throws IOException {
-		return new String[0];
+		return new String[]{ host + ":" + port};
 	}
 
 	@Override

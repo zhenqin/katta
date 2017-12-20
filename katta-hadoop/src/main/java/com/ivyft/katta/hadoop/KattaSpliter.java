@@ -46,7 +46,7 @@ public class KattaSpliter {
             throw new IllegalArgumentException("indexes must not empty.");
         }
 
-        ZkClient zkClient = new ZkClient(configuration.get("zookeeper.servers", "localhost"),
+        ZkClient zkClient = new ZkClient(configuration.get(KattaInputFormat.ZOOKEEPER_SERVERS, "localhost:2181"),
                 configuration.getInt("zookeeper.tick-time", 6000),
                 configuration.getInt("zookeeper.timeout", 60000));
 
@@ -61,13 +61,7 @@ public class KattaSpliter {
             ZkConfiguration zkConf = new ZkConfiguration(prop, null);
             InteractionProtocol protocol = new InteractionProtocol(zkClient, zkConf);
 
-            List<String> selectIndex = null;
-            if(indexes.length == 1 && StringUtils.equals(indexes[0], "*")) {
-                selectIndex = protocol.getIndices();
-            } else {
-                selectIndex = Arrays.asList(indexes);
-            }
-
+            List<String> selectIndex = Arrays.asList(indexes);
             for(String index : selectIndex) {
                 IndexMetaData indexMetaData = protocol.getIndexMD(index);
                 if(indexMetaData == null) {

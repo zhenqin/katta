@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -81,7 +82,23 @@ public class KattaLuceneServerTest {
         query.setRows(20);
 
         ResponseWritable responseWritable = server.query(new QueryWritable(query), new String[]{shard}, 5000);
-        System.out.println(responseWritable.getResponse().getNumFount());
+        QueryResponse response = responseWritable.getResponse();
+        System.out.println(response.getNumFount());
+
+        Collection<SolrDocument> docs = response.<SolrDocument>getDocs();
+        for (SolrDocument doc : docs) {
+            System.out.println(doc.get("USER_FOLLOWINGS").getClass().getName());
+        }
+    }
+
+
+
+    @Test
+    public void testKattaReader() throws Exception {
+        String shard = "userindex#OV92iJRxjPio5PX18JR";
+        SolrQuery query = new SolrQuery("USER_FOLLOWINGS:0");
+        query.setStart(60);
+        query.setRows(20);
 
         KattaReader reader = KattaReader.getSingleKattaInstance(new String[]{shard},
                 query, "localhost", 5881,
