@@ -59,6 +59,26 @@
                     <groupId>org.apache.hive.shims</groupId>
                     <artifactId>hive-shims-0.20S</artifactId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>hadoop-yarn-common</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hadoop-yarn-api</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hadoop-yarn-server-web-proxy</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>hadoop-yarn-server-applicationhistoryservice</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -70,6 +90,14 @@
                 <exclusion>
                     <groupId>org.antlr</groupId>
                     <artifactId>antlr-runtime</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.derby</groupId>
+                    <artifactId>derby</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.jolbox</groupId>
+                    <artifactId>bonecp</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -150,6 +178,14 @@
                 <exclusion>
                     <groupId>org.eclipse.jetty.aggregate</groupId>
                     <artifactId>jetty-all</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.sf.jpam</groupId>
+                    <artifactId>jpam</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.curator</groupId>
+                    <artifactId>curator-recipes</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
