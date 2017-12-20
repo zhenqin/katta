@@ -59,6 +59,11 @@ public class NodeMetaData implements Serializable {
 
 
     /**
+     *
+     */
+    protected int exportPort;
+
+    /**
      * Node启动时间
      */
     private long startTimeStamp = System.currentTimeMillis();
@@ -80,13 +85,13 @@ public class NodeMetaData implements Serializable {
         this.name = name;
     }
 
+    public NodeMetaData(String name, int exportPort) {
+        this.name = name;
+        this.exportPort = exportPort;
+    }
 
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
 
@@ -113,6 +118,15 @@ public class NodeMetaData implements Serializable {
 
     public void setQueriesPerMinute(float queriesPerMinute) {
         this.queriesPerMinute = queriesPerMinute;
+    }
+
+
+    public int getPort() {
+        return Integer.parseInt(name.substring(name.indexOf(":") + 1, name.length()));
+    }
+
+    public int getExportPort() {
+        return exportPort;
     }
 
     @Override

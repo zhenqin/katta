@@ -45,9 +45,6 @@ public class KattaInputFormat extends InputFormat<Object, SolrDocument> {
     public static final String INPUT_LIMIT = "katta.input.limit";
 
 
-    public static final String SOCKET_PORT = "katta.socket.port";
-
-
     public static final String INCLUDE_FIELDS = "katta.include.fields";
 
 
@@ -107,15 +104,6 @@ public class KattaInputFormat extends InputFormat<Object, SolrDocument> {
 
     public static void setIncludeFields(Configuration conf, String[] fields) {
         conf.setStrings(INCLUDE_FIELDS, fields);
-    }
-
-
-    public static int getSocketPort(Configuration conf) {
-        return conf.getInt(SOCKET_PORT, 2808);
-    }
-
-    public static void setSocketPort(Configuration conf, int port) {
-        conf.setInt(SOCKET_PORT, port);
     }
 
     public static void setInputKey(Configuration conf, String fieldName) {

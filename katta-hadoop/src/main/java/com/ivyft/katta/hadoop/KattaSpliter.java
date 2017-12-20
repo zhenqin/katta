@@ -2,6 +2,7 @@ package com.ivyft.katta.hadoop;
 
 import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.metadata.IndexMetaData;
+import com.ivyft.katta.protocol.metadata.NodeMetaData;
 import com.ivyft.katta.protocol.metadata.Shard;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.I0Itec.zkclient.ZkClient;
@@ -75,8 +76,11 @@ public class KattaSpliter {
                         throw new IllegalStateException(shard.getName() + " no node to install.");
                     }
                     String node = randomNode(installNodes);
+
+                    NodeMetaData nodeMD = protocol.getNodeMD(node);
+
                     KattaInputSplit split = new KattaInputSplit();
-                    split.setPort(KattaInputFormat.getSocketPort(configuration));
+                    split.setPort(nodeMD.getExportPort());
                     split.setKeyField(KattaInputFormat.getInputKey(configuration));
                     split.setQuery(KattaInputFormat.getInputQuery(configuration));
                     split.setLimit(KattaInputFormat.getLimit(configuration));

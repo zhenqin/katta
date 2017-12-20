@@ -248,78 +248,80 @@ public class SocketExportHandler implements Runnable {
             } catch (Exception e1) {
                 throw new RuntimeException(e1);
             }
-            boolean more = true;
+
+            // 是否有数据
+            boolean more = topDocs.totalHits > 0;
             try {
-                do {
-                    Object message = inputStream.readObject();
-                    if (message == null) {
-                        continue;
-                    }
+                Next next = (Next) inputStream.readObject();
+                if (next == null) {
+                    return;
+                }
+                log.info(next.toString());
+                int i = 0;
+                while (more){
+                    final int offset = i;
+                    int seg = offset + next.getLimit();
+                    int maxLength = topDocs.scoreDocs.length;
+                    seg = (seg > maxLength) ? maxLength : seg;
 
-                    if (message instanceof Next) {
-                        Next next = (Next) message;
-                        log.info(next.toString());
-                        List<SolrDocument> data = new ArrayList<SolrDocument>(next.getLimit());
-                        //第二次是循环遍历
-                        int i = next.getStart();
-                        int offset = next.getStart() + next.getLimit();
-                        int maxLength = topDocs.scoreDocs.length;
-                        offset = (offset > maxLength) ? maxLength : offset;
-                        while (i < offset) {
-                            try {
-                                Document document;
-                                SolrDocument doc = new SolrDocument();
-                                //new HashSet<String>(Arrays.asList("sid", "title", "content"));
-                                if (query.getFields() == null) {
-                                    document = searcher.doc(topDocs.scoreDocs[i].doc);
-                                } else {
-                                    document = searcher.doc(topDocs.scoreDocs[i].doc, query.getFields());
-                                }
-                                for (IndexableField field : document) {
-                                    if(field.stringValue() == null) {
-                                        continue;
-                                    }
-
-                                    //判断各种数据类型
-                                    if (field.fieldType().docValueType() == FieldInfo.DocValuesType.NUMERIC) {
-                                        doc.addField(field.name(), field.numericValue());
-                                    } else {
-                                        doc.addField(field.name(), field.stringValue());
-                                    }
-                                }
-
-                                //结果集中是否加入评分? 如果需要加入评分, 则加入
-                                if (query.isAddScore()) {
-                                    doc.addField("score", topDocs.scoreDocs[i].score);
-                                }
-                                data.add(doc);
-                            } catch (Exception e1) {
-                                throw new RuntimeException(e1);
+                    List<SolrDocument> data = new ArrayList<SolrDocument>(next.getLimit());
+                    for (int j = offset; j < seg; j++) {
+                        try {
+                            Document document;
+                            SolrDocument doc = new SolrDocument();
+                            //new HashSet<String>(Arrays.asList("sid", "title", "content"));
+                            if (query.getFields() == null) {
+                                document = searcher.doc(topDocs.scoreDocs[i].doc);
+                            } else {
+                                document = searcher.doc(topDocs.scoreDocs[i].doc, query.getFields());
                             }
+                            for (IndexableField field : document) {
+                                if (field.stringValue() == null) {
+                                    continue;
+                                }
+
+                                //判断各种数据类型
+                                if (field.fieldType().docValueType() == FieldInfo.DocValuesType.NUMERIC) {
+                                    doc.addField(field.name(), field.numericValue());
+                                } else {
+                                    doc.addField(field.name(), field.stringValue());
+                                }
+                            }
+
+                            //结果集中是否加入评分? 如果需要加入评分, 则加入
+                            if (query.isAddScore()) {
+                                doc.addField("score", topDocs.scoreDocs[i].score);
+                            }
+                            data.add(doc);
+
+                            // 这里记得一定要自增
                             i++;
+                        } catch (Exception e1) {
+                            throw new RuntimeException(e1);
                         }
-
-                        LuceneResult result = new LuceneResult();
-                        result.setDocs(data);
-                        result.setLimit(next.getLimit());
-                        result.setStart(next.getStart());
-                        result.setEnd(offset);
-                        result.setTotal(maxLength);
-                        result.setMaxScore(topDocs.getMaxScore());
-
-                        if(offset >= maxLength) {
-                            more = false;
-                        }
-
-                        log.info(ip + " sended, socket output start: [" + next.getStart() + "],end: [" +
-                                offset + "], limit: ["
-                                + next.getLimit() + "]");
-
-                        result.write(outputStream);
-                        //输出给客户端
-                        outputStream.flush();
                     }
-                } while (more);
+
+
+                    LuceneResult result = new LuceneResult();
+                    result.setDocs(data);
+                    result.setLimit(next.getLimit());
+                    result.setStart(offset);
+                    result.setEnd(seg);
+                    result.setTotal(maxLength);
+                    result.setMaxScore(topDocs.getMaxScore());
+
+                    if(seg >= maxLength) {
+                        more = false;
+                    }
+
+                    log.info(ip + " sended, socket output: [" + offset + "=>" +
+                            seg + "], all: ["
+                            + maxLength + "], current batch docs size: " + data.size());
+
+                    result.write(outputStream);
+                    //输出给客户端
+                    outputStream.flush();
+                }
                 log.info(ip + " will disconnect.");
             } catch (Exception e) {
                 log.error(ExceptionUtils.getFullStackTrace(e));

@@ -174,29 +174,11 @@ public class KattaSocketReader {
             if (next) {
                 // 远程有呢，就送远程继续拿，放到当前的_cursor
                 // 获得第一批数据
-                Next next = new Next(luceneResult.getEnd(), (short) _split.getLimit());
-
                 try {
-                    outputStream.writeObject(next);
-
-                    try {
-                        outputStream.flush();
-                    } catch (Exception e) {
-                        log.warn("", e);
-                    }
-
-                    //luceneResult = (LuceneResult)inputStream.readObject();
                     luceneResult = new LuceneResult();
                     luceneResult.readFields(inputStream);
                     _cursor = luceneResult.getDocs().iterator();
                     _current = _cursor.next();
-
-                    try {
-                        //这里 reset 为了防止内存泄露, 否则会有大量的内存句柄没有释放
-                        outputStream.reset();
-                    } catch (Exception e) {
-                        log.warn("", e);
-                    }
                 } catch (Exception e) {
                     log.error(ExceptionUtils.getFullStackTrace(e));
                     return false;
