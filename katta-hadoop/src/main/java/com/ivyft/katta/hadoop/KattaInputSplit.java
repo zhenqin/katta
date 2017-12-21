@@ -49,7 +49,7 @@ public class KattaInputSplit extends InputSplit implements Writable,
 
 
     /**
-     * 查询端口号
+     * 查询
      */
 	private SolrQuery query;
 

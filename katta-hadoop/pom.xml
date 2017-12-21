@@ -34,6 +34,7 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-jdbc</artifactId>
             <version>${hive.version}</version>
+            <optional>true</optional>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.hive</groupId>
@@ -50,6 +51,7 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-shims</artifactId>
             <version>${hive.version}</version>
+            <optional>true</optional>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.hive.shims</groupId>
@@ -86,6 +88,7 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-metastore</artifactId>
             <version>${hive.version}</version>
+            <optional>true</optional>
             <exclusions>
                 <exclusion>
                     <groupId>org.antlr</groupId>
@@ -106,6 +109,7 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>${hive.version}</version>
+            <optional>true</optional>
             <exclusions>
                 <exclusion>
                     <artifactId>groovy-all</artifactId>
@@ -170,6 +174,7 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-service</artifactId>
             <version>${hive.version}</version>
+            <optional>true</optional>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.hive</groupId>

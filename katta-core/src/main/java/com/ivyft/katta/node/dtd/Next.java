@@ -36,6 +36,12 @@ public class Next implements Serializable {
 
 
     /**
+     * 该次读取的最大 Doc 数量
+     */
+    private int maxDocs = Integer.MAX_VALUE;
+
+
+    /**
      * 默认的start. 0
      * @param start
      */
@@ -55,6 +61,12 @@ public class Next implements Serializable {
     }
 
 
+    public Next(int start, short limit, int maxDocs) {
+        this.start = start;
+        this.limit = limit;
+        this.maxDocs = maxDocs;
+    }
+
     public int getStart() {
         return start;
     }
@@ -72,8 +84,16 @@ public class Next implements Serializable {
     }
 
 
+    public int getMaxDocs() {
+        return maxDocs;
+    }
+
+    public void setMaxDocs(int maxDocs) {
+        this.maxDocs = maxDocs;
+    }
+
     @Override
     public String toString() {
-        return "start: [" + start + "], limit:["+limit+"]";
+        return "start: [" + start + "], limit:["+limit+"], maxDocs:["+maxDocs+"]";
     }
 }

@@ -141,6 +141,8 @@ public class SocketExportHandler implements Runnable {
                 //第一次是查询, 准备好各种参数
                 query = (LuceneQuery) message;
 
+                //Single Lucene Server 需要调用一下这个方法
+                searcherHandle = contentServer.getSearcherHandleByShard(query.getShardName());
                 SolrHandler solrHandler = contentServer.getSolrHandlerByShard(query.getShardName());
                 if(solrHandler != null) {
                     this.core = solrHandler.getSolrCore();
@@ -152,7 +154,6 @@ public class SocketExportHandler implements Runnable {
                 }
 
                 //获取Solr 的 Lucene SearchIndex.
-                searcherHandle = contentServer.getSearcherHandleByShard(query.getShardName());
                 searcher = searcherHandle.getSearcher();
 
                 if(searcher == null) {
@@ -196,6 +197,7 @@ public class SocketExportHandler implements Runnable {
         } finally {
             if(searcherHandle != null) {
                 searcherHandle.finishSearcher();
+                searcherHandle = null;
             }
         }
     }
@@ -256,16 +258,21 @@ public class SocketExportHandler implements Runnable {
                 if (next == null) {
                     return;
                 }
+
+                final int maxDocs = next.getMaxDocs();
+                final int offset = next.getStart();
+                final int maxLength = topDocs.scoreDocs.length;
                 log.info(next.toString());
-                int i = 0;
+                int i = offset;
                 while (more){
-                    final int offset = i;
-                    int seg = offset + next.getLimit();
-                    int maxLength = topDocs.scoreDocs.length;
-                    seg = (seg > maxLength) ? maxLength : seg;
+                    int seg = i + next.getLimit();
+                    seg = Math.min(seg, Math.min(maxDocs, maxLength));
 
                     List<SolrDocument> data = new ArrayList<SolrDocument>(next.getLimit());
-                    for (int j = offset; j < seg; j++) {
+
+                    // 从 offset 开始读取
+                    // 这里记得一定要自增
+                    for (int j = i; j < seg; i++, j++) {
                         try {
                             Document document;
                             SolrDocument doc = new SolrDocument();
@@ -293,9 +300,6 @@ public class SocketExportHandler implements Runnable {
                                 doc.addField("score", topDocs.scoreDocs[i].score);
                             }
                             data.add(doc);
-
-                            // 这里记得一定要自增
-                            i++;
                         } catch (Exception e1) {
                             throw new RuntimeException(e1);
                         }
@@ -310,7 +314,7 @@ public class SocketExportHandler implements Runnable {
                     result.setTotal(maxLength);
                     result.setMaxScore(topDocs.getMaxScore());
 
-                    if(seg >= maxLength) {
+                    if(seg >= Math.min(maxDocs, maxLength)) {
                         more = false;
                     }
 
