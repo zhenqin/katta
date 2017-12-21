@@ -138,7 +138,7 @@ public class KattaSocketReader {
             log.warn("", e);
         }
 		// 获得第一批数据
-        Next next = new Next(0, (short) _split.getLimit());
+        Next next = new Next(_split.getStart(), (short) _split.getLimit(), _split.getMaxDocs());
 
         try {
             outputStream.writeObject(next);
