@@ -5,6 +5,7 @@ import com.ivyft.katta.lib.lucene.SolrHandler;
 import com.ivyft.katta.node.dtd.LuceneQuery;
 import com.ivyft.katta.node.dtd.LuceneResult;
 import com.ivyft.katta.node.dtd.Next;
+import com.ivyft.katta.node.dtd.OK;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
@@ -265,6 +266,7 @@ public class SocketExportHandler implements Runnable {
                 log.info(next.toString());
                 int i = offset;
                 while (more){
+                    final int start = i;
                     int seg = i + next.getLimit();
                     seg = Math.min(seg, Math.min(maxDocs, maxLength));
 
@@ -318,7 +320,7 @@ public class SocketExportHandler implements Runnable {
                         more = false;
                     }
 
-                    log.info(ip + " sended, socket output: [" + offset + "=>" +
+                    log.info(ip + " sended, socket output: [" + start + "=>" +
                             seg + "], all: ["
                             + maxLength + "], current batch docs size: " + data.size());
 
@@ -327,6 +329,9 @@ public class SocketExportHandler implements Runnable {
                     outputStream.flush();
                 }
                 log.info(ip + " will disconnect.");
+
+                // 客户端接收完成，最后会发来一个 OK 对象，OK 代表接受完成
+                Object o = inputStream.readObject();
             } catch (Exception e) {
                 log.error(ExceptionUtils.getFullStackTrace(e));
                 if (!socket.isConnected() && !socket.isClosed()) {

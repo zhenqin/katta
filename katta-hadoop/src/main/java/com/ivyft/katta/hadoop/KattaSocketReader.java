@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import com.ivyft.katta.node.dtd.LuceneQuery;
 import com.ivyft.katta.node.dtd.LuceneResult;
 import com.ivyft.katta.node.dtd.Next;
+import com.ivyft.katta.node.dtd.OK;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -168,8 +170,14 @@ public class KattaSocketReader {
 	public synchronized boolean nextKeyValue() throws IOException {
         // 当前_cursor已经没数据了
         if (!_cursor.hasNext()) {
-            // 检查下远程netty里变量还有值没？
-            next = luceneResult.getEnd() < luceneResult.getTotal();
+            int total = Math.min(_split.getMaxDocs(), luceneResult.getTotal());
+            if(luceneResult.getEnd() >= total) {
+                // 接收完成，发送一个 OK 对象，服务器端会退出
+                outputStream.writeObject(new OK());
+                return false;
+            }
+            // end 小于 total，则说明远程还有数据，需要继续读取
+            next = true;
             // 进入下面的if说明远程也没了
             if (next) {
                 // 远程有呢，就送远程继续拿，放到当前的_cursor
@@ -179,7 +187,14 @@ public class KattaSocketReader {
                     luceneResult.readFields(inputStream);
                     _cursor = luceneResult.getDocs().iterator();
                     _current = _cursor.next();
+                } catch (EOFException e) {
+                    // 远程接口已经关闭，读取到末尾了
+                    // 接收完成，发送一个 OK 对象，服务器端会退出
+                    outputStream.writeObject(new OK());
+                    return false;
                 } catch (Exception e) {
+                    // 接收完成，发送一个 OK 对象，服务器端会退出
+                    outputStream.writeObject(new OK());
                     log.error(ExceptionUtils.getFullStackTrace(e));
                     return false;
                 }

@@ -67,7 +67,9 @@ public class KattaReader {
     protected final ExecutorService executor;
 
 
-
+    /**
+     * Katta Split
+     */
     protected final List<KattaInputSplit> splits;
 
 
@@ -82,19 +84,21 @@ public class KattaReader {
     public static KattaReader getInstance(String[] indexNames,
                                           SolrQuery query,
                                           Configuration conf,
+                                          String zkServers,
+                                          String keyField,
+                                          int batchSize,
                                           ExecutorService executor) throws Exception {
-        /*
-        KattaInputFormat.setInputKey(conf, keyField);
-        KattaInputFormat.setLimit(configuration, limit);
-        KattaInputFormat.setSocketPort(configuration, port);
-        */
 
-        String inputKey = KattaInputFormat.getInputKey(conf);
-        if(StringUtils.isBlank(inputKey)) {
-            throw new IllegalArgumentException("input key must not be blank.");
+        if(batchSize <= 0) {
+            batchSize = 5000;
         }
 
-
+        if(StringUtils.isBlank(keyField)) {
+            throw new IllegalArgumentException("input key must not be blank.");
+        }
+        KattaInputFormat.setZookeeperServers(conf, zkServers);
+        KattaInputFormat.setInputKey(conf, keyField);
+        KattaInputFormat.setLimit(conf, batchSize);
         KattaInputFormat.setInputQuery(conf, query);
         KattaInputFormat.setIndexNames(conf, indexNames);
         List<KattaInputSplit> splits = KattaSpliter.calculateSplits(conf);
@@ -102,14 +106,15 @@ public class KattaReader {
     }
 
 
-
-
-
     /**
      * Solr Cloud Reader
-     * @param indexNames
-     * @param query
-     * @param executor
+     * @param indexNames 索引名称
+     * @param query 查询 Solr
+     * @param host 索引所在 Host
+     * @param port 索引所在 Host 的打开端口号
+     * @param inputKey 返回值 Key 使用哪个 Field
+     * @param batchSize 每个批次烦恼会的数量
+     * @param executor 线程池
      * @return
      * @throws Exception
      */
@@ -118,11 +123,50 @@ public class KattaReader {
                                                      String host,
                                                      int port,
                                                      String inputKey,
-                                                     int limit,
+                                                     int batchSize,
+                                                     ExecutorService executor) throws Exception {
+        return getSingleKattaInstance(indexNames,
+                query,
+                host,
+                port,
+                inputKey,
+                batchSize,
+                0,
+                Integer.MAX_VALUE,
+                executor);
+    }
+
+
+
+    /**
+     * Solr Cloud Reader
+     * @param indexNames 索引名称
+     * @param query 查询 Solr
+     * @param host 索引所在 Host
+     * @param port 索引所在 Host 的打开端口号
+     * @param inputKey 返回值 Key 使用哪个 Field
+     * @param batchSize 每个批次烦恼会的数量
+     * @param start 从哪个点开始读取
+     * @param maxDocs 读取最多的数据量
+     * @param executor 线程池
+     * @return
+     * @throws Exception
+     */
+    public static KattaReader getSingleKattaInstance(String[] indexNames,
+                                                     SolrQuery query,
+                                                     String host,
+                                                     int port,
+                                                     String inputKey,
+                                                     int batchSize,
+                                                     int start,
+                                                     int maxDocs,
                                                      ExecutorService executor) throws Exception {
         List<KattaInputSplit> splits = new ArrayList<KattaInputSplit>(indexNames.length);
         for (String name : indexNames) {
-            splits.add(new KattaInputSplit(host, port, name, query, inputKey, limit));
+            KattaInputSplit split = new KattaInputSplit(host, port, name, query, inputKey, batchSize);
+            split.setStart(start);
+            split.setMaxDocs(maxDocs);
+            splits.add(split);
         }
 
         return new KattaReader(indexNames, query, splits, executor);
