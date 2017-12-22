@@ -19,7 +19,7 @@
     <parent>
         <groupId>com.ivyft.katta</groupId>
         <artifactId>katta</artifactId>
-        <version>1.6.8</version>
+        <version>1.6.9</version>
     </parent>
 
 
@@ -33,7 +33,7 @@
         <dependency>
             <groupId>com.ivyft.katta</groupId>
             <artifactId>katta-hadoop</artifactId>
-            <version>1.6.8</version>
+            <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
 
