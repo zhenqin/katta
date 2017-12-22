@@ -7,6 +7,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.SolrDocument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -29,6 +31,7 @@ import java.util.Set;
 public class KattaInputFormat extends InputFormat<Object, SolrDocument> {
 
 
+    public static final String ZOOKEEPER_SERVERS = "zookeeper.servers";
 
 
     public static final String INPUT_KEY = "katta.input.key";
@@ -42,11 +45,14 @@ public class KattaInputFormat extends InputFormat<Object, SolrDocument> {
     public static final String INPUT_LIMIT = "katta.input.limit";
 
 
-    public static final String SOCKET_PORT = "katta.socket.port";
-
-
     public static final String INCLUDE_FIELDS = "katta.include.fields";
 
+
+
+    /**
+     * log
+     */
+    private static Logger log = LoggerFactory.getLogger(KattaInputFormat.class);
 
 
     public KattaInputFormat() {
@@ -91,17 +97,13 @@ public class KattaInputFormat extends InputFormat<Object, SolrDocument> {
         return Sets.newHashSet(conf.getStrings(INCLUDE_FIELDS));
     }
 
+
+    public static void setZookeeperServers(Configuration conf, String zookeeper) {
+        conf.setStrings(ZOOKEEPER_SERVERS, zookeeper);
+    }
+
     public static void setIncludeFields(Configuration conf, String[] fields) {
         conf.setStrings(INCLUDE_FIELDS, fields);
-    }
-
-
-    public static int getSocketPort(Configuration conf) {
-        return conf.getInt(SOCKET_PORT, 2808);
-    }
-
-    public static void setSocketPort(Configuration conf, int port) {
-        conf.setInt(SOCKET_PORT, port);
     }
 
     public static void setInputKey(Configuration conf, String fieldName) {
@@ -126,10 +128,13 @@ public class KattaInputFormat extends InputFormat<Object, SolrDocument> {
             try {
                 return (SolrQuery)serializer.deserialize(decodeBytes(s));
             } catch (Exception e) {
-                throw new IllegalArgumentException(e);
+                log.info("use solr query " + s);
+                return new SolrQuery(s);
             }
         }
-        return null;
+
+        log.info("use solr query *:*");
+        return new SolrQuery("*:*");
     }
 
 

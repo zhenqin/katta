@@ -119,7 +119,7 @@ public class JmxMonitor implements IMonitor {
                     }
 
                     synchronized (this) {
-                        this.wait(protocol.getZkConfiguration().getMonitorInt());
+                        this.wait(protocol.getZkConfiguration().getMonitorInt() * 1000);
                     }
                 }
             } catch (InterruptedException e) {

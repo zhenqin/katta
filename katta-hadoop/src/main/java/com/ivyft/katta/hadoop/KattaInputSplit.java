@@ -49,7 +49,7 @@ public class KattaInputSplit extends InputSplit implements Writable,
 
 
     /**
-     * 查询端口号
+     * 查询
      */
 	private SolrQuery query;
 
@@ -63,7 +63,19 @@ public class KattaInputSplit extends InputSplit implements Writable,
 	/**
 	 * 每次查询的最大量
 	 */
-	private int limit = 200;
+	private int limit = 2000;
+
+
+	/**
+	 * 从哪里开始？
+	 */
+	private int start = 0;
+
+
+	/**
+	 * 本段读取最多的文档数量
+	 */
+	private int maxDocs = Integer.MAX_VALUE;
 
     /**
      * log
@@ -99,7 +111,7 @@ public class KattaInputSplit extends InputSplit implements Writable,
 
 	@Override
 	public String[] getLocations() throws IOException {
-		return new String[0];
+		return new String[]{ host + ":" + port};
 	}
 
 	@Override
@@ -109,6 +121,8 @@ public class KattaInputSplit extends InputSplit implements Writable,
         out.writeUTF(shardName);
 		out.writeInt(limit);
 		out.writeUTF(keyField);
+		out.writeInt(start);
+		out.writeInt(maxDocs);
 
         Serializer<Serializable> serializer = new JdkSerializer();
         byte[] bytes = serializer.serialize(query);
@@ -124,6 +138,8 @@ public class KattaInputSplit extends InputSplit implements Writable,
         shardName = in.readUTF();
 		limit = in.readInt();
 		keyField = in.readUTF();
+		this.start = in.readInt();
+		this.maxDocs = in.readInt();
 
         int length = in.readInt();
         byte[] bytes = new byte[length];
@@ -182,15 +198,34 @@ public class KattaInputSplit extends InputSplit implements Writable,
         this.limit = limit;
     }
 
+	public int getStart() {
+		return start;
+	}
 
-    @Override
-    public String toString() {
-        return "KattaInputSplit{" +
-                "host='" + host + '\'' +
-                ", port=" + port +
-                ", query=" + query +
-                ", keyField='" + keyField + '\'' +
-                ", limit=" + limit +
-                '}';
-    }
+	public void setStart(int start) {
+		this.start = start;
+	}
+
+	public int getMaxDocs() {
+		return maxDocs;
+	}
+
+	public void setMaxDocs(int maxDocs) {
+		this.maxDocs = maxDocs;
+	}
+
+
+	@Override
+	public String toString() {
+		return "KattaInputSplit{" +
+				"host='" + host + '\'' +
+				", port=" + port +
+				", shardName='" + shardName + '\'' +
+				", query=" + query.getQuery() +
+				", keyField='" + keyField + '\'' +
+				", limit=" + limit +
+				", start=" + start +
+				", maxDocs=" + maxDocs +
+				'}';
+	}
 }

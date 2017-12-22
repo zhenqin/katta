@@ -4,6 +4,7 @@ import com.google.common.collect.Sets;
 import com.ivyft.katta.node.dtd.LuceneQuery;
 import com.ivyft.katta.node.dtd.LuceneResult;
 import com.ivyft.katta.node.dtd.Next;
+import com.ivyft.katta.node.dtd.OK;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -97,7 +99,7 @@ public class KattaSocketReader {
 	}
 
 	public void initialize(InputSplit split)
-			throws IOException, InterruptedException {
+			throws IOException {
         // 创建无连接传输channel的辅助类(UDP),包括client和server
         socket = new Socket(this._split.getHost(),
                 this._split.getPort());
@@ -138,7 +140,7 @@ public class KattaSocketReader {
             log.warn("", e);
         }
 		// 获得第一批数据
-        Next next = new Next(0, (short) _split.getLimit());
+        Next next = new Next(_split.getStart(), (short) _split.getLimit(), _split.getMaxDocs());
 
         try {
             outputStream.writeObject(next);
@@ -165,39 +167,34 @@ public class KattaSocketReader {
 
 
 
-	public synchronized boolean nextKeyValue() throws IOException, InterruptedException {
+	public synchronized boolean nextKeyValue() throws IOException {
         // 当前_cursor已经没数据了
         if (!_cursor.hasNext()) {
-            // 检查下远程netty里变量还有值没？
-            next = luceneResult.getEnd() < luceneResult.getTotal();
+            int total = Math.min(_split.getMaxDocs(), luceneResult.getTotal());
+            if(luceneResult.getEnd() >= total) {
+                // 接收完成，发送一个 OK 对象，服务器端会退出
+                outputStream.writeObject(new OK());
+                return false;
+            }
+            // end 小于 total，则说明远程还有数据，需要继续读取
+            next = true;
             // 进入下面的if说明远程也没了
             if (next) {
                 // 远程有呢，就送远程继续拿，放到当前的_cursor
                 // 获得第一批数据
-                Next next = new Next(luceneResult.getEnd(), (short) _split.getLimit());
-
                 try {
-                    outputStream.writeObject(next);
-
-                    try {
-                        outputStream.flush();
-                    } catch (Exception e) {
-                        log.warn("", e);
-                    }
-
-                    //luceneResult = (LuceneResult)inputStream.readObject();
                     luceneResult = new LuceneResult();
                     luceneResult.readFields(inputStream);
                     _cursor = luceneResult.getDocs().iterator();
                     _current = _cursor.next();
-
-                    try {
-                        //这里 reset 为了防止内存泄露, 否则会有大量的内存句柄没有释放
-                        outputStream.reset();
-                    } catch (Exception e) {
-                        log.warn("", e);
-                    }
+                } catch (EOFException e) {
+                    // 远程接口已经关闭，读取到末尾了
+                    // 接收完成，发送一个 OK 对象，服务器端会退出
+                    outputStream.writeObject(new OK());
+                    return false;
                 } catch (Exception e) {
+                    // 接收完成，发送一个 OK 对象，服务器端会退出
+                    outputStream.writeObject(new OK());
                     log.error(ExceptionUtils.getFullStackTrace(e));
                     return false;
                 }
@@ -211,16 +208,15 @@ public class KattaSocketReader {
 
 	}
 
-	public Object getCurrentKey() throws IOException, InterruptedException {
+	public Object getCurrentKey() throws IOException {
 		return _current.get(_split.getKeyField());
 	}
 
-	public SolrDocument getCurrentValue() throws IOException,
-			InterruptedException {
+	public SolrDocument getCurrentValue() throws IOException {
 		return _current;
 	}
 
-	public float getProgress() throws IOException, InterruptedException {
+	public float getProgress() throws IOException {
         float process = 0.0f;
         if(luceneResult != null) {
             //防止除以0抛异常
@@ -232,6 +228,14 @@ public class KattaSocketReader {
 	}
 
 
+	public long getPos() {
+        long pos = 0L;
+        if(luceneResult != null) {
+            //防止除以0抛异常
+            pos = luceneResult.getEnd();
+        }
+        return pos;
+    }
 
     /**
      * Close the record reader.

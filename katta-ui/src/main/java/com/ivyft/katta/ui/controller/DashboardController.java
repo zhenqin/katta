@@ -1,6 +1,7 @@
 package com.ivyft.katta.ui.controller;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.inject.Singleton;
 import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.metadata.IndexMetaData;
 import com.ivyft.katta.protocol.metadata.MasterMetaData;
@@ -13,6 +14,7 @@ import com.ivyft.katta.util.ZkConfiguration;
 import org.I0Itec.zkclient.ZkClient;
 import org.joda.time.DateTime;
 
+import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
@@ -32,6 +34,7 @@ import java.util.*;
  * @author zhenqin
  */
 @Action
+@Singleton
 public class DashboardController {
 
 
@@ -41,10 +44,10 @@ public class DashboardController {
     protected InteractionProtocol protocol;
 
 
-    public DashboardController() {
-        ZkConfiguration conf = new ZkConfiguration();
-        zklcient = new ZkClient(conf.getZKServers(), conf.getZKTickTime(), conf.getZKTimeOut());
-        protocol = new InteractionProtocol(zklcient, conf);
+    @Inject
+    public DashboardController(ZkClient zklcient, InteractionProtocol protocol) {
+        this.zklcient = zklcient;
+        this.protocol = protocol;
     }
 
 
@@ -155,6 +158,9 @@ public class DashboardController {
     }
 
 
+    public List<String> getLiveNodes() {
+        return protocol.getLiveNodes();
+    }
 
     /**
      * RESTFull

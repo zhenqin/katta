@@ -4,7 +4,7 @@
 
   <groupId>com.ivyft.katta</groupId>
   <artifactId>katta</artifactId>
-  <version>1.6.8</version>
+  <version>1.6.9</version>
   <packaging>pom</packaging>
 
   <name>Katta Distributed Search Engine</name>
@@ -912,5 +912,23 @@
             </resource>
         </resources>
     </build>
+
+    <profiles>
+        <profile>
+            <!-- hadoop 2.5.0 -->
+            <id>hadoop-250</id>
+            <properties>
+                <hadoop.version>2.5.0</hadoop.version>
+            </properties>
+        </profile>
+
+        <profile>
+            <!-- hadoop 2.6.5 -->
+            <id>hadoop-265</id>
+            <properties>
+                <hadoop.version>2.6.5</hadoop.version>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>

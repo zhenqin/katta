@@ -1,5 +1,7 @@
 package com.ivyft.katta.ui.controller;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.ivyft.katta.ui.annaotion.Action;
 import com.ivyft.katta.ui.annaotion.Path;
 
@@ -23,7 +25,14 @@ import java.util.Map;
  * @author zhenqin
  */
 @Action
+@Singleton
 public class IndexController {
+
+
+
+    @Inject
+    public IndexController() {
+    }
 
     @Path("/")
     public String rootIndex(Map<String, Object> params, HttpServletRequest request, HttpServletResponse response) {

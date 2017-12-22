@@ -2,24 +2,26 @@ package com.ivyft.katta.ui;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.inject.*;
+import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.ui.annaotion.Action;
 import com.ivyft.katta.ui.annaotion.Path;
 import com.ivyft.katta.ui.handle.DynamicRequestServlet;
 import com.ivyft.katta.ui.utils.ClasspathPackageScanner;
+import com.ivyft.katta.util.ZkConfiguration;
+import org.I0Itec.zkclient.ZkClient;
 import org.mortbay.jetty.Server;
 import org.mortbay.jetty.handler.ContextHandler;
 import org.mortbay.jetty.handler.ResourceHandler;
 import org.mortbay.jetty.nio.SelectChannelConnector;
 import org.mortbay.jetty.servlet.ServletHandler;
 import org.mortbay.jetty.servlet.ServletHolder;
-import org.mortbay.resource.JarResource;
 import org.mortbay.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.reflect.Method;
-import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
@@ -37,7 +39,8 @@ import java.util.List;
  *
  * @author zhenqin
  */
-public class Booster {
+public class Booster implements Module {
+
 
     static Logger LOG = LoggerFactory.getLogger(Booster.class);
 
@@ -73,13 +76,28 @@ public class Booster {
     }
 
 
-    public String getHost() {
-        return host;
+
+    @Override
+    public void configure(Binder binder) {
+        binder.bind(ZkConfiguration.class).in(Scopes.SINGLETON);
     }
 
-    public int getPort() {
-        return port;
+    @Singleton
+    @Provides
+    public static ZkClient createKattaZkConf(ZkConfiguration config) {
+        return new ZkClient(config.getZKServers(),
+                config.getZKTickTime(),
+                config.getZKTimeOut());
     }
+
+
+    @Singleton
+    @Provides
+    public static InteractionProtocol createKattaProtocol(ZkClient zkClient,
+                                                          ZkConfiguration config) {
+        return new InteractionProtocol(zkClient, config);
+    }
+
 
     public void start() {
         Preconditions.checkState(srv == null,
@@ -115,6 +133,7 @@ public class Booster {
             contextHandler.setHandler(resourceHandler);
             srv.addHandler(contextHandler);
 
+            Injector injector = Guice.createInjector(this);
 
             ServletHandler handler = new ServletHandler();
             LOG.info("add rule: /");
@@ -128,7 +147,9 @@ public class Booster {
                 }
 
                 // 是 Action 类，需要增加
-                Object instance = aClass.newInstance();
+                //Object instance = aClass.newInstance();
+                LOG.info("add class " + s);
+                Object instance = injector.getInstance(aClass);
                 Method[] methods = aClass.getDeclaredMethods();
                 for (Method method : methods) {
                     Path annotation1 = method.getAnnotation(Path.class);
@@ -180,6 +201,13 @@ public class Booster {
         srv.join();
     }
 
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
 
 
     public static void main(String[] args) throws Exception {

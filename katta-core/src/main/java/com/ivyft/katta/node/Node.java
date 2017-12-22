@@ -225,10 +225,9 @@ public class Node implements ConnectedComponent {
         redeployInstalledShards();
 
 
+        int exportDataPort = _nodeConf.getInt(NodeConfiguration.EXPORT_SOCKET_PORT);
         //启动元信息
-        NodeMetaData nodeMetaData = new NodeMetaData(_nodeName);
-
-
+        NodeMetaData nodeMetaData = new NodeMetaData(_nodeName, exportDataPort);
         //在ZooKeeper中写入当前节点的启动信息
         NodeQueue nodeOperationQueue = _protocol.publishNode(this, nodeMetaData);
 

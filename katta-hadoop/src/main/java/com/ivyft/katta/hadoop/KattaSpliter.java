@@ -2,6 +2,7 @@ package com.ivyft.katta.hadoop;
 
 import com.ivyft.katta.protocol.InteractionProtocol;
 import com.ivyft.katta.protocol.metadata.IndexMetaData;
+import com.ivyft.katta.protocol.metadata.NodeMetaData;
 import com.ivyft.katta.protocol.metadata.Shard;
 import com.ivyft.katta.util.ZkConfiguration;
 import org.I0Itec.zkclient.ZkClient;
@@ -46,7 +47,7 @@ public class KattaSpliter {
             throw new IllegalArgumentException("indexes must not empty.");
         }
 
-        ZkClient zkClient = new ZkClient(configuration.get("zookeeper.servers", "localhost"),
+        ZkClient zkClient = new ZkClient(configuration.get(KattaInputFormat.ZOOKEEPER_SERVERS, "localhost:2181"),
                 configuration.getInt("zookeeper.tick-time", 6000),
                 configuration.getInt("zookeeper.timeout", 60000));
 
@@ -61,13 +62,7 @@ public class KattaSpliter {
             ZkConfiguration zkConf = new ZkConfiguration(prop, null);
             InteractionProtocol protocol = new InteractionProtocol(zkClient, zkConf);
 
-            List<String> selectIndex = null;
-            if(indexes.length == 1 && StringUtils.equals(indexes[0], "*")) {
-                selectIndex = protocol.getIndices();
-            } else {
-                selectIndex = Arrays.asList(indexes);
-            }
-
+            List<String> selectIndex = Arrays.asList(indexes);
             for(String index : selectIndex) {
                 IndexMetaData indexMetaData = protocol.getIndexMD(index);
                 if(indexMetaData == null) {
@@ -81,8 +76,11 @@ public class KattaSpliter {
                         throw new IllegalStateException(shard.getName() + " no node to install.");
                     }
                     String node = randomNode(installNodes);
+
+                    NodeMetaData nodeMD = protocol.getNodeMD(node);
+
                     KattaInputSplit split = new KattaInputSplit();
-                    split.setPort(KattaInputFormat.getSocketPort(configuration));
+                    split.setPort(nodeMD.getExportPort());
                     split.setKeyField(KattaInputFormat.getInputKey(configuration));
                     split.setQuery(KattaInputFormat.getInputQuery(configuration));
                     split.setLimit(KattaInputFormat.getLimit(configuration));
