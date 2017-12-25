@@ -13,13 +13,13 @@
     <dependencySets>
         <dependencySet>
             <useProjectArtifact>true</useProjectArtifact>
-            <outputDirectory>lib</outputDirectory>
+            <outputDirectory>katta-1.6.9/lib</outputDirectory>
             <unpack>false</unpack>
             <scope>compile</scope>
         </dependencySet>
         <dependencySet>
             <useProjectArtifact>true</useProjectArtifact>
-            <outputDirectory>lib</outputDirectory>
+            <outputDirectory>katta-1.6.9/lib</outputDirectory>
             <unpack>false</unpack>
             <scope>runtime</scope>
             <includes>
@@ -33,7 +33,7 @@
     <fileSets>
         <fileSet>
             <directory>../manual/bin</directory>
-            <outputDirectory>bin</outputDirectory>
+            <outputDirectory>katta-1.6.9/bin</outputDirectory>
             <includes>
                 <include>*</include>
             </includes>
@@ -41,7 +41,7 @@
         </fileSet>
         <fileSet>
             <directory>../data</directory>
-            <outputDirectory>data</outputDirectory>
+            <outputDirectory>katta-1.6.9/data</outputDirectory>
             <includes>
                 <include>solr/**</include>
                 <include>katta-shards</include>
@@ -49,7 +49,7 @@
         </fileSet>
         <fileSet>
             <directory>src/main/resources</directory>
-            <outputDirectory>conf</outputDirectory>
+            <outputDirectory>katta-1.6.9/conf</outputDirectory>
             <includes>
                 <include>*</include>
             </includes>
