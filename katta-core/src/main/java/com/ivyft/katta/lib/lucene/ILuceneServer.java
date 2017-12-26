@@ -39,6 +39,7 @@ import java.io.IOException;
  *
  * @author zhenqin
  */
+//@ProtocolInfo(protocolName = "katta-rpc", protocolVersion = ILuceneServer.versionID)
 public interface ILuceneServer extends VersionedProtocol {
 
 
@@ -48,6 +49,13 @@ public interface ILuceneServer extends VersionedProtocol {
     public final static long versionID = 1L;
 
 
+    /**
+     * 获取 shard 的字段信息
+     * @param shard
+     * @return
+     * @throws IOException
+     */
+    public FieldInfoWritable getFieldsInfo(String shard) throws IOException;
 
 
     /**

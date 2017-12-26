@@ -44,6 +44,7 @@
         <module>katta-hadoop</module>
         <module>katta-yarn</module>
         <module>katta-server</module>
+        <module>katta-presto</module>
         <module>katta-ui</module>
         <module>katta-assembly</module>
     </modules>

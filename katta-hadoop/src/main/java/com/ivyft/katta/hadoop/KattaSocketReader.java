@@ -19,6 +19,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 /**
@@ -160,6 +161,15 @@ public class KattaSocketReader {
             } catch (Exception e) {
                 log.warn("", e);
             }
+        } catch (EOFException e) {
+            // 说明对方没有数据输出
+            luceneResult = new LuceneResult();
+            luceneResult.setEnd(0);
+            luceneResult.setStart(0);
+            luceneResult.setTotal(0);
+            luceneResult.setDocs(new ArrayList<>());
+            _cursor = luceneResult.getDocs().iterator();
+            close();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -171,11 +181,15 @@ public class KattaSocketReader {
         // 当前_cursor已经没数据了
         if (!_cursor.hasNext()) {
             int total = Math.min(_split.getMaxDocs(), luceneResult.getTotal());
-            if(luceneResult.getEnd() >= total) {
-                // 接收完成，发送一个 OK 对象，服务器端会退出
+            if(socket.isClosed()) {
+                return false;
+            }
+            if(luceneResult.getEnd() >= total || luceneResult.getTotal() == 0) {
+                // 接收完成，或者服务端没有数据，发送一个 OK 对象，服务器端会退出
                 outputStream.writeObject(new OK());
                 return false;
             }
+
             // end 小于 total，则说明远程还有数据，需要继续读取
             next = true;
             // 进入下面的if说明远程也没了
