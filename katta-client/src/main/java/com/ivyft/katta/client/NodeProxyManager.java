@@ -53,7 +53,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author zhenqin
  */
-public class NodeProxyManager implements INodeProxyManager {
+public class NodeProxyManager<T extends VersionedProtocol> implements INodeProxyManager<T> {
 
 
     /**
@@ -97,7 +97,7 @@ public class NodeProxyManager implements INodeProxyManager {
      * @param hadoopConf
      * @param selectionPolicy
      */
-    public NodeProxyManager(Class<? extends VersionedProtocol> serverClass, Configuration hadoopConf,
+    public NodeProxyManager(Class<T> serverClass, Configuration hadoopConf,
                             INodeSelectionPolicy selectionPolicy) {
         this.serverClass = serverClass;
         this.hadoopConf = hadoopConf;
@@ -113,7 +113,7 @@ public class NodeProxyManager implements INodeProxyManager {
      * @return 返回创建的连接
      */
     @Override
-    public synchronized VersionedProtocol getProxy(String nodeName, boolean establishIfNoExists) {
+    public synchronized T getProxy(String nodeName, boolean establishIfNoExists) {
         VersionedProtocol versionedProtocol = node2ProxyMap.get(nodeName);
         if (versionedProtocol == null && establishIfNoExists) {
             try {
@@ -122,9 +122,10 @@ public class NodeProxyManager implements INodeProxyManager {
             } catch (Exception e) {
                 log.warn("Could not create proxy for node '" + nodeName + "' - " + e.getClass().getSimpleName() + ": "
                         + e.getMessage());
+                throw new IllegalStateException(e);
             }
         }
-        return versionedProtocol;
+        return (T)versionedProtocol;
     }
 
     @Override
