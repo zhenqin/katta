@@ -185,10 +185,13 @@ public class SolrDocumentSerde extends AbstractSerDe {
      */
     public Object getStructVal(Writable writable) {
         Object value = null;
-        if(writable instanceof ArrayWritable) {
+        if(writable instanceof Text){
+            return ((Text)writable).toString();
+        } else if(writable instanceof ArrayWritable) {
             Writable[] writables = ((ArrayWritable) writable).get();
             ArrayList<Object> innerRow = new ArrayList<Object>(columnNames.size());
             for (Writable writable1 : writables) {
+                // 递归获取数组里每一个值
                 innerRow.add(getStructVal(writable1));
             }
 
@@ -198,10 +201,9 @@ public class SolrDocumentSerde extends AbstractSerDe {
                 Method get = writable.getClass().getDeclaredMethod("get");
                 return get.invoke(writable);
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new IllegalArgumentException(e);
             }
         }
-        return value;
     }
 
 

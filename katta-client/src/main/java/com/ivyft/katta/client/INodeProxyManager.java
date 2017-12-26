@@ -37,7 +37,7 @@ import java.util.Map;
  *
  * @author zhenqin
  */
-public interface INodeProxyManager {
+public interface INodeProxyManager<T extends VersionedProtocol> {
 
     /**
      * Get the dynamic proxy for a node. Methods invoked on this object will be
@@ -47,7 +47,7 @@ public interface INodeProxyManager {
      * @param establishIfNoExists
      * @return a dynamic proxy standing in for the node.
      */
-    public VersionedProtocol getProxy(String node, boolean establishIfNoExists);
+    public T getProxy(String node, boolean establishIfNoExists);
 
     /**
      * Notifies the proxy-manager that a a proxy invocation failed.

@@ -4,9 +4,9 @@ import com.ivyft.katta.hadoop.KattaInputSplit;
 import com.ivyft.katta.hadoop.KattaSocketReader;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.solr.common.SolrDocument;
 
@@ -39,7 +39,7 @@ public class KattaMr1RecordReader implements RecordReader<Text, MapWritable> {
 
 
 
-    public KattaMr1RecordReader(InputSplit split, JobConf job) throws IOException {
+    public KattaMr1RecordReader(InputSplit split, Configuration conf) throws IOException {
         this.in = new KattaSocketReader((KattaInputSplit) split);
         this.in.initialize((KattaInputSplit) split);
     }

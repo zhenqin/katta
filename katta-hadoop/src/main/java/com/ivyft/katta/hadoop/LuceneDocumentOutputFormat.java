@@ -82,5 +82,5 @@ public class LuceneDocumentOutputFormat<K> extends FileOutputFormat<K, Document>
             // 完成索引优化，关闭IndexWriter的对象
             lw.close();
         }
-    };
+    }
 }
