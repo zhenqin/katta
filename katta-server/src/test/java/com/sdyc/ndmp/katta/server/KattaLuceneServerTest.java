@@ -101,8 +101,8 @@ public class KattaLuceneServerTest {
         query.setRows(20);
 
         KattaReader reader = KattaReader.getSingleKattaInstance(new String[]{shard},
-                query, "localhost", 5881,
-                "USER_ID", 10,
+                query, "localhost", 5880,
+                "USER_ID", 10, 0, 52,
                 Executors.newScheduledThreadPool(5));
 
         final AtomicInteger counter = new AtomicInteger(0);
