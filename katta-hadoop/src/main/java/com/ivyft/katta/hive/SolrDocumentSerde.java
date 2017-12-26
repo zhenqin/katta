@@ -136,6 +136,18 @@ public class SolrDocumentSerde extends AbstractSerDe {
     }
 
 
+    public List<String> getColumnNames() {
+        return columnNames;
+    }
+
+    public List<String> getCopyColumnNames() {
+        return copyColumnNames;
+    }
+
+    public List<TypeInfo> getColumnTypes() {
+        return columnTypes;
+    }
+
     @Override
     public Class<? extends Writable> getSerializedClass() {
         return MapWritable.class;
