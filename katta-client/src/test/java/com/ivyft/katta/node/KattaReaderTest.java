@@ -27,7 +27,7 @@ public class KattaReaderTest {
 
     @Test
     public void testKattaReader() throws Exception {
-        SolrQuery query = new SolrQuery("*:*");
+        SolrQuery query = new SolrQuery("USER_FOLLOWINGS:0");
         query.setStart(60);
         query.setRows(20);
 

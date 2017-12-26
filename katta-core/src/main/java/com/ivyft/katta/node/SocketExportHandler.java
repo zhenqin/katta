@@ -264,6 +264,22 @@ public class SocketExportHandler implements Runnable {
                 final int offset = next.getStart();
                 final int maxLength = topDocs.scoreDocs.length;
                 log.info(next.toString());
+
+                if(!more) {
+                    //没有搜索到数据, 发送一个空的数据集
+                    LuceneResult result = new LuceneResult();
+                    result.setDocs(new ArrayList<>());
+                    result.setLimit(next.getLimit());
+                    result.setStart(offset);
+                    result.setEnd(0);
+                    result.setTotal(maxLength);
+                    result.setMaxScore(0f);
+                    result.write(outputStream);
+                    //输出给客户端
+                    outputStream.flush();
+                }
+
+                // 有数据，循环读取从这里开始
                 int i = offset;
                 while (more){
                     final int start = i;

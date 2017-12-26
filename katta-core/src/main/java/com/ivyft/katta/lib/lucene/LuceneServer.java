@@ -51,6 +51,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.request.LocalSolrQueryRequest;
+import org.apache.solr.schema.SchemaField;
 import org.apache.solr.search.SyntaxError;
 import org.apache.solr.util.SolrPluginUtils;
 import org.slf4j.Logger;
@@ -836,6 +837,35 @@ public class LuceneServer implements IContentServer, ILuceneServer, IndexUpdateL
         }
         //发现总数
         result.addTotalHits(totalHits.get());
+    }
+
+
+    /**
+     * 获取 shard 字段信息
+     * @param shard
+     * @return
+     * @throws IOException
+     */
+    @Override
+    public FieldInfoWritable getFieldsInfo(String shard) throws IOException {
+        SolrHandler handler = shardBySolrPath.get(shard);
+        Map<String, SchemaField> fields = handler.getSolrCore().getLatestSchema().getFields();
+
+        List<List<Object>> result = new ArrayList<>();
+        for (Map.Entry<String, SchemaField> entry : fields.entrySet()) {
+            List<Object> list = new ArrayList<>(6);
+            SchemaField value = entry.getValue();
+            list.add(entry.getKey());
+            list.add(value.getType().getTypeName());
+            list.add(value.isRequired());
+            list.add(value.multiValued());
+            list.add(value.indexed());
+            list.add(value.stored());
+
+            result.add(list);
+        }
+
+        return new FieldInfoWritable(shard, result);
     }
 
 

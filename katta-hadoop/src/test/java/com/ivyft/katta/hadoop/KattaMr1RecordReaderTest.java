@@ -39,7 +39,8 @@ public class KattaMr1RecordReaderTest {
 
     @Before
     public void setUp() throws Exception {
-        SolrQuery query = new SolrQuery("USER_FOLLOWINGS:0");
+        // USER_ID:1707462091   USER_FOLLOWINGS:0
+        SolrQuery query = new SolrQuery("USER_ID:1707462091");
         query.setStart(60);
         query.setRows(20);
 
@@ -54,7 +55,7 @@ public class KattaMr1RecordReaderTest {
 
     @Test
     public void testRead() throws Exception {
-        KattaMr1RecordReader reader = new KattaMr1RecordReader(splits.get(0), conf);
+        KattaMr1RecordReader reader = new KattaMr1RecordReader(splits.get(1), conf);
         Text key = reader.createKey();
         MapWritable value = reader.createValue();
         while (reader.next(key, value)) {

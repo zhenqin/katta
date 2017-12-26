@@ -640,7 +640,7 @@ public class ShardManager {
      * @param analysisClass class
      * @return 返回 Analyzer 实例对象
      */
-    protected Analyzer getAnalyzer(Class<? extends Analyzer> analysisClass) {
+    public static Analyzer getAnalyzer(Class<? extends Analyzer> analysisClass) {
         Constructor<? extends Analyzer> constructor;
         try {
             constructor = analysisClass.getDeclaredConstructor();
@@ -648,7 +648,7 @@ public class ShardManager {
         } catch (Exception e) {
             try {
                 constructor = analysisClass.getDeclaredConstructor(Version.class);
-                return constructor.newInstance(Version.LUCENE_CURRENT);
+                return constructor.newInstance(Version.LUCENE_46);
             } catch (Exception e1) {
 
             }
@@ -669,11 +669,17 @@ public class ShardManager {
         try {
             final FileSystem fileSystem = HadoopUtil.getFileSystem(shardPath);
             if (fileSystem.isDirectory(shardPath)) {
+                /*
                 FileStatus[] statuses = fileSystem.listStatus(shardPath, new PathFilter() {
                     @Override
                     public boolean accept(Path path) {
                         return !path.getName().startsWith(".") && path.getName().endsWith(".dat");
                     }
+                });
+                */
+
+                FileStatus[] statuses = fileSystem.listStatus(shardPath, (path) -> {
+                    return !path.getName().startsWith(".") && path.getName().endsWith(".dat");
                 });
 
                 if(statuses != null) {
