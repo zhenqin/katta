@@ -58,6 +58,7 @@ public class KattaClientModule implements Module {
         hadoopConf.set("hadoop.rpc.socket.factory.class.default", KattaSocketFactory.class.getName());
         hadoopConf.setInt("katta.input.batch-size", config.getBatchSize());
         hadoopConf.setInt("katta.input.limit", config.getBatchSize());
+        hadoopConf.set("zookeeper.servers", config.getZookeeperServers());
         return hadoopConf;
     }
 
