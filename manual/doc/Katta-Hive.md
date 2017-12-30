@@ -2,6 +2,27 @@
 
 > 目前已经提供了 Katta-Hive 的支持，鉴于 HiveSQL 执行的 HQL 并非实时的，因此不能用于实时检索的场景。但是，部分报表等可以使用 HQL 的方式直接提供。
 
+Hive Katta 驱动(依赖的 jars)的安装：
+
+解压 Katta-${version}.tar.gz 在 home （lib）下找到如下几个 lib，把它们 copy 到 hive 的 lib/ 下：
+
+1. katta-core-1.7.0.jar
+2. katta-hadoop-1.7.0.jar
+3. noggit-0.5.jar
+4. solr-solrj-4.7.2.jar
+5. zkclient-0.10.jar
+6. zookeeper-3.4.6.jar
+7. avro-1.7.7.jar
+
+并编辑 hive-site.xml 添加如下的配置：
+
+```
+<property>
+        <name>hive.aux.jars.path</name> 
+        <value>file:///usr/local/hive/lib/avro-1.7.7.jar,file:///usr/local/hive/lib/katta-core-1.7.0.jar,file:///usr/local/hive/lib/katta-hadoop-1.7.0.jar,file:///usr/local/hive/lib/zookeeper-3.4.6.jar,file:///usr/local/hive/lib/zkclient-0.10.jar,file://usr/local/hive/lib/solr-solrj-4.7.2.jar,file:///usr/local/hive/lib/noggit-0.5.jar</value>
+</property>
+```
+
 Hive-Katta 创建外部表 DDL：
 
 ```
@@ -79,3 +100,5 @@ OK
 762
 Time taken: 21.521 seconds, Fetched: 1 row(s)
 ```
+
+
