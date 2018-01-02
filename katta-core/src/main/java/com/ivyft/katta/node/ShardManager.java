@@ -27,7 +27,6 @@ import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.util.Version;
@@ -539,13 +538,13 @@ public class ShardManager {
                 }
 
                 LuceneIndexMergeManager mergeManager =
-                        new LuceneIndexMergeManager(localShardFolder,
+                        new LuceneIndexMergeManager(localShardFolder.toURI(),
                                 null,
                                 shardName,
                                 updateListener, getAnalyzer());
                 try {
                     LOG.info(localShardFolder.getAbsolutePath() + " add index path " + shardTmpFolder.getName());
-                    mergeManager.mergeIndex(shardTmpFolder);
+                    mergeManager.mergeIndex(shardTmpFolder.toURI(), false);
 
 
                     mergeManager.optimize(5);
@@ -594,7 +593,7 @@ public class ShardManager {
         File localShardFolder = getShardFolder(shardName);
         File shardIndexPath = getShardTmpPath(shardName);
         LuceneIndexMergeManager mergeManager =
-                new LuceneIndexMergeManager(localShardFolder, indexName, shardName, updateListener, getAnalyzer());
+                new LuceneIndexMergeManager(localShardFolder.toURI(), indexName, shardName, updateListener, getAnalyzer());
 
         try {
             DocumentFactory documentFactory = documentFactoryClass.newInstance().build(indexName, shardName);

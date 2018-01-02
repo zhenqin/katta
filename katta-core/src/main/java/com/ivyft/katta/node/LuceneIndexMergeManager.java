@@ -1,5 +1,10 @@
 package com.ivyft.katta.node;
 
+import com.ivyft.katta.util.HadoopUtil;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -8,14 +13,17 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.apache.solr.store.hdfs.HdfsDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -45,7 +53,7 @@ public class LuceneIndexMergeManager implements Closeable {
     /**
      * Lucene 索引
      */
-    protected final File indexPath;
+    protected final URI indexPath;
 
 
     /**
@@ -96,7 +104,7 @@ public class LuceneIndexMergeManager implements Closeable {
 
 
 
-    public LuceneIndexMergeManager(File indexPath,
+    public LuceneIndexMergeManager(URI indexPath,
                                    String indexName,
                                    String shardName,
                                    IndexUpdateListener updateListener) {
@@ -105,7 +113,7 @@ public class LuceneIndexMergeManager implements Closeable {
 
 
 
-    public LuceneIndexMergeManager(File indexPath,
+    public LuceneIndexMergeManager(URI indexPath,
                                    String indexName,
                                    String shardName,
                                    IndexUpdateListener updateListener,
@@ -114,10 +122,21 @@ public class LuceneIndexMergeManager implements Closeable {
         this.indexName = indexName;
         this.shardName = shardName;
         this.updateListener = updateListener;
+        String scheme = indexPath.getScheme() == null ? "file" : indexPath.getScheme();
+        Directory directory = null;
         try {
-            FSDirectory open = FSDirectory.open(indexPath);
-
-            masterIndexWriter = new IndexWriter(open, new IndexWriterConfig(Version.LUCENE_46, analyzer));
+            if (StringUtils.equals(ShardManager.HDFS, scheme)) {
+                LOG.info("open hdfs index: " + indexPath.toString());
+                Configuration hadoopConf = HadoopUtil.getHadoopConf();
+                directory = new HdfsDirectory(new Path(indexPath), hadoopConf);
+                masterIndexWriter = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_46, analyzer));
+            } else if (StringUtils.equals(ShardManager.FILE, scheme)) {
+                LOG.info("open file index: " + indexPath.toString());
+                directory = FSDirectory.open(new File(indexPath));
+                masterIndexWriter = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_46, analyzer));
+            } else {
+                throw new IllegalStateException("unknow schema " + scheme + " and path: " + indexPath.toString());
+            }
 
             indexSearcher = new IndexSearcher(DirectoryReader.open(masterIndexWriter, true));
         } catch (IOException e) {
@@ -129,26 +148,51 @@ public class LuceneIndexMergeManager implements Closeable {
     /**
      * 把 shardFolder 合并到主索引库
      * @param shardFolder 临时索引库
+     * @param mergedDelete 合并完成后，是否删除该 shardFolder
      * @throws IOException
      */
-    public void mergeIndex(File shardFolder) throws IOException {
-        LOG.info("deleted success, {} docs count {}", indexPath.getName(), masterIndexWriter.numDocs());
-        LOG.info("merge index {} to {}", shardFolder.getName(), indexPath.getName());
-        FSDirectory open = FSDirectory.open(shardFolder);
+    public void mergeIndex(URI shardFolder, boolean mergedDelete) throws IOException {
+        LOG.info("index {} docs count {}", indexName, masterIndexWriter.numDocs());
+        String scheme = shardFolder.getScheme() == null ? "file" : shardFolder.getScheme();
+        Directory directory = null;
         try {
-            masterIndexWriter.addIndexes(open);
-            LOG.info("merged success, {} num docs {}", indexPath.getName(), masterIndexWriter.numDocs());
+            if (StringUtils.equals(ShardManager.HDFS, scheme)) {
+                LOG.info("merge hdfs index: {} to {}", shardFolder.toString(), indexName);
+                Configuration hadoopConf = HadoopUtil.getHadoopConf();
+                directory = new HdfsDirectory(new Path(shardFolder), hadoopConf);
+            } else if (StringUtils.equals(ShardManager.FILE, scheme)) {
+                LOG.info("merge file index: {} to {} ", shardFolder.getPath(), indexName);
+                directory = FSDirectory.open(new File(shardFolder.getPath()));
+            } else {
+                throw new IllegalStateException("unknow schema " + scheme + " and path: " + indexPath.toString());
+            }
+
+            masterIndexWriter.addIndexes(directory);
+            LOG.info("merged success, {} num docs {}", indexName, masterIndexWriter.numDocs());
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         } finally {
-            open.close();
+            if(directory != null) {
+                directory.close();
+            }
         }
 
         //写一个标志文件，表示索引已经被改变了。
-        File file = new File(indexPath, WRITED_DATA_FILE);
-        if(!file.exists()) {
-            file.createNewFile();
+        Path path = new Path(new Path(indexPath), WRITED_DATA_FILE);
+        FileSystem fs = HadoopUtil.getFileSystem(path);
+
+        if(!fs.exists(path)) {
+            fs.createNewFile(path);
         }
 
-        file.setLastModified(System.currentTimeMillis());
+        fs.getFileStatus(path);
+        fs.setTimes(path, System.currentTimeMillis(), System.currentTimeMillis());
+
+        // 合并完成后删除 shard
+        if(mergedDelete) {
+            LOG.warn("delete folder {}", shardFolder.getPath());
+            fs.delete(new Path(shardFolder), true);
+        }
     }
 
 
@@ -231,7 +275,7 @@ public class LuceneIndexMergeManager implements Closeable {
      * @throws IOException
      */
     public void commitAndDelete() throws IOException {
-        LOG.info("{} docs count {}", indexPath.getName(), masterIndexWriter.numDocs());
+        LOG.info("{} docs count {}", indexName, masterIndexWriter.numDocs());
         if(deleteDocsCouter.get() > 0 || addDocsCouter.get() > 0) {
             LOG.info("delete num docs {}, add num doc {}, and commit.", deleteDocsCouter.get(), addDocsCouter.get());
             masterIndexWriter.commit();
@@ -243,12 +287,15 @@ public class LuceneIndexMergeManager implements Closeable {
         }
 
         //写一个标志文件，表示索引已经被改变了。
-        File file = new File(indexPath, WRITED_DATA_FILE);
-        if(!file.exists()) {
-            file.createNewFile();
+        Path path = new Path(new Path(indexPath), WRITED_DATA_FILE);
+        FileSystem fs = HadoopUtil.getFileSystem(path);
+
+        if(!fs.exists(path)) {
+            fs.createNewFile(path);
         }
 
-        file.setLastModified(System.currentTimeMillis());
+        fs.getFileStatus(path);
+        fs.setTimes(path, System.currentTimeMillis(), System.currentTimeMillis());
     }
 
 
@@ -262,7 +309,7 @@ public class LuceneIndexMergeManager implements Closeable {
         int num = masterIndexWriter.numDocs();
         seg = seg + (num / 300000);
 
-        masterIndexWriter.forceMerge(seg, false);
+        masterIndexWriter.forceMerge(seg, true);
     }
 
 
@@ -282,7 +329,7 @@ public class LuceneIndexMergeManager implements Closeable {
         }
 
         if(masterIndexWriter != null) {
-            LOG.info("close index writer " + indexPath.getName());
+            LOG.info("close index writer " + indexName);
             masterIndexWriter.close(true);
         }
 

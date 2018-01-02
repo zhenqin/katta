@@ -64,7 +64,8 @@ public class LuceneDocumentOutputFormat<K> extends FileOutputFormat<K, Document>
         public LuceneDocumentWriter(JobContext job) {
             // 完成索引前的配置工作
             try {
-                lw.open(job);
+                // 修改，更具有通用性
+                lw.open(job.getConfiguration());
             } catch (IOException e) {
                 throw new IllegalArgumentException(e);
             }

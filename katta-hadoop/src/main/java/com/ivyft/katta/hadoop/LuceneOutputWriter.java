@@ -1,6 +1,7 @@
 package com.ivyft.katta.hadoop;
 
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -16,7 +17,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
@@ -45,7 +45,7 @@ import java.util.Date;
  *
  * @author zhenqin
  */
-public class LuceneOutputWriter {
+public class LuceneOutputWriter implements Closeable {
 
 
     private final AtomicInteger commitInt = new AtomicInteger(0);
@@ -117,10 +117,24 @@ public class LuceneOutputWriter {
     }
 
 
+    /**
+     * get FileOutputFormat 的 outDir， Copy from FileOutputFormat.getOutputPath
+     * @param conf
+     * @return
+     */
+    public static Path getOutputPath(Configuration conf) {
+        String name = conf.get(FileOutputFormat.OUTDIR);
+        return name == null ? null: new Path(name);
+    }
 
 
-    public void open(JobContext job) throws IOException {
-        this.configuration = job.getConfiguration();
+    /**
+     * 更改 open 方法参数为 Hadoop conf, 使 api 更具通用性。
+     * @param conf Hadoop Configuration
+     * @throws IOException
+     */
+    public void open(Configuration conf) throws IOException {
+        this.configuration = conf;
         this.fs = FileSystem.get(this.configuration);
         this.commitCount = this.configuration.getInt(LuceneDocumentOutputFormat.LUCENE_COMMIT_COUNTER, 10000);
 
@@ -134,7 +148,7 @@ public class LuceneOutputWriter {
             throw new IOException(temp.getAbsolutePath() + " can not create.");
         }
 
-        outputPath = FileOutputFormat.getOutputPath(job);
+        outputPath = getOutputPath(conf);
         LOG.info("output path " + outputPath);
 
 
@@ -237,9 +251,10 @@ public class LuceneOutputWriter {
 
 
     /**
-     * 关闭IndexWriter
+     * 关闭IndexWriter, 继承自 Closeable
      * @throws IOException
      */
+    @Override
     public void close() throws IOException {
         LOG.info("a job success. commit and shutdown");
         if (commitInt.get() >= 0) {
