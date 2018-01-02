@@ -1154,6 +1154,9 @@ public class Katta {
         CreateIndex createIndex = new CreateIndex();
         commands.put(createIndex.getCommand(), createIndex);
 
+        MergeIndex mergeIndex = new MergeIndex();
+        commands.put(mergeIndex.getCommand(), mergeIndex);
+
 
         commands.put(ADD_INDEX_COMMAND.getCommand(), ADD_INDEX_COMMAND);
         commands.put(ADD_SHARD_COMMAND.getCommand(), ADD_SHARD_COMMAND);
