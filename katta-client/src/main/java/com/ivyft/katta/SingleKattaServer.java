@@ -93,6 +93,7 @@ public class SingleKattaServer extends Command {
     public Options getOpts() {
         Options options = new Options();
         options.addOption("p", true, "port number");
+        options.addOption("config", "config", true, "node server class, ? implements ILuceneServer");
         options.addOption("s", false, "print exception");
         return options;
     }
