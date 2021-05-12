@@ -23,7 +23,7 @@
         <hadoop.version>2.6.5</hadoop.version>
         <zookeeper.version>3.4.6</zookeeper.version>
         <lucene.version>4.6.1</lucene.version>
-        <solr.version>4.6.1</solr.version>
+        <solr.version>8.8.2</solr.version>
         <avro.version>1.7.7</avro.version>
         <zkclient.version>0.10</zkclient.version>
 
